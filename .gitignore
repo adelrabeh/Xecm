@@ -1,0 +1,44 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.DotSettings
+TestResults/
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+# Environment & Secrets
+appsettings.Development.json
+appsettings.Production.json
+*.env
+.env*
+secrets.json
+
+# Storage & Logs
+storage/
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Packages (keep lock files)
+packages/
+
+# Migrations (generated — exclude from source control in this repo)
+**/Migrations/
+
+# Build outputs
+publish/

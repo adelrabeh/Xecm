@@ -1,0 +1,93 @@
+# ============================================================
+# docker-compose.yml — DARAH ECM Development Environment
+# ============================================================
+version: '3.9'
+
+services:
+
+  # ── SQL Server ────────────────────────────────────────────
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ecm_sqlserver
+    environment:
+      SA_PASSWORD: "ECM_Dev@2026!"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./sql/DARAH_ECM_Schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'ECM_Dev@2026!' -Q 'SELECT 1' || exit 1"]
+      interval: 15s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── Redis Cache ───────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ecm_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+
+  # ── Backend API ───────────────────────────────────────────
+  api:
+    build:
+      context: ./src
+      dockerfile: API/Dockerfile
+    container_name: ecm_api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=DARAH_ECM;User Id=sa;Password=ECM_Dev@2026!;TrustServerCertificate=True;"
+      ConnectionStrings__Redis: "redis:6379"
+      Jwt__SecretKey: "dev-only-key-change-in-production-32chars+"
+      Jwt__Issuer: "darah.ecm.api"
+      Jwt__Audience: "darah.ecm.client"
+      Storage__LocalPath: "/app/storage"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ecm_storage:/app/storage
+      - ecm_logs:/app/logs
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend (React/Vite) ─────────────────────────────────
+  frontend:
+    build:
+      context: ./src/Darah.ECM.Web
+      dockerfile: Dockerfile
+    container_name: ecm_frontend
+    environment:
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  sqlserver_data:
+  redis_data:
+  ecm_storage:
+  ecm_logs:
+
+networks:
+  default:
+    name: ecm_network

@@ -1,205 +1,173 @@
-name: DARAH ECM — CI/CD Pipeline
+name: DARAH ECM — Hardened CI/CD
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, "release/*"]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 env:
   DOTNET_VERSION: '8.0.x'
   BUILD_CONFIGURATION: Release
-  SOLUTION_PATH: './src/Darah.ECM.sln'
 
 jobs:
-  # ─────────────────────────────────────────────────────────────
-  # JOB 1: BUILD & TEST
-  # ─────────────────────────────────────────────────────────────
   build-and-test:
-    name: Build & Unit Test
+    name: Build & Tests
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET ${{ env.DOTNET_VERSION }}
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Cache NuGet packages
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '${{ env.DOTNET_VERSION }}' }
+      - name: Cache NuGet
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: ${{ runner.os }}-nuget-
-
-      - name: Restore dependencies
-        run: dotnet restore ${{ env.SOLUTION_PATH }}
-
-      - name: Build solution
-        run: dotnet build ${{ env.SOLUTION_PATH }}
-          --configuration ${{ env.BUILD_CONFIGURATION }}
-          --no-restore
-
-      - name: Run unit tests
+      - run: dotnet restore
+      - run: dotnet build --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+      - name: Unit Tests
         run: |
-          dotnet test tests/Darah.ECM.UnitTests/Darah.ECM.UnitTests.csproj \
-            --configuration ${{ env.BUILD_CONFIGURATION }} \
-            --no-build \
-            --logger trx \
-            --results-directory ./test-results \
+          dotnet test tests/Darah.ECM.UnitTests/ \
+            --configuration ${{ env.BUILD_CONFIGURATION }} --no-build \
+            --logger trx --results-directory ./test-results/unit \
             --collect:"XPlat Code Coverage"
-
+      - name: Integration Tests
+        run: |
+          dotnet test tests/Darah.ECM.IntegrationTests/ \
+            --configuration ${{ env.BUILD_CONFIGURATION }} --no-build \
+            --logger trx --results-directory ./test-results/integration
       - name: Publish test results
         uses: dorny/test-reporter@v1
         if: always()
         with:
-          name: Unit Test Results
-          path: './test-results/*.trx'
+          name: Test Results
+          path: './test-results/**/*.trx'
           reporter: dotnet-trx
-
-      - name: Upload coverage report
+      - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
-          files: ./test-results/**/coverage.cobertura.xml
+          files: ./test-results/**/*.cobertura.xml
           fail_ci_if_error: false
 
-  # ─────────────────────────────────────────────────────────────
-  # JOB 2: SECURITY SCAN
-  # ─────────────────────────────────────────────────────────────
-  security-scan:
-    name: Security Scan
+  sast:
+    name: SAST (CodeQL)
     runs-on: ubuntu-latest
     needs: build-and-test
-
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - uses: github/codeql-action/init@v3
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          languages: csharp
+          queries: security-and-quality
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '${{ env.DOTNET_VERSION }}' }
+      - run: dotnet build --configuration ${{ env.BUILD_CONFIGURATION }}
+      - uses: github/codeql-action/analyze@v3
+        with: { category: "/language:csharp" }
 
-      - name: Install security scanner
-        run: dotnet tool install --global security-scan
-
-      - name: Run dependency vulnerability check
-        run: dotnet list package --vulnerable --include-transitive 2>&1 | tee vuln-report.txt
-
-      - name: Fail if critical vulnerabilities found
-        run: |
-          if grep -q "Critical" vuln-report.txt; then
-            echo "Critical vulnerabilities found!"
-            cat vuln-report.txt
-            exit 1
-          fi
-
-  # ─────────────────────────────────────────────────────────────
-  # JOB 3: PUBLISH ARTIFACTS
-  # ─────────────────────────────────────────────────────────────
-  publish:
-    name: Publish Artifacts
+  dependency-scan:
+    name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
-    needs: [build-and-test, security-scan]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-
+    needs: build-and-test
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Restore
-        run: dotnet restore ${{ env.SOLUTION_PATH }}
-
-      - name: Publish API
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '${{ env.DOTNET_VERSION }}' }
+      - run: dotnet restore
+      - name: Check vulnerabilities
+        id: vuln
         run: |
-          dotnet publish src/Darah.ECM.API/Darah.ECM.API.csproj \
-            --configuration ${{ env.BUILD_CONFIGURATION }} \
-            --output ./publish/api \
-            --no-restore
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee vuln-report.txt
+          if grep -q "Critical\|High" vuln-report.txt; then
+            echo "FOUND=true" >> $GITHUB_OUTPUT
+            echo "::error::Critical/High vulnerabilities detected!" && cat vuln-report.txt
+          else
+            echo "FOUND=false" >> $GITHUB_OUTPUT
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vuln-report
+          path: vuln-report.txt
+      - name: Block on critical
+        if: steps.vuln.outputs.FOUND == 'true'
+        run: exit 1
 
-      - name: Upload API artifact
-        uses: actions/upload-artifact@v4
+  validate-config:
+    name: Config Security Validation
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - name: No secrets in config files
+        run: |
+          FOUND=0
+          for f in $(find . -name "appsettings*.json" -not -path "*/bin/*" -not -path "*/obj/*"); do
+            if grep -iE "(password|secret|key)\s*:\s*\"[A-Za-z0-9+/]{12,}" "$f" | grep -v "YOUR_\|CHANGE_\|PLACEHOLDER"; then
+              echo "::error file=$f::Possible hardcoded secret!"; FOUND=1
+            fi
+          done
+          exit $FOUND
+
+  publish:
+    name: Publish Artifact
+    runs-on: ubuntu-latest
+    needs: [build-and-test, sast, dependency-scan, validate-config]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '${{ env.DOTNET_VERSION }}' }
+      - run: dotnet publish src/Darah.ECM.API/ -c ${{ env.BUILD_CONFIGURATION }} -o ./publish/api
+      - name: Build manifest
+        run: |
+          echo "{\"build\":\"${{ github.run_id }}\",\"commit\":\"${{ github.sha }}\",\"branch\":\"${{ github.ref_name }}\"}" \
+            > ./publish/api/build-manifest.json
+      - uses: actions/upload-artifact@v4
         with:
           name: ecm-api-${{ github.sha }}
           path: ./publish/api
           retention-days: 30
 
-  # ─────────────────────────────────────────────────────────────
-  # JOB 4: DEPLOY TO TEST ENVIRONMENT
-  # ─────────────────────────────────────────────────────────────
   deploy-test:
-    name: Deploy to TEST
+    name: Deploy → TEST
     runs-on: ubuntu-latest
     needs: publish
     if: github.ref == 'refs/heads/develop'
-    environment: test
-
+    environment:
+      name: test
+      url: https://ecm-test.darah.gov.sa/health
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ecm-api-${{ github.sha }}
-          path: ./publish/api
+      - uses: actions/download-artifact@v4
+        with: { name: 'ecm-api-${{ github.sha }}', path: ./publish/api }
+      - run: echo "Deploying ${{ github.sha }} to TEST"
+      - name: Health check
+        run: curl -f --retry 5 --retry-delay 10 https://ecm-test.darah.gov.sa/health || exit 1
 
-      - name: Deploy to TEST server (IIS via WebDeploy)
-        run: |
-          echo "Deploying to TEST environment..."
-          # msdeploy -verb:sync -source:package=api.zip -dest:auto,computerName=${{ secrets.TEST_SERVER }},username=${{ secrets.TEST_USER }},password=${{ secrets.TEST_PASS }}
-          echo "Deployment complete. Version: ${{ github.sha }}"
-
-      - name: Health check after deploy
-        run: |
-          sleep 15
-          curl -f https://ecm-test.darah.gov.sa/health || exit 1
-
-  # ─────────────────────────────────────────────────────────────
-  # JOB 5: DEPLOY TO PRODUCTION
-  # ─────────────────────────────────────────────────────────────
   deploy-prod:
-    name: Deploy to PRODUCTION
+    name: Deploy → PRODUCTION
     runs-on: ubuntu-latest
     needs: publish
     if: github.ref == 'refs/heads/main'
-    environment: production     # Requires manual approval in GitHub
-
+    environment:
+      name: production
+      url: https://ecm.darah.gov.sa/health
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ecm-api-${{ github.sha }}
-          path: ./publish/api
-
-      - name: Create deployment record
-        run: |
-          echo "Deploying version ${{ github.sha }} to PRODUCTION"
-          echo "Triggered by: ${{ github.actor }}"
-          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
-      - name: Deploy to PRODUCTION (Blue-Green)
-        run: |
-          echo "Deploying to PRODUCTION (Blue-Green)..."
-          # Switch traffic after successful health check
-          echo "Production deployment complete."
-
+      - uses: actions/download-artifact@v4
+        with: { name: 'ecm-api-${{ github.sha }}', path: ./publish/api }
+      - run: |
+          echo "=== PRODUCTION DEPLOYMENT ==="
+          echo "Commit: ${{ github.sha }} | Actor: ${{ github.actor }}"
+      - run: echo "Deploying to PRODUCTION..."
       - name: Production health check
-        run: |
-          sleep 30
-          curl -f https://ecm.darah.gov.sa/health || exit 1
-
-      - name: Notify on success
+        run: curl -f --retry 5 --retry-delay 15 https://ecm.darah.gov.sa/health || exit 1
+      - name: Notify
         if: success()
-        run: |
-          echo "Production deployment successful: ${{ github.sha }}"
-          # Send Teams/Slack notification
-
+        run: echo "::notice::PRODUCTION deployment successful — ${{ github.sha }}"
       - name: Rollback on failure
         if: failure()
-        run: |
-          echo "Deployment failed — initiating rollback..."
-          # msdeploy rollback command
+        run: echo "::error::Deployment failed — initiating rollback..."

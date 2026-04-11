@@ -1,31 +1,66 @@
+using Darah.ECM.Application.Common.Correlation;
+using Darah.ECM.Application.Common.Guards;
 using Darah.ECM.Application.Common.Models;
+using Darah.ECM.Domain.Interfaces.Repositories;
 using Darah.ECM.Domain.Interfaces.Services;
-using Darah.ECM.xECM.Application.DTOs;
+using Darah.ECM.Domain.ValueObjects;
 using Darah.ECM.xECM.Domain.Entities;
 using Darah.ECM.xECM.Domain.Interfaces;
+using Darah.ECM.xECM.Domain.Services;
 using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Darah.ECM.xECM.Application.Commands;
 
-// ── CreateWorkspace ──────────────────────────────────────────────────────────
+// DTOs
+public sealed record WorkspaceDto(
+    Guid WorkspaceId, string WorkspaceNumber, string TitleAr, string? TitleEn,
+    int WorkspaceTypeId, string? WorkspaceTypeNameAr, string? WorkspaceTypeCode,
+    string StatusCode, string ClassificationCode, string? ClassificationAr,
+    int OwnerId, string? OwnerNameAr, int? DepartmentId, string? DepartmentAr,
+    string? Description, int Priority, int DocumentCount,
+    bool IsLegalHold, DateTime? LegalHoldAt, int? RetentionPolicyId,
+    DateOnly? RetentionExpiresAt, int? DefaultWorkflowId,
+    bool IsBoundToExternal, string? ExternalSystemCode, string? ExternalObjectId,
+    string? ExternalObjectType, string? ExternalObjectUrl, string? ExternalObjectTitle,
+    string? SyncStatus, DateTime? LastSyncedAt, string? SyncError,
+    DateTime CreatedAt, DateTime? UpdatedAt);
+
+public sealed record WorkspaceListItemDto(
+    Guid WorkspaceId, string WorkspaceNumber, string TitleAr, string? TitleEn,
+    string? WorkspaceTypeCode, string? WorkspaceTypeNameAr, string StatusCode,
+    string ClassificationCode, string? OwnerNameAr, int DocumentCount,
+    bool IsLegalHold, bool IsBoundToExternal, string? ExternalSystemCode,
+    string? SyncStatus, DateTime CreatedAt);
+
+public sealed record WorkspaceDocumentDto(
+    int BindingId, Guid WorkspaceId, Guid DocumentId, string BindingType,
+    string DocumentNumber, string DocumentTitleAr, string StatusCode,
+    string ClassificationCode, string? FileExtension, bool IsLegalHold,
+    DateTime BoundAt, string? BoundByNameAr, string? Note);
+
+public sealed record LegalHoldResultDto(Guid WorkspaceId, string WorkspaceNumber, int DocumentsAffected);
+
+// Commands
 public sealed record CreateWorkspaceCommand(
     string TitleAr, string? TitleEn, int WorkspaceTypeId, int OwnerId,
-    int? DepartmentId, string? Description, int ClassificationLevelId = 2,
-    int? RetentionPolicyId = null, string? ExternalSystemId = null,
-    string? ExternalObjectId = null, string? ExternalObjectType = null,
-    string? ExternalObjectUrl = null) : IRequest<ApiResponse<WorkspaceDto>>;
+    int? DepartmentId, string? Description, int ClassificationLevelOrder = 2,
+    int? RetentionPolicyId = null, int? DefaultWorkflowId = null, int Priority = 2,
+    string? ExternalSystemCode = null, string? ExternalObjectId = null,
+    string? ExternalObjectType = null, string? ExternalObjectUrl = null,
+    Dictionary<int, string>? MetadataValues = null)
+    : IRequest<ApiResponse<WorkspaceDto>>;
 
-public sealed class CreateWorkspaceValidator : AbstractValidator<CreateWorkspaceCommand>
+public sealed class CreateWorkspaceCommandValidator : AbstractValidator<CreateWorkspaceCommand>
 {
-    public CreateWorkspaceValidator()
+    public CreateWorkspaceCommandValidator()
     {
         RuleFor(x => x.TitleAr).NotEmpty().MaximumLength(500).WithMessage("عنوان مساحة العمل مطلوب");
         RuleFor(x => x.WorkspaceTypeId).GreaterThan(0).WithMessage("يجب تحديد نوع مساحة العمل");
-        RuleFor(x => x.OwnerId).GreaterThan(0).WithMessage("يجب تحديد مالك مساحة العمل");
-        RuleFor(x => x.ClassificationLevelId).InclusiveBetween(1, 4);
-        When(x => !string.IsNullOrEmpty(x.ExternalSystemId), () =>
-        {
+        RuleFor(x => x.OwnerId).GreaterThan(0).WithMessage("يجب تحديد المالك");
+        RuleFor(x => x.ClassificationLevelOrder).InclusiveBetween(1, 4);
+        When(x => !string.IsNullOrEmpty(x.ExternalSystemCode), () => {
             RuleFor(x => x.ExternalObjectId).NotEmpty().WithMessage("معرف الكيان الخارجي مطلوب");
             RuleFor(x => x.ExternalObjectType).NotEmpty().WithMessage("نوع الكيان الخارجي مطلوب");
         });
@@ -34,137 +69,90 @@ public sealed class CreateWorkspaceValidator : AbstractValidator<CreateWorkspace
 
 public sealed class CreateWorkspaceCommandHandler : IRequestHandler<CreateWorkspaceCommand, ApiResponse<WorkspaceDto>>
 {
-    private readonly IWorkspaceRepository _repo;
-    private readonly ICurrentUser _user;
-    private readonly IAuditService _audit;
+    private readonly IWorkspaceRepository _wsRepo;
     private readonly IWorkspaceNumberGenerator _numbering;
-    private readonly IMetadataSyncEngine _syncEngine;
+    private readonly ICurrentUser _user;
+    private readonly IStructuredAuditService _audit;
+    private readonly IAuthorizationGuard _authGuard;
+    private readonly IEventBus _eventBus;
+    private readonly ILogger<CreateWorkspaceCommandHandler> _logger;
 
-    public CreateWorkspaceCommandHandler(IWorkspaceRepository repo, ICurrentUser user,
-        IAuditService audit, IWorkspaceNumberGenerator numbering, IMetadataSyncEngine syncEngine)
-    { _repo = repo; _user = user; _audit = audit; _numbering = numbering; _syncEngine = syncEngine; }
+    public CreateWorkspaceCommandHandler(IWorkspaceRepository wsRepo, IWorkspaceNumberGenerator numbering,
+        ICurrentUser user, IStructuredAuditService audit, IAuthorizationGuard authGuard,
+        IEventBus eventBus, ILogger<CreateWorkspaceCommandHandler> logger)
+    { _wsRepo = wsRepo; _numbering = numbering; _user = user; _audit = audit;
+      _authGuard = authGuard; _eventBus = eventBus; _logger = logger; }
 
     public async Task<ApiResponse<WorkspaceDto>> Handle(CreateWorkspaceCommand cmd, CancellationToken ct)
     {
-        if (!string.IsNullOrEmpty(cmd.ExternalSystemId) && !string.IsNullOrEmpty(cmd.ExternalObjectId))
+        var auth = await _authGuard.AuthorizeAdminActionAsync("workspace.create", ct);
+        if (!auth.IsGranted) return auth.ToFailResponse<WorkspaceDto>();
+
+        if (!string.IsNullOrEmpty(cmd.ExternalSystemCode) && !string.IsNullOrEmpty(cmd.ExternalObjectId))
         {
-            var alreadyBound = await _repo.ExternalBindingExistsAsync(cmd.ExternalSystemId, cmd.ExternalObjectId!, ct);
-            if (alreadyBound) return ApiResponse<WorkspaceDto>.Fail("يوجد مساحة عمل مرتبطة بهذا الكيان الخارجي بالفعل");
+            var exists = await _wsRepo.ExternalBindingExistsAsync(cmd.ExternalSystemCode, cmd.ExternalObjectId, ct);
+            if (exists) return ApiResponse<WorkspaceDto>.Fail("يوجد مساحة عمل مرتبطة بهذا الكيان الخارجي بالفعل");
         }
 
-        var number = await _numbering.GenerateAsync(cmd.WorkspaceTypeId, ct);
-        var ws = Workspace.Create(cmd.TitleAr, cmd.WorkspaceTypeId, cmd.OwnerId, 1 /* active status */,
-            number, _user.UserId, cmd.TitleEn, cmd.DepartmentId, cmd.Description,
-            cmd.ClassificationLevelId, cmd.RetentionPolicyId);
+        var number = await _numbering.GenerateAsync(cmd.WorkspaceTypeId, "", ct);
+        var classification = ClassificationLevel.FromOrder(cmd.ClassificationLevelOrder);
 
-        if (!string.IsNullOrEmpty(cmd.ExternalSystemId))
-            ws.BindToExternal(cmd.ExternalSystemId, cmd.ExternalObjectId!, cmd.ExternalObjectType!, cmd.ExternalObjectUrl, _user.UserId);
+        var ws = Workspace.Create(cmd.TitleAr, cmd.WorkspaceTypeId, cmd.OwnerId, number,
+            _user.UserId, cmd.TitleEn, cmd.DepartmentId, cmd.Description,
+            classification, cmd.RetentionPolicyId, cmd.DefaultWorkflowId, cmd.Priority);
 
-        await _repo.AddAsync(ws, ct);
-        await _audit.LogAsync("WorkspaceCreated", "Workspace", ws.WorkspaceId.ToString(), newValues: new { ws.WorkspaceNumber, ws.TitleAr }, ct: ct);
+        if (!string.IsNullOrEmpty(cmd.ExternalSystemCode))
+            ws.BindToExternalObject(cmd.ExternalSystemCode, cmd.ExternalObjectId!,
+                cmd.ExternalObjectType!, cmd.ExternalObjectUrl, null, _user.UserId);
 
-        if (ws.IsBoundToExternal)
-            await _syncEngine.TriggerSyncAsync(ws.WorkspaceId, SyncDirection.Inbound, ct);
+        await _wsRepo.AddAsync(ws, ct);
+        await _wsRepo.CommitAsync(ct);
 
-        return ApiResponse<WorkspaceDto>.Ok(MapToDto(ws), "تم إنشاء مساحة العمل بنجاح");
+        foreach (var ev in ws.DomainEvents) await _eventBus.PublishAsync(ev, ct);
+        ws.ClearDomainEvents();
+
+        await _audit.LogSuccessAsync("WorkspaceCreated", AuditEntry.Modules.System,
+            "Workspace", ws.WorkspaceId.ToString(),
+            newValues: new { ws.WorkspaceNumber, ws.TitleAr }, ct: ct);
+
+        _logger.LogInformation("Workspace created: {Num} {Title}", ws.WorkspaceNumber, ws.TitleAr);
+        return ApiResponse<WorkspaceDto>.Ok(Map(ws), "تم إنشاء مساحة العمل بنجاح");
     }
 
-    private static WorkspaceDto MapToDto(Workspace ws) => new(
-        ws.WorkspaceId, ws.WorkspaceNumber, ws.TitleAr, ws.TitleEn,
-        null, null, null, null, null, null,
-        ws.IsBoundToExternal, ws.ExternalSystemId, ws.ExternalObjectId,
-        ws.ExternalObjectType, ws.ExternalObjectUrl, ws.SyncStatus, ws.LastSyncedAt,
-        ws.IsLegalHold, ws.RetentionExpiresAt, 0, ws.CreatedAt, ws.UpdatedAt);
+    private static WorkspaceDto Map(Workspace ws) => new(ws.WorkspaceId, ws.WorkspaceNumber, ws.TitleAr, ws.TitleEn,
+        ws.WorkspaceTypeId, null, null, ws.Status.Value, ws.Classification.Code, ws.Classification.NameAr,
+        ws.OwnerId, null, ws.DepartmentId, null, ws.Description, ws.Priority, ws.DocumentCount,
+        ws.IsLegalHold, ws.LegalHoldAt, ws.RetentionPolicyId, ws.RetentionExpiresAt, ws.DefaultWorkflowId,
+        ws.IsBoundToExternal, ws.ExternalSystemCode, ws.ExternalObjectId, ws.ExternalObjectType,
+        ws.ExternalObjectUrl, ws.ExternalObjectTitle, ws.SyncStatus, ws.LastSyncedAt, ws.SyncError,
+        ws.CreatedAt, ws.UpdatedAt);
 }
 
-// ── BindExternalObject ───────────────────────────────────────────────────────
-public sealed record BindExternalObjectCommand(Guid WorkspaceId, string ExternalSystemId,
-    string ExternalObjectId, string ExternalObjectType, string? ExternalObjectUrl,
-    bool TriggerImmediateSync = true) : IRequest<ApiResponse<bool>>;
-
-public sealed class BindExternalObjectCommandHandler : IRequestHandler<BindExternalObjectCommand, ApiResponse<bool>>
-{
-    private readonly IWorkspaceRepository _repo;
-    private readonly ICurrentUser _user;
-    private readonly IAuditService _audit;
-    private readonly IMetadataSyncEngine _sync;
-
-    public BindExternalObjectCommandHandler(IWorkspaceRepository repo, ICurrentUser user, IAuditService audit, IMetadataSyncEngine sync)
-    { _repo = repo; _user = user; _audit = audit; _sync = sync; }
-
-    public async Task<ApiResponse<bool>> Handle(BindExternalObjectCommand cmd, CancellationToken ct)
-    {
-        var ws = await _repo.GetByGuidAsync(cmd.WorkspaceId, ct);
-        if (ws is null) return ApiResponse<bool>.Fail("مساحة العمل غير موجودة");
-
-        try { ws.BindToExternal(cmd.ExternalSystemId, cmd.ExternalObjectId, cmd.ExternalObjectType, cmd.ExternalObjectUrl, _user.UserId); }
-        catch (InvalidOperationException ex) { return ApiResponse<bool>.Fail(ex.Message); }
-
-        await _audit.LogAsync("WorkspaceLinkedToExternal", "Workspace", ws.WorkspaceId.ToString(), newValues: new { cmd.ExternalSystemId, cmd.ExternalObjectId }, ct: ct);
-
-        if (cmd.TriggerImmediateSync)
-            await _sync.TriggerSyncAsync(cmd.WorkspaceId, SyncDirection.Inbound, ct);
-
-        return ApiResponse<bool>.Ok(true, "تم ربط مساحة العمل بالكيان الخارجي بنجاح");
-    }
-}
-
-// ── Archive ──────────────────────────────────────────────────────────────────
-public sealed record ArchiveWorkspaceCommand(Guid WorkspaceId, string? Reason) : IRequest<ApiResponse<bool>>;
-public sealed class ArchiveWorkspaceCommandHandler : IRequestHandler<ArchiveWorkspaceCommand, ApiResponse<bool>>
-{
-    private readonly IWorkspaceRepository _repo; private readonly ICurrentUser _user; private readonly IAuditService _audit;
-    public ArchiveWorkspaceCommandHandler(IWorkspaceRepository r, ICurrentUser u, IAuditService a) { _repo = r; _user = u; _audit = a; }
-    public async Task<ApiResponse<bool>> Handle(ArchiveWorkspaceCommand cmd, CancellationToken ct)
-    {
-        var ws = await _repo.GetByGuidAsync(cmd.WorkspaceId, ct);
-        if (ws is null) return ApiResponse<bool>.Fail("مساحة العمل غير موجودة");
-        ws.Archive(_user.UserId);
-        await _audit.LogAsync("WorkspaceArchived", "Workspace", ws.WorkspaceId.ToString(), additionalInfo: cmd.Reason, ct: ct);
-        return ApiResponse<bool>.Ok(true, "تمت أرشفة مساحة العمل");
-    }
-}
-
-// ── Legal Hold ───────────────────────────────────────────────────────────────
-public sealed record ApplyWorkspaceLegalHoldCommand(Guid WorkspaceId) : IRequest<ApiResponse<bool>>;
-public sealed class ApplyWorkspaceLegalHoldCommandHandler : IRequestHandler<ApplyWorkspaceLegalHoldCommand, ApiResponse<bool>>
-{
-    private readonly IWorkspaceRepository _repo; private readonly ICurrentUser _user; private readonly IAuditService _audit;
-    public ApplyWorkspaceLegalHoldCommandHandler(IWorkspaceRepository r, ICurrentUser u, IAuditService a) { _repo = r; _user = u; _audit = a; }
-    public async Task<ApiResponse<bool>> Handle(ApplyWorkspaceLegalHoldCommand cmd, CancellationToken ct)
-    {
-        var ws = await _repo.GetByGuidAsync(cmd.WorkspaceId, ct);
-        if (ws is null) return ApiResponse<bool>.Fail("مساحة العمل غير موجودة");
-        ws.ApplyLegalHold(_user.UserId);
-        await _audit.LogAsync("WorkspaceLegalHoldApplied", "Workspace", ws.WorkspaceId.ToString(), ct: ct);
-        return ApiResponse<bool>.Ok(true, "تم تطبيق التجميد القانوني على مساحة العمل وجميع وثائقها");
-    }
-}
-
-// ── Trigger Sync ─────────────────────────────────────────────────────────────
+// Lifecycle commands
+public sealed record UpdateWorkspaceCommand(Guid WorkspaceId, string TitleAr, string? TitleEn, string? Description,
+    int ClassificationLevelOrder, int? RetentionPolicyId, int? DefaultWorkflowId) : IRequest<ApiResponse<WorkspaceDto>>;
+public sealed record ActivateWorkspaceCommand(Guid WorkspaceId) : IRequest<ApiResponse<bool>>;
+public sealed record CloseWorkspaceCommand(Guid WorkspaceId, string? Reason) : IRequest<ApiResponse<bool>>;
+public sealed record ArchiveWorkspaceCommand(Guid WorkspaceId) : IRequest<ApiResponse<bool>>;
+public sealed record DisposeWorkspaceCommand(Guid WorkspaceId) : IRequest<ApiResponse<bool>>;
+public sealed record ApplyWorkspaceLegalHoldCommand(Guid WorkspaceId) : IRequest<ApiResponse<LegalHoldResultDto>>;
+public sealed record ReleaseWorkspaceLegalHoldCommand(Guid WorkspaceId) : IRequest<ApiResponse<bool>>;
+public sealed record BindDocumentToWorkspaceCommand(Guid WorkspaceId, Guid DocumentId, string BindingType = "Primary", string? Note = null) : IRequest<ApiResponse<WorkspaceDocumentDto>>;
+public sealed record RemoveDocumentFromWorkspaceCommand(Guid WorkspaceId, Guid DocumentId) : IRequest<ApiResponse<bool>>;
+public sealed record BindExternalObjectCommand(Guid WorkspaceId, string ExternalSystemCode, string ExternalObjectId, string ExternalObjectType, string? ExternalObjectUrl, string? ExternalObjectTitle, bool TriggerImmediateSync = true) : IRequest<ApiResponse<bool>>;
+public sealed record UnbindExternalObjectCommand(Guid WorkspaceId) : IRequest<ApiResponse<bool>>;
 public sealed record TriggerWorkspaceSyncCommand(Guid WorkspaceId, string Direction = "Inbound") : IRequest<ApiResponse<SyncResultDto>>;
-public sealed class TriggerWorkspaceSyncCommandHandler : IRequestHandler<TriggerWorkspaceSyncCommand, ApiResponse<SyncResultDto>>
-{
-    private readonly IMetadataSyncEngine _sync;
-    public TriggerWorkspaceSyncCommandHandler(IMetadataSyncEngine sync) => _sync = sync;
-    public async Task<ApiResponse<SyncResultDto>> Handle(TriggerWorkspaceSyncCommand cmd, CancellationToken ct)
-    {
-        if (!Enum.TryParse<SyncDirection>(cmd.Direction, true, out var dir))
-            return ApiResponse<SyncResultDto>.Fail("اتجاه المزامنة غير صحيح. القيم المقبولة: Inbound, Outbound, Bidirectional");
-        var result = await _sync.TriggerSyncAsync(cmd.WorkspaceId, dir, ct);
-        return ApiResponse<SyncResultDto>.Ok(new SyncResultDto(result.IsSuccess, result.FieldsUpdated, result.ConflictsDetected, result.ErrorMessage, result.DurationMs));
-    }
-}
+public sealed record ResolveConflictCommand(Guid WorkspaceId, int FieldId, string Resolution) : IRequest<ApiResponse<bool>>;
 
-// ── Resolve Conflict ─────────────────────────────────────────────────────────
-public sealed record ResolveWorkspaceConflictCommand(Guid WorkspaceId, int FieldId, string Resolution) : IRequest<ApiResponse<bool>>;
-public sealed class ResolveWorkspaceConflictCommandHandler : IRequestHandler<ResolveWorkspaceConflictCommand, ApiResponse<bool>>
+public sealed record SyncResultDto(bool IsSuccess, int FieldsUpdated, int ConflictsDetected, string? ErrorMessage, long DurationMs);
+
+public sealed class BindExternalObjectValidator : AbstractValidator<BindExternalObjectCommand>
 {
-    private readonly IMetadataSyncEngine _sync;
-    public ResolveWorkspaceConflictCommandHandler(IMetadataSyncEngine sync) => _sync = sync;
-    public async Task<ApiResponse<bool>> Handle(ResolveWorkspaceConflictCommand cmd, CancellationToken ct)
+    public BindExternalObjectValidator()
     {
-        var ok = await _sync.ResolveConflictAsync(cmd.WorkspaceId, cmd.FieldId, cmd.Resolution, ct);
-        return ok ? ApiResponse<bool>.Ok(true, "تم حل التعارض") : ApiResponse<bool>.Fail("لم يتم العثور على التعارض المطلوب");
+        RuleFor(x => x.WorkspaceId).NotEmpty();
+        RuleFor(x => x.ExternalSystemCode).NotEmpty().MaximumLength(50);
+        RuleFor(x => x.ExternalObjectId).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.ExternalObjectType).NotEmpty().MaximumLength(100);
     }
 }

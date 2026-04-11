@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: production
+    system: darah-ecm
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: [alertmanager:9093]
+
+scrape_configs:
+  - job_name: ecm-api-blue
+    static_configs:
+      - targets: [api-blue:8080]
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  - job_name: ecm-api-green
+    static_configs:
+      - targets: [api-green:8080]
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  - job_name: sqlserver
+    static_configs:
+      - targets: [sqlserver-exporter:9399]
+
+  - job_name: redis
+    static_configs:
+      - targets: [redis-exporter:9121]
+
+  - job_name: node
+    static_configs:
+      - targets: [node-exporter:9100]

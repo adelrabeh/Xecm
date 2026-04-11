@@ -1,170 +1,40 @@
-# ============================================================
-# config/environments/appsettings.Development.json
-# ============================================================
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=DARAH_ECM_DEV;Trusted_Connection=True;TrustServerCertificate=True;",
-    "Redis": ""
-  },
-  "Jwt": {
-    "SecretKey": "dev-only-key-minimum-32-chars-NOT-for-prod",
-    "Issuer": "darah.ecm.api.dev",
-    "Audience": "darah.ecm.client.dev",
-    "ExpiryMinutes": 60
-  },
-  "Auth": {
-    "MaxFailedAttempts": 10,
-    "LockoutDurationMinutes": 5
-  },
-  "Storage": {
-    "Provider": "LocalFileSystem",
-    "LocalPath": "C:\\ECM_Storage_Dev"
-  },
-  "Email": {
-    "SmtpHost": "localhost",
-    "SmtpPort": "1025",
-    "SmtpUsername": "",
-    "SmtpPassword": "",
-    "FromAddress": "dev@ecm.local",
-    "FromName": "ECM Dev"
-  },
-  "Cors": {
-    "AllowedOrigins": ["http://localhost:5173", "http://localhost:3000"]
-  },
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Debug",
-      "Override": { "Microsoft": "Information", "Hangfire": "Information" }
-    }
-  },
-  "Swagger": { "Enabled": true },
-  "Features": {
-    "MaintenanceMode": false,
-    "DebugEndpoints": true,
-    "MockExternalSystems": true
-  }
-}
+# Environment Configuration Guide — DARAH ECM
 
----
-# ============================================================
-# config/environments/appsettings.Test.json
-# ============================================================
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=sqltest;Database=DARAH_ECM_TEST;User Id=ecm_app;Password=#{TEST_DB_PASSWORD}#;TrustServerCertificate=True;",
-    "Redis": "redis-test:6379"
-  },
-  "Jwt": {
-    "SecretKey": "#{TEST_JWT_SECRET}#",
-    "Issuer": "darah.ecm.api.test",
-    "Audience": "darah.ecm.client.test",
-    "ExpiryMinutes": 30
-  },
-  "Auth": {
-    "MaxFailedAttempts": 5,
-    "LockoutDurationMinutes": 15
-  },
-  "Storage": {
-    "Provider": "LocalFileSystem",
-    "LocalPath": "D:\\ECM_Storage_Test"
-  },
-  "Email": {
-    "SmtpHost": "#{TEST_SMTP_HOST}#",
-    "SmtpPort": "587",
-    "SmtpUsername": "#{TEST_SMTP_USER}#",
-    "SmtpPassword": "#{TEST_SMTP_PASS}#",
-    "FromAddress": "ecm-test@darah.gov.sa",
-    "FromName": "DARAH ECM Test"
-  },
-  "Cors": {
-    "AllowedOrigins": ["https://ecm-test.darah.gov.sa"]
-  },
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Information",
-      "Override": { "Microsoft": "Warning", "Hangfire": "Warning" }
-    }
-  },
-  "Swagger": { "Enabled": true },
-  "Features": {
-    "MaintenanceMode": false,
-    "DebugEndpoints": false,
-    "MockExternalSystems": false
-  }
-}
+## Strategy
+- Development: appsettings.Development.json (committed, no real secrets)
+- Test:        appsettings.Test.json (committed, test DB only)
+- Production:  Environment variables ONLY — never committed to repo
 
----
-# ============================================================
-# config/environments/appsettings.Production.json
-# ALL SECRETS MUST BE SET VIA ENVIRONMENT VARIABLES or secrets manager.
-# This file contains NON-SECRET settings only.
-# ============================================================
-{
-  "Jwt": {
-    "Issuer": "darah.ecm.api",
-    "Audience": "darah.ecm.client",
-    "ExpiryMinutes": 15
-  },
-  "Auth": {
-    "MaxFailedAttempts": 5,
-    "LockoutDurationMinutes": 30
-  },
-  "Storage": {
-    "Provider": "LocalFileSystem",
-    "LocalPath": "D:\\ECM_Storage"
-  },
-  "Email": {
-    "FromAddress": "ecm-noreply@darah.gov.sa",
-    "FromName": "نظام ECM - دارة الملك عبدالعزيز"
-  },
-  "Cors": {
-    "AllowedOrigins": ["https://ecm.darah.gov.sa"]
-  },
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Warning",
-      "Override": { "Microsoft": "Error", "Hangfire": "Warning" }
-    }
-  },
-  "Swagger": { "Enabled": false },
-  "Features": {
-    "MaintenanceMode": false,
-    "DebugEndpoints": false,
-    "MockExternalSystems": false
-  }
-}
+## Required Production Environment Variables
 
----
-# ============================================================
-# SECRETS MANAGEMENT GUIDE
-# NEVER commit actual secrets. Use one of these approaches:
-# ============================================================
+| Variable | Example Value | Notes |
+|----------|--------------|-------|
+| DB_CONNECTION_STRING | Server=sqlserver;Database=DarahECM;User Id=ecm_app;Password=XXX | Use dedicated app user, not SA |
+| SQL_SA_PASSWORD | STRONG_SA_PASS | SQL Server admin password |
+| JWT_SECRET_KEY | 32+ char random string | openssl rand -hex 32 |
+| REDIS_PASSWORD | STRONG_REDIS_PASS | |
+| SMTP_HOST | smtp.darah.gov.sa | |
+| SMTP_PORT | 587 | |
+| SMTP_USERNAME | ecm-noreply@darah.gov.sa | |
+| SMTP_PASSWORD | SMTP_PASS | |
+| GRAFANA_PASSWORD | GRAFANA_ADMIN_PASS | |
+| SAP_BASE_URL | https://sap-gw.darah.gov.sa | Sprint 6 |
+| SAP_CLIENT_ID | SAP_CLIENT_ID | Sprint 6 |
+| SAP_CLIENT_SECRET | SAP_CLIENT_SECRET | Sprint 6, use secrets manager |
+| SF_INSTANCE_URL | https://darah.my.salesforce.com | Sprint 6 |
+| SF_CLIENT_ID | SF_CLIENT_ID | Sprint 6 |
+| SF_CLIENT_SECRET | SF_CLIENT_SECRET | Sprint 6, use secrets manager |
 
-# Approach 1: Windows Environment Variables (IIS)
-# Set via PowerShell as Machine-level env vars:
-#
-# [Environment]::SetEnvironmentVariable("ConnectionStrings__DefaultConnection",
-#     "Server=sqlprod;...", [EnvironmentVariableTarget]::Machine)
-# [Environment]::SetEnvironmentVariable("Jwt__SecretKey",
-#     "STRONG_256BIT_KEY", [EnvironmentVariableTarget]::Machine)
-# [Environment]::SetEnvironmentVariable("Email__SmtpPassword",
-#     "SMTP_PASS", [EnvironmentVariableTarget]::Machine)
+## appsettings.json (base — committed)
+All defaults. No secrets. Production overrides via environment variables.
 
-# Approach 2: GitHub Actions Secrets (CI/CD)
-# Store in GitHub repo → Settings → Secrets → Actions
-# Reference as ${{ secrets.PROD_DB_PASSWORD }}
+## Serilog Production Template
+```
+{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] [{CorrelationId}] [{UserId}] {Message:lj}{NewLine}{Exception}
+```
 
-# Approach 3: Azure Key Vault (Enterprise)
-# Install Microsoft.Extensions.Configuration.AzureKeyVault
-# builder.Configuration.AddAzureKeyVault(
-#     new Uri($"https://{keyVaultName}.vault.azure.net/"),
-#     new DefaultAzureCredential());
-
-# ============================================================
-# REQUIRED SECRETS (set externally, never in files):
-# ============================================================
-# ConnectionStrings__DefaultConnection   → Full SQL Server connection string
-# Jwt__SecretKey                         → 256-bit random key (openssl rand -base64 32)
-# Email__SmtpPassword                    → SMTP server password
-# ExternalSystems__SAP__Password         → SAP OData credentials
-# ExternalSystems__SF__ClientSecret      → Salesforce Connected App secret
+## Health Check Endpoints
+- /health       → simple liveness
+- /health/ready → readiness (DB + Redis connected)
+- /health/live  → liveness (process alive)
+- /metrics      → Prometheus metrics (internal only)

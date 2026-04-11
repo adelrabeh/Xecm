@@ -1,0 +1,160 @@
+groups:
+  - name: ecm.api
+    interval: 30s
+    rules:
+
+      # API Error Rate > 5% in 5 minutes
+      - alert: ECMHighErrorRate
+        expr: |
+          (
+            rate(ecm_api_errors_total[5m]) /
+            rate(http_requests_received_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: ecm-ops
+        annotations:
+          summary: "ECM API error rate above 5%"
+          description: "Error rate is {{ $value | humanizePercentage }} — investigate immediately."
+
+      # P99 latency > 3 seconds
+      - alert: ECMHighLatency
+        expr: |
+          histogram_quantile(0.99,
+            rate(ecm_api_request_duration_ms_bucket[5m])
+          ) > 3000
+        for: 5m
+        labels:
+          severity: warning
+          team: ecm-ops
+        annotations:
+          summary: "ECM API P99 latency above 3s"
+          description: "P99 latency is {{ $value | humanize }}ms on endpoint {{ $labels.endpoint }}."
+
+      # API Pod down
+      - alert: ECMApiDown
+        expr: up{job=~"ecm-api.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: ecm-ops
+        annotations:
+          summary: "ECM API pod is DOWN"
+          description: "Instance {{ $labels.instance }} has been down for 2+ minutes."
+
+  - name: ecm.database
+    rules:
+
+      # SQL Server connection failures
+      - alert: ECMSQLConnectionFailed
+        expr: sqlserver_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: ecm-ops
+        annotations:
+          summary: "SQL Server is unreachable"
+          description: "DARAH ECM cannot connect to SQL Server. ALL operations are degraded."
+
+      # SQL Server disk space < 20%
+      - alert: ECMSQLDiskLow
+        expr: sqlserver_disk_free_bytes / sqlserver_disk_total_bytes < 0.20
+        for: 5m
+        labels:
+          severity: warning
+          team: ecm-ops
+        annotations:
+          summary: "SQL Server disk space below 20%"
+          description: "Available: {{ $value | humanizePercentage }} — plan disk expansion."
+
+  - name: ecm.redis
+    rules:
+
+      - alert: ECMRedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: ecm-ops
+        annotations:
+          summary: "Redis is down — caching and jobs unavailable"
+          description: "Redis has been unreachable for 2+ minutes. Hangfire jobs will queue up."
+
+      - alert: ECMRedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          team: ecm-ops
+        annotations:
+          summary: "Redis memory above 85%"
+          description: "Redis memory at {{ $value | humanizePercentage }} — eviction risk."
+
+  - name: ecm.workflow
+    rules:
+
+      # Hangfire job failure rate
+      - alert: ECMHangfireJobFailures
+        expr: rate(hangfire_failed_jobs_total[15m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+          team: ecm-ops
+        annotations:
+          summary: "Hangfire job failure rate is high"
+          description: "{{ $value | humanize }} jobs/min failing. Check Hangfire dashboard."
+
+      # Overdue workflow tasks > 50
+      - alert: ECMHighOverdueWorkflows
+        expr: ecm_workflow_overdue_tasks_total > 50
+        for: 30m
+        labels:
+          severity: warning
+          team: ecm-business
+        annotations:
+          summary: "More than 50 overdue workflow tasks"
+          description: "{{ $value }} tasks are overdue. Business process may be blocked."
+
+  - name: ecm.sync
+    rules:
+
+      # xECM sync failure rate
+      - alert: ECMSyncFailureRate
+        expr: rate(ecm_sync_events_processed_total{success="false"}[1h]) > 10
+        for: 15m
+        labels:
+          severity: warning
+          team: ecm-integration
+        annotations:
+          summary: "High xECM sync failure rate"
+          description: "{{ $value | humanize }} sync failures/hr. Check external system connectivity."
+
+  - name: ecm.storage
+    rules:
+
+      - alert: ECMStorageDiskLow
+        expr: |
+          node_filesystem_free_bytes{mountpoint="/data/ecm/storage"}
+          / node_filesystem_size_bytes{mountpoint="/data/ecm/storage"} < 0.15
+        for: 5m
+        labels:
+          severity: critical
+          team: ecm-ops
+        annotations:
+          summary: "File storage disk below 15%"
+          description: "Document storage critically low: {{ $value | humanizePercentage }} free."
+
+  - name: ecm.security
+    rules:
+
+      # High auth failure rate (brute force detection)
+      - alert: ECMAuthBruteForce
+        expr: rate(ecm_auth_login_failed_total[5m]) > 20
+        for: 3m
+        labels:
+          severity: critical
+          team: ecm-security
+        annotations:
+          summary: "Possible brute force attack on ECM"
+          description: "{{ $value | humanize }} failed logins/min. Check source IPs and block if needed."

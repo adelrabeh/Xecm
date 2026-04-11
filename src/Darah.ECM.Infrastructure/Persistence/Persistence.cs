@@ -1,14 +1,15 @@
-using Microsoft.EntityFrameworkCore;
+using Darah.ECM.Domain.Common;
 using Darah.ECM.Domain.Entities;
 using Darah.ECM.Domain.Interfaces.Repositories;
-using Darah.ECM.Domain.Common;
+using Darah.ECM.Domain.Interfaces.Services;
+using Darah.ECM.Domain.ValueObjects;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Darah.ECM.Infrastructure.Persistence;
 
-// ─────────────────────────────────────────────────────────────
-// DB CONTEXT
-// ─────────────────────────────────────────────────────────────
-public class EcmDbContext : DbContext
+// ─── DB CONTEXT ───────────────────────────────────────────────────────────────
+public sealed class EcmDbContext : DbContext
 {
     private readonly ICurrentUserAccessor? _currentUser;
 
@@ -16,81 +17,73 @@ public class EcmDbContext : DbContext
         ICurrentUserAccessor? currentUser = null) : base(options)
         => _currentUser = currentUser;
 
-    // ECM Core
-    public DbSet<User> Users => Set<User>();
-    public DbSet<Document> Documents => Set<Document>();
+    // Core
+    public DbSet<User>            Users            => Set<User>();
+    public DbSet<Document>        Documents        => Set<Document>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
-    public DbSet<DocumentFile> DocumentFiles => Set<DocumentFile>();
-    public DbSet<DocumentLibrary> DocumentLibraries => Set<DocumentLibrary>();
-    public DbSet<Folder> Folders => Set<Folder>();
-    public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
-    public DbSet<MetadataField> MetadataFields => Set<MetadataField>();
-    public DbSet<DocumentMetadataValue> DocumentMetadataValues => Set<DocumentMetadataValue>();
-    public DbSet<Tag> Tags => Set<Tag>();
-    public DbSet<DocumentTag> DocumentTags => Set<DocumentTag>();
-    public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
-    public DbSet<WorkflowStep> WorkflowSteps => Set<WorkflowStep>();
     public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
-    public DbSet<WorkflowTask> WorkflowTasks => Set<WorkflowTask>();
-    public DbSet<WorkflowAction> WorkflowActions => Set<WorkflowAction>();
-    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
-    public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<RetentionPolicy> RetentionPolicies => Set<RetentionPolicy>();
-    public DbSet<LegalHold> LegalHolds => Set<LegalHold>();
-    public DbSet<SavedSearch> SavedSearches => Set<SavedSearch>();
+    public DbSet<WorkflowTask>    WorkflowTasks    => Set<WorkflowTask>();
+    public DbSet<AuditLog>        AuditLogs        => Set<AuditLog>();
 
     // xECM
-    public DbSet<Workspace> Workspaces => Set<Workspace>();
-    public DbSet<WorkspaceType> WorkspaceTypes => Set<WorkspaceType>();
-    public DbSet<WorkspaceDocument> WorkspaceDocuments => Set<WorkspaceDocument>();
+    public DbSet<Workspace>              Workspaces              => Set<Workspace>();
     public DbSet<WorkspaceSecurityPolicy> WorkspaceSecurityPolicies => Set<WorkspaceSecurityPolicy>();
+    public DbSet<WorkspaceDocument>      WorkspaceDocuments      => Set<WorkspaceDocument>();
     public DbSet<WorkspaceMetadataValue> WorkspaceMetadataValues => Set<WorkspaceMetadataValue>();
-    public DbSet<ExternalSystem> ExternalSystems => Set<ExternalSystem>();
-    public DbSet<MetadataSyncMapping> MetadataSyncMappings => Set<MetadataSyncMapping>();
-    public DbSet<SyncEventLog> SyncEventLogs => Set<SyncEventLog>();
+    public DbSet<ExternalSystem>         ExternalSystems         => Set<ExternalSystem>();
+    public DbSet<MetadataSyncMapping>    MetadataSyncMappings    => Set<MetadataSyncMapping>();
+    public DbSet<SyncEventLog>           SyncEventLogs           => Set<SyncEventLog>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder mb)
     {
-        base.OnModelCreating(modelBuilder);
+        base.OnModelCreating(mb);
 
-        // Apply all IEntityTypeConfiguration classes from this assembly
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(EcmDbContext).Assembly);
+        // Apply all IEntityTypeConfiguration<T> from this assembly
+        mb.ApplyConfigurationsFromAssembly(typeof(EcmDbContext).Assembly);
 
-        // Global soft-delete query filters
-        modelBuilder.Entity<Document>().HasQueryFilter(d => !d.IsDeleted);
-        modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
-        modelBuilder.Entity<DocumentLibrary>().HasQueryFilter(l => !l.IsDeleted);
-        modelBuilder.Entity<Folder>().HasQueryFilter(f => !f.IsDeleted);
-        modelBuilder.Entity<DocumentType>().HasQueryFilter(dt => !dt.IsDeleted);
-        modelBuilder.Entity<Workspace>().HasQueryFilter(w => !w.IsDeleted);
+        // Global soft-delete filters
+        mb.Entity<Document>().HasQueryFilter(d => !d.IsDeleted);
+        mb.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
+        mb.Entity<Workspace>().HasQueryFilter(w => !w.IsDeleted);
 
-        // Document GUID default
-        modelBuilder.Entity<Document>()
+        // GUID defaults (NEWSEQUENTIALID() for insert-order performance)
+        mb.Entity<Document>()
             .Property(d => d.DocumentId)
             .HasDefaultValueSql("NEWSEQUENTIALID()");
 
-        modelBuilder.Entity<Workspace>()
+        mb.Entity<Workspace>()
             .Property(w => w.WorkspaceId)
             .HasDefaultValueSql("NEWSEQUENTIALID()");
 
-        // AuditLog — no update/delete via EF (enforced by DB permissions too)
-        modelBuilder.Entity<AuditLog>().ToTable("AuditLogs");
-        modelBuilder.Entity<AuditLog>().HasKey(a => a.AuditId);
-        modelBuilder.Entity<AuditLog>().Property(a => a.AuditId).ValueGeneratedOnAdd();
-
-        // Document Status stored as string
-        modelBuilder.Entity<Document>()
+        // DocumentStatus stored as string (readable audit logs)
+        mb.Entity<Document>()
             .Property(d => d.Status)
-            .HasConversion(
-                v => v.Value,
-                v => DocumentStatus.From(v));
+            .HasConversion(v => v.Value, v => DocumentStatus.From(v))
+            .HasMaxLength(20);
 
-        // Classification stored as int
-        modelBuilder.Entity<Document>()
+        // ClassificationLevel stored as int (compact FK reference)
+        mb.Entity<Document>()
             .Property(d => d.Classification)
-            .HasConversion(
-                v => v.Order,
-                v => ClassificationLevel.FromOrder(v));
+            .HasConversion(v => v.Order, v => ClassificationLevel.FromOrder(v))
+            .HasColumnName("ClassificationLevelOrder");
+
+        // FileMetadata owned entity on DocumentVersion
+        mb.Entity<DocumentVersion>().OwnsOne(v => v.File, fm =>
+        {
+            fm.Property(f => f.StorageKey).HasMaxLength(1000).IsRequired();
+            fm.Property(f => f.OriginalFileName).HasMaxLength(500).IsRequired();
+            fm.Property(f => f.ContentType).HasMaxLength(200).IsRequired();
+            fm.Property(f => f.FileExtension).HasMaxLength(20).IsRequired();
+            fm.Property(f => f.FileSizeBytes).IsRequired();
+            fm.Property(f => f.ContentHash).HasMaxLength(64).IsRequired();
+            fm.Property(f => f.StorageProvider).HasMaxLength(50).IsRequired();
+        });
+
+        // AuditLog — append-only, no update/delete via EF tracking
+        mb.Entity<AuditLog>().ToTable("AuditLogs").HasKey(a => a.AuditId);
+        mb.Entity<AuditLog>().Property(a => a.AuditId).ValueGeneratedOnAdd();
+        mb.Entity<AuditLog>().HasIndex(a => a.CreatedAt);
+        mb.Entity<AuditLog>().HasIndex(a => new { a.EntityType, a.EntityId });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
@@ -112,142 +105,144 @@ public class EcmDbContext : DbContext
     }
 }
 
-/// <summary>Thin wrapper so DbContext doesn't depend on ICurrentUser directly.</summary>
-public interface ICurrentUserAccessor { int? UserId { get; } }
-
-// ─────────────────────────────────────────────────────────────
-// UNIT OF WORK
-// ─────────────────────────────────────────────────────────────
-public class UnitOfWork : IUnitOfWork
+/// <summary>Minimal accessor so EcmDbContext doesn't take a hard ICurrentUser dependency.</summary>
+public interface ICurrentUserAccessor
 {
-    private readonly EcmDbContext _context;
-    private Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? _transaction;
+    int? UserId { get; }
+}
 
-    public UnitOfWork(EcmDbContext context,
-        IDocumentRepository documents,
-        IWorkspaceRepository workspaces,
-        IUserRepository users,
-        IWorkflowRepository workflows)
+// ─── UNIT OF WORK ─────────────────────────────────────────────────────────────
+public sealed class UnitOfWork : IUnitOfWork
+{
+    private readonly EcmDbContext _ctx;
+    private IDbContextTransaction? _tx;
+
+    public UnitOfWork(
+        EcmDbContext               ctx,
+        IDocumentRepository        documents,
+        IDocumentVersionRepository documentVersions,
+        IUserRepository            users,
+        IWorkflowRepository        workflows)
     {
-        _context = context;
-        Documents = documents;
-        Workspaces = workspaces;
-        Users = users;
-        Workflows = workflows;
+        _ctx             = ctx;
+        Documents        = documents;
+        DocumentVersions = documentVersions;
+        Users            = users;
+        Workflows        = workflows;
     }
 
-    public IDocumentRepository Documents { get; }
-    public IWorkspaceRepository Workspaces { get; }
-    public IUserRepository Users { get; }
-    public IWorkflowRepository Workflows { get; }
+    public IDocumentRepository        Documents        { get; }
+    public IDocumentVersionRepository DocumentVersions { get; }
+    public IUserRepository            Users            { get; }
+    public IWorkflowRepository        Workflows        { get; }
 
     public async Task<int> CommitAsync(CancellationToken ct = default)
-        => await _context.SaveChangesAsync(ct);
+        => await _ctx.SaveChangesAsync(ct);
 
     public async Task BeginTransactionAsync(CancellationToken ct = default)
-        => _transaction = await _context.Database.BeginTransactionAsync(ct);
+        => _tx = await _ctx.Database.BeginTransactionAsync(ct);
 
     public async Task CommitTransactionAsync(CancellationToken ct = default)
     {
-        if (_transaction != null) await _transaction.CommitAsync(ct);
+        if (_tx is not null) await _tx.CommitAsync(ct);
     }
 
     public async Task RollbackTransactionAsync(CancellationToken ct = default)
     {
-        if (_transaction != null) await _transaction.RollbackAsync(ct);
+        if (_tx is not null) await _tx.RollbackAsync(ct);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_transaction != null) await _transaction.DisposeAsync();
-        await _context.DisposeAsync();
+        if (_tx is not null) await _tx.DisposeAsync();
+        await _ctx.DisposeAsync();
     }
 }
 
-// ─────────────────────────────────────────────────────────────
-// REPOSITORIES
-// ─────────────────────────────────────────────────────────────
+// ─── BASE REPOSITORY ──────────────────────────────────────────────────────────
 public abstract class BaseRepository<TEntity> : IRepository<TEntity>
     where TEntity : class
 {
-    protected readonly EcmDbContext Context;
-    protected BaseRepository(EcmDbContext context) => Context = context;
+    protected readonly EcmDbContext Ctx;
+    protected BaseRepository(EcmDbContext ctx) => Ctx = ctx;
 
     public async Task<TEntity?> GetByIdAsync(object id, CancellationToken ct = default)
-        => await Context.Set<TEntity>().FindAsync(new[] { id }, ct);
+        => await Ctx.Set<TEntity>().FindAsync(new[] { id }, ct);
 
     public async Task AddAsync(TEntity entity, CancellationToken ct = default)
-        => await Context.Set<TEntity>().AddAsync(entity, ct);
+        => await Ctx.Set<TEntity>().AddAsync(entity, ct);
 
-    public void Update(TEntity entity) => Context.Set<TEntity>().Update(entity);
-    public void Remove(TEntity entity) => Context.Set<TEntity>().Remove(entity);
+    public void Update(TEntity entity) => Ctx.Set<TEntity>().Update(entity);
+    public void Remove(TEntity entity) => Ctx.Set<TEntity>().Remove(entity);
 }
 
-public class DocumentRepository : BaseRepository<Document>, IDocumentRepository
+// ─── DOCUMENT REPOSITORY ──────────────────────────────────────────────────────
+public sealed class DocumentRepository : BaseRepository<Document>, IDocumentRepository
 {
     public DocumentRepository(EcmDbContext ctx) : base(ctx) { }
 
     public async Task<Document?> GetByGuidAsync(Guid id, CancellationToken ct = default)
-        => await Context.Documents.FirstOrDefaultAsync(d => d.DocumentId == id, ct);
+        => await Ctx.Documents.FirstOrDefaultAsync(d => d.DocumentId == id, ct);
 
     public async Task<Document?> GetByNumberAsync(string number, CancellationToken ct = default)
-        => await Context.Documents.FirstOrDefaultAsync(d => d.DocumentNumber == number, ct);
-
-    public async Task<DocumentAggregate?> GetAggregateAsync(Guid id, CancellationToken ct = default)
-    {
-        var doc = await Context.Documents
-            .Include(d => d.DocumentType)
-            .Include(d => d.Library)
-            .Include(d => d.Folder)
-            .FirstOrDefaultAsync(d => d.DocumentId == id, ct);
-        if (doc is null) return null;
-
-        var versions = await Context.DocumentVersions
-            .Where(v => v.DocumentId == id)
-            .OrderByDescending(v => v.MajorVersion).ThenByDescending(v => v.MinorVersion)
-            .ToListAsync(ct);
-
-        var tags = await Context.DocumentTags
-            .Where(t => t.DocumentId == id)
-            .Select(t => t.Tag.NameAr)
-            .ToListAsync(ct);
-
-        return DocumentAggregate.Reconstitute(doc, versions, tags);
-    }
+        => await Ctx.Documents.FirstOrDefaultAsync(d => d.DocumentNumber == number, ct);
 
     public async Task<bool> NumberExistsAsync(string number, CancellationToken ct = default)
-        => await Context.Documents.AnyAsync(d => d.DocumentNumber == number, ct);
+        => await Ctx.Documents.AnyAsync(d => d.DocumentNumber == number, ct);
 
     public async Task<int> CountByLibraryAsync(int libraryId, CancellationToken ct = default)
-        => await Context.Documents.CountAsync(d => d.LibraryId == libraryId, ct);
+        => await Ctx.Documents.CountAsync(d => d.LibraryId == libraryId, ct);
 
     public async Task<IEnumerable<Document>> GetExpiringRetentionAsync(int daysAhead, CancellationToken ct = default)
     {
         var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(daysAhead));
-        return await Context.Documents
-            .Where(d => d.RetentionExpiresAt.HasValue && d.RetentionExpiresAt.Value <= cutoff && !d.IsLegalHold)
+        return await Ctx.Documents
+            .Where(d => d.RetentionExpiresAt.HasValue
+                     && d.RetentionExpiresAt.Value <= cutoff
+                     && !d.IsLegalHold)
             .ToListAsync(ct);
     }
 
     public async Task<IEnumerable<Document>> GetCheckedOutByUserAsync(int userId, CancellationToken ct = default)
-        => await Context.Documents.Where(d => d.CheckedOutBy == userId && d.IsCheckedOut).ToListAsync(ct);
+        => await Ctx.Documents
+            .Where(d => d.CheckedOutBy == userId && d.IsCheckedOut)
+            .ToListAsync(ct);
 }
 
-public class UserRepository : BaseRepository<User>, IUserRepository
+// ─── DOCUMENT VERSION REPOSITORY ─────────────────────────────────────────────
+public sealed class DocumentVersionRepository : BaseRepository<DocumentVersion>, IDocumentVersionRepository
+{
+    public DocumentVersionRepository(EcmDbContext ctx) : base(ctx) { }
+
+    public async Task<DocumentVersion?> GetCurrentAsync(Guid documentId, CancellationToken ct = default)
+        => await Ctx.DocumentVersions
+            .Where(v => v.DocumentId == documentId && v.IsCurrent)
+            .FirstOrDefaultAsync(ct);
+
+    public async Task<IEnumerable<DocumentVersion>> GetAllForDocumentAsync(Guid documentId, CancellationToken ct = default)
+        => await Ctx.DocumentVersions
+            .Where(v => v.DocumentId == documentId)
+            .OrderByDescending(v => v.MajorVersion)
+            .ThenByDescending(v => v.MinorVersion)
+            .ToListAsync(ct);
+}
+
+// ─── USER REPOSITORY ─────────────────────────────────────────────────────────
+public sealed class UserRepository : BaseRepository<User>, IUserRepository
 {
     public UserRepository(EcmDbContext ctx) : base(ctx) { }
 
     public async Task<User?> GetByUsernameAsync(string username, CancellationToken ct = default)
-        => await Context.Users.FirstOrDefaultAsync(u => u.Username == username.ToLower(), ct);
+        => await Ctx.Users.FirstOrDefaultAsync(u => u.Username == username.ToLowerInvariant(), ct);
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
-        => await Context.Users.FirstOrDefaultAsync(u => u.Email == email.ToLower(), ct);
+        => await Ctx.Users.FirstOrDefaultAsync(u => u.Email == email.ToLowerInvariant(), ct);
 
     public async Task<User?> GetByExternalIdAsync(string externalId, CancellationToken ct = default)
-        => await Context.Users.FirstOrDefaultAsync(u => u.ExternalId == externalId, ct);
+        => await Ctx.Users.FirstOrDefaultAsync(u => u.ExternalId == externalId, ct);
 
     public async Task<IEnumerable<string>> GetPermissionsAsync(int userId, CancellationToken ct = default)
-        => await Context.UserRoles
+        => await Ctx.Set<UserRole>()
             .Where(ur => ur.UserId == userId && ur.IsActive)
             .SelectMany(ur => ur.Role.RolePermissions)
             .Select(rp => rp.Permission.PermissionCode)
@@ -255,44 +250,45 @@ public class UserRepository : BaseRepository<User>, IUserRepository
             .ToListAsync(ct);
 
     public async Task<IEnumerable<int>> GetRoleIdsAsync(int userId, CancellationToken ct = default)
-        => await Context.UserRoles
+        => await Ctx.Set<UserRole>()
             .Where(ur => ur.UserId == userId && ur.IsActive)
             .Select(ur => ur.RoleId)
             .ToListAsync(ct);
+
+    public async Task<int?> GetDepartmentIdAsync(int userId, CancellationToken ct = default)
+        => await Ctx.Users
+            .Where(u => u.UserId == userId)
+            .Select(u => u.DepartmentId)
+            .FirstOrDefaultAsync(ct);
 }
 
-public class WorkflowRepository : BaseRepository<WorkflowInstance>, IWorkflowRepository
+// ─── WORKFLOW REPOSITORY ─────────────────────────────────────────────────────
+public sealed class WorkflowRepository : BaseRepository<WorkflowInstance>, IWorkflowRepository
 {
     public WorkflowRepository(EcmDbContext ctx) : base(ctx) { }
 
     public async Task<WorkflowInstance?> GetActiveForDocumentAsync(Guid documentId, CancellationToken ct = default)
-        => await Context.WorkflowInstances
-            .Include(i => i.Definition).ThenInclude(d => d.Steps)
+        => await Ctx.WorkflowInstances
             .FirstOrDefaultAsync(i => i.DocumentId == documentId && i.Status == "InProgress", ct);
 
     public async Task<IEnumerable<WorkflowTask>> GetUserInboxAsync(
         int userId, IEnumerable<int> roleIds, CancellationToken ct = default)
-        => await Context.WorkflowTasks
-            .Include(t => t.Instance).ThenInclude(i => i.Document)
-            .Include(t => t.Instance).ThenInclude(i => i.Definition)
-            .Include(t => t.Step)
-            .Where(t => t.Status == "Pending" &&
-                (t.AssignedToUserId == userId || roleIds.Contains(t.AssignedToRoleId ?? 0)))
-            .OrderBy(t => t.IsOverdue ? 0 : 1).ThenBy(t => t.DueAt)
+        => await Ctx.WorkflowTasks
+            .Where(t => t.Status == "Pending"
+                     && (t.AssignedToUserId == userId
+                         || roleIds.Contains(t.AssignedToRoleId ?? 0)))
+            .OrderBy(t => t.IsOverdue ? 0 : 1)
+            .ThenBy(t => t.DueAt)
             .ToListAsync(ct);
 
     public async Task<IEnumerable<WorkflowTask>> GetOverdueTasksAsync(CancellationToken ct = default)
-        => await Context.WorkflowTasks
-            .Include(t => t.Step)
-            .Include(t => t.Instance).ThenInclude(i => i.Definition)
-            .Where(t => t.Status == "Pending" && t.DueAt.HasValue
-                && t.DueAt.Value < DateTime.UtcNow && !t.IsOverdue)
+        => await Ctx.WorkflowTasks
+            .Where(t => t.Status == "Pending"
+                     && t.DueAt.HasValue
+                     && t.DueAt.Value < DateTime.UtcNow
+                     && !t.IsOverdue)
             .ToListAsync(ct);
 
     public async Task<WorkflowTask?> GetTaskAsync(int taskId, CancellationToken ct = default)
-        => await Context.WorkflowTasks
-            .Include(t => t.Step)
-            .Include(t => t.Instance)
-            .Include(t => t.Actions)
-            .FirstOrDefaultAsync(t => t.TaskId == taskId, ct);
+        => await Ctx.WorkflowTasks.FindAsync(new object[] { taskId }, ct);
 }

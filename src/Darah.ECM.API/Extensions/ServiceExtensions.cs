@@ -6,7 +6,6 @@ using Darah.ECM.Domain.Interfaces.Services;
 using Darah.ECM.Domain.Services;
 using Darah.ECM.xECM.Domain.Services;
 using Hangfire;
-using Hangfire.PostgreSql;
 using Hangfire.InMemory;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -55,17 +54,12 @@ public static class ServiceExtensions
         else
             services.AddDistributedMemoryCache();
 
-        // Hangfire
-        services.AddHangfire(hf =>
-        {
-            hf.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-              .UseSimpleAssemblyNameTypeSerializer()
-              .UseRecommendedSerializerSettings();
-            if (!string.IsNullOrEmpty(connStr))
-                hf.UsePostgreSqlStorage(o => o.UseNpgsqlConnection(connStr));
-            else
-                hf.UseInMemoryStorage();
-        });
+        // Hangfire - always use InMemory to avoid connection string format issues
+        services.AddHangfire(hf => hf
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseInMemoryStorage());
         services.AddHangfireServer();
 
         // MediatR — scans Application + xECM assemblies

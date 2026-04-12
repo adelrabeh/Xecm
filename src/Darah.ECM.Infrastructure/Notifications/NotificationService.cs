@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Darah.ECM.Application.Common.Interfaces;
+using Darah.ECM.Domain.Entities;
+using Darah.ECM.Infrastructure.Persistence;
 
 namespace Darah.ECM.Infrastructure.Services;
 
@@ -55,6 +58,3 @@ public class NotificationService : INotificationService
             .ToListAsync(ct);
     }
 }
-using Darah.ECM.Application.Common.Interfaces;
-using Darah.ECM.Domain.Entities;
-using Darah.ECM.Infrastructure.Persistence;

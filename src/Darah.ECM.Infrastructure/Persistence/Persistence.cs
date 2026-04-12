@@ -40,7 +40,7 @@ public sealed class EcmDbContext : DbContext
         // GUID defaults (NEWSEQUENTIALID() for insert-order performance)
         mb.Entity<Document>()
             .Property(d => d.DocumentId)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
 
         // DocumentStatus stored as string (readable audit logs)

@@ -6,7 +6,7 @@ using Darah.ECM.Domain.Interfaces.Services;
 using Darah.ECM.Domain.Services;
 using Darah.ECM.xECM.Domain.Services;
 using Hangfire;
-using Hangfire.SqlServer;
+using Hangfire.PostgreSql;
 using Hangfire.InMemory;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,7 +26,7 @@ public static class ServiceExtensions
         services.AddDbContext<EcmDbContext>(opt =>
         {
             if (!string.IsNullOrEmpty(connStr))
-                opt.UseSqlServer(connStr, sql => sql.EnableRetryOnFailure(3));
+                opt.UseNpgsql(connStr, sql => sql.EnableRetryOnFailure(3));
             else
                 opt.UseInMemoryDatabase("DarahECM_Dev");
         });
@@ -62,7 +62,7 @@ public static class ServiceExtensions
               .UseSimpleAssemblyNameTypeSerializer()
               .UseRecommendedSerializerSettings();
             if (!string.IsNullOrEmpty(connStr))
-                hf.UseSqlServerStorage(connStr);
+                hf.UsePostgreSqlStorage(o => o.UseNpgsqlConnection(connStr));
             else
                 hf.UseInMemoryStorage();
         });
@@ -90,7 +90,7 @@ public static class ServiceExtensions
         var hc = services.AddHealthChecks();
         var conn = config.GetConnectionString("DefaultConnection");
         if (!string.IsNullOrEmpty(conn))
-            hc.AddSqlServer(conn, name: "sqlserver");
+            hc.AddNpgSql(conn!, name: "postgresql");
 
         services.AddHttpContextAccessor();
 

@@ -33,18 +33,6 @@ public sealed record GetDocumentWorkflowHistoryQuery(Guid DocumentId)
     : IRequest<ApiResponse<List<WorkflowInstanceDto>>>;
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
-public sealed record WorkflowDefinitionDto(
-    int      DefinitionId,
-    string   Code,
-    string   NameAr,
-    string?  NameEn,
-    int?     DocumentTypeId,
-    string   TriggerType,
-    int      Version,
-    bool     IsActive,
-    bool     IsDefault,
-    List<WorkflowStepDto> Steps);
-
 public sealed record WorkflowStepDto(
     int      StepId,
     string   StepCode,

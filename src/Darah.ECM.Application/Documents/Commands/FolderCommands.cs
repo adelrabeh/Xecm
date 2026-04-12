@@ -14,13 +14,6 @@ public sealed record FolderDto(
     int? ParentFolderId, string Path, int DepthLevel, int SortOrder,
     DateTime CreatedAt, List<FolderDto>? Children = null, int DocumentCount = 0);
 
-public sealed record DocumentListItemDto(
-    Guid DocumentId, string DocumentNumber, string TitleAr, string? TitleEn,
-    string? DocumentTypeNameAr, string? LibraryNameAr, string StatusCode,
-    string ClassificationCode, string? FileExtension, long? FileSizeBytes,
-    bool IsCheckedOut, bool IsLegalHold, DateTime CreatedAt,
-    string? CreatedByNameAr, Guid? PrimaryWorkspaceId);
-
 public sealed record GetFolderTreeQuery(int LibraryId)
     : IRequest<ApiResponse<List<FolderDto>>>;
 

@@ -108,3 +108,11 @@ public sealed class UpdateDocumentMetadataHandler
         return ApiResponse<bool>.Ok(true, "تم تحديث البيانات الوصفية");
     }
 }
+
+// ─── METADATA ADMIN COMMANDS ──────────────────────────────────────────────────
+public sealed record CreateMetadataFieldCommand(
+    string FieldCode, string LabelAr, string LabelEn, string FieldType,
+    bool IsRequired = false, bool IsSearchable = false,
+    int SortOrder = 0, string? DefaultValue = null,
+    int? DocumentTypeId = null)
+    : IRequest<ApiResponse<MetadataFieldDto>>;

@@ -57,7 +57,7 @@ public sealed class HttpCorrelationContext : ICorrelationContext
 ///   - OldValues      → JSON snapshot before change
 ///   - NewValues      → JSON snapshot after change
 /// </summary>
-public sealed class AuditEntry
+public sealed record AuditEntry
 {
     public string   CorrelationId  { get; init; } = string.Empty;
     public string   EventType      { get; init; } = string.Empty;

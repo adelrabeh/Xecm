@@ -73,11 +73,12 @@ public sealed record RecordDeclarationDto(
     string RetentionPolicyName, DateOnly RetentionExpiryDate, string DisposalAction);
 
 public sealed record LegalHoldResultDto(
-    Guid HoldId, string HoldName, int DocumentsAffected, DateTime AppliedAt);
+    int HoldId, string HoldName, int DocumentsAffected, int DocumentsSkipped);
 
 public sealed record DisposalRequestDto(
-    int RequestId, string DisposalType, string Status, int DocumentCount,
-    string Justification, DateTime CreatedAt, string? CreatedByNameAr);
+    int RequestId, string DisposalCode, string DisposalType,
+    string Status, int DocumentCount, DateTime CreatedAt,
+    string? CreatedByNameAr = null, string? Justification = null);
 
 // ─── METADATA DTOs ────────────────────────────────────────────────────────────
 public sealed record MetadataFieldDto(

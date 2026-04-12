@@ -40,7 +40,7 @@ public sealed record WorkspaceDocumentDto(
     string ClassificationCode, string? FileExtension, bool IsLegalHold,
     DateTime BoundAt, string? BoundByNameAr, string? Note);
 
-public sealed record LegalHoldResultDto(Guid WorkspaceId, string WorkspaceNumber, int DocumentsAffected);
+public sealed record WorkspaceLegalHoldResultDto(Guid WorkspaceId, string WorkspaceNumber, int DocumentsAffected);
 
 // Commands
 public sealed record CreateWorkspaceCommand(
@@ -135,7 +135,7 @@ public sealed record ActivateWorkspaceCommand(Guid WorkspaceId) : IRequest<ApiRe
 public sealed record CloseWorkspaceCommand(Guid WorkspaceId, string? Reason) : IRequest<ApiResponse<bool>>;
 public sealed record ArchiveWorkspaceCommand(Guid WorkspaceId) : IRequest<ApiResponse<bool>>;
 public sealed record DisposeWorkspaceCommand(Guid WorkspaceId) : IRequest<ApiResponse<bool>>;
-public sealed record ApplyWorkspaceLegalHoldCommand(Guid WorkspaceId) : IRequest<ApiResponse<LegalHoldResultDto>>;
+public sealed record ApplyWorkspaceLegalHoldCommand(Guid WorkspaceId) : IRequest<ApiResponse<WorkspaceLegalHoldResultDto>>;
 public sealed record ReleaseWorkspaceLegalHoldCommand(Guid WorkspaceId) : IRequest<ApiResponse<bool>>;
 public sealed record BindDocumentToWorkspaceCommand(Guid WorkspaceId, Guid DocumentId, string BindingType = "Primary", string? Note = null) : IRequest<ApiResponse<WorkspaceDocumentDto>>;
 public sealed record RemoveDocumentFromWorkspaceCommand(Guid WorkspaceId, Guid DocumentId) : IRequest<ApiResponse<bool>>;

@@ -33,3 +33,7 @@
   </ItemGroup>
 
 </Project>
+<ItemGroup>
+  <ProjectReference Include="..\Darah.ECM.Application\Darah.ECM.Application.csproj" />
+  <ProjectReference Include="..\Darah.ECM.Domain\Darah.ECM.Domain.csproj" />
+</ItemGroup>

@@ -5,6 +5,7 @@ namespace Darah.ECM.xECM.Domain.Interfaces;
 
 public interface IWorkspaceRepository : IRepository<Workspace>
 {
+    new Task<int> CommitAsync(CancellationToken ct = default);
     Task<Workspace?> GetByGuidAsync(Guid id, CancellationToken ct = default);
     Task<Workspace?> GetByNumberAsync(string number, CancellationToken ct = default);
     Task<Workspace?> GetByExternalObjectAsync(string systemCode, string objectId, CancellationToken ct = default);
@@ -21,7 +22,7 @@ public interface IWorkspaceDocumentRepository
     Task<IEnumerable<WorkspaceDocument>> GetByDocumentAsync(Guid documentId, CancellationToken ct = default);
     Task<bool>       BindingExistsAsync(Guid workspaceId, Guid documentId, CancellationToken ct = default);
     Task             AddAsync(WorkspaceDocument binding, CancellationToken ct = default);
-    Task             CommitAsync(CancellationToken ct = default);
+    Task<int> CommitAsync(CancellationToken ct = default);
 }
 
 public interface IExternalSystemRepository : IRepository<ExternalSystem>

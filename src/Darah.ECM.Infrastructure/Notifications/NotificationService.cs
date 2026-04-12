@@ -246,9 +246,9 @@ public sealed class SmtpEmailService : IEmailService
         if (n is not null) { n.MarkRead(); await _ctx.SaveChangesAsync(ct); }
     }
 
-    public async Task<IEnumerable<Darah.ECM.Domain.Entities.Notification>> GetUnreadAsync(
+    public async Task<IEnumerable<Notification>> GetUnreadAsync(
         int userId, CancellationToken ct = default)
-        => await _ctx.Set<Darah.ECM.Domain.Entities.Notification>()
+        => await _ctx.Set<Notification>()
             .Where(n => n.UserId == userId && !n.IsRead)
             .OrderByDescending(n => n.CreatedAt)
             .Take(50)

@@ -26,7 +26,7 @@ public interface INotificationService
         string? entityType = null, string? entityId = null, string? actionUrl = null,
         int priority = 2, CancellationToken ct = default);
     Task MarkReadAsync(long notificationId, int userId, CancellationToken ct = default);
-    Task<IEnumerable<Darah.ECM.Domain.Entities.Notification>> GetUnreadAsync(int userId, CancellationToken ct = default);
+    Task<IEnumerable<Notification>> GetUnreadAsync(int userId, CancellationToken ct = default);
 }
 
 // ─── METADATA REPOSITORY ─────────────────────────────────────────────────────
@@ -62,13 +62,6 @@ public interface IFolderRepository
     Task<int> CommitAsync(CancellationToken ct = default);
 }
 
-// ─── USER REPOSITORY ──────────────────────────────────────────────────────────
-public interface IUserRepository
-{
-    Task<IEnumerable<string>> GetPermissionsAsync(int userId, CancellationToken ct = default);
-    Task<IEnumerable<int>>    GetRoleIdsAsync(int userId, CancellationToken ct = default);
-    Task<int?>                GetDepartmentIdAsync(int userId, CancellationToken ct = default);
-}
 
 // ─── NOTIFICATION COMMANDS ────────────────────────────────────────────────────
 public sealed record GetMyNotificationsQuery(int UserId, int Page = 1, int PageSize = 20)

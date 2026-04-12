@@ -70,8 +70,9 @@ public static class ServiceExtensions
         // Security
         services.AddScoped<IPolicyEngine, PolicyEngine>();
         services.AddScoped<CurrentUserService>();
-        services.AddScoped<ICurrentUser>(sp => (ICurrentUser)sp.GetRequiredService<CurrentUserService>());
-        services.AddScoped<ICurrentUserAccessor>(sp => (ICurrentUserAccessor)sp.GetRequiredService<CurrentUserService>());
+        services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserService>());
+        services.AddScoped<Darah.ECM.Infrastructure.Persistence.ICurrentUserAccessor>(
+            sp => sp.GetRequiredService<CurrentUserService>());
 
         // Health Checks
         var hc = services.AddHealthChecks();

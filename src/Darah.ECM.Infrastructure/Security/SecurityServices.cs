@@ -5,8 +5,9 @@ using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Darah.ECM.Application.Common.Interfaces;
-public sealed class CurrentUserService : ICurrentUser
+public sealed class CurrentUserService : ICurrentUser, Darah.ECM.Infrastructure.Persistence.ICurrentUserAccessor
 {
+    int? Darah.ECM.Infrastructure.Persistence.ICurrentUserAccessor.UserId => IsAuthenticated ? UserId : null;
     private readonly ClaimsPrincipal? _user;
 
     public CurrentUserService(IHttpContextAccessor httpContextAccessor)

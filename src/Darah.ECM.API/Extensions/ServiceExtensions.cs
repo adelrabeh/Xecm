@@ -7,6 +7,8 @@ using Darah.ECM.Domain.Services;
 using Darah.ECM.xECM.Domain.Services;
 using Hangfire;
 using Hangfire.SqlServer;
+using Hangfire.InMemory;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -20,9 +22,14 @@ public static class ServiceExtensions
         this IServiceCollection services, IConfiguration config)
     {
         // Database
+        var connStr = config.GetConnectionString("DefaultConnection");
         services.AddDbContext<EcmDbContext>(opt =>
-            opt.UseSqlServer(config.GetConnectionString("DefaultConnection"),
-                sql => sql.EnableRetryOnFailure(3)));
+        {
+            if (!string.IsNullOrEmpty(connStr))
+                opt.UseSqlServer(connStr, sql => sql.EnableRetryOnFailure(3));
+            else
+                opt.UseInMemoryDatabase("DarahECM_Dev");
+        });
 
         // JWT
         var jwt = config.GetSection("Jwt");
@@ -49,11 +56,16 @@ public static class ServiceExtensions
             services.AddDistributedMemoryCache();
 
         // Hangfire
-        services.AddHangfire(hf => hf
-            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(config.GetConnectionString("DefaultConnection")));
+        services.AddHangfire(hf =>
+        {
+            hf.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+              .UseSimpleAssemblyNameTypeSerializer()
+              .UseRecommendedSerializerSettings();
+            if (!string.IsNullOrEmpty(connStr))
+                hf.UseSqlServerStorage(connStr);
+            else
+                hf.UseInMemoryStorage();
+        });
         services.AddHangfireServer();
 
         // MediatR — scans Application + xECM assemblies

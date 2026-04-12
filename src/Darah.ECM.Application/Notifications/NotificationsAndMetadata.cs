@@ -118,7 +118,7 @@ public sealed record CreateMetadataFieldCommand(
     : IRequest<ApiResponse<MetadataFieldDto>>;
 
 // ─── ADDITIONAL NOTIFICATION QUERIES ─────────────────────────────────────────
-public sealed record GetNotificationsQuery(int Page = 1, int PageSize = 20)
+public sealed record GetNotificationsQuery(bool? UnreadOnly = null, int Page = 1, int PageSize = 20)
     : IRequest<ApiResponse<PagedResult<NotificationDto>>>;
 
 public sealed record GetUnreadCountQuery()

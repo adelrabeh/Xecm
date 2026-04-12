@@ -5,34 +5,27 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-
-var app = builder.Build();
-
-app.MapControllers();
-
-app.Run();
-
-// Serilog
+// ─── Serilog ──────────────────────────────────────────────────────────────────
 builder.Host.UseSerilog((ctx, cfg) =>
     cfg.ReadFrom.Configuration(ctx.Configuration));
 
-// Services
+// ─── Services ─────────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() {
-        Title = "DARAH ECM API — نظام إدارة المحتوى المؤسسي",
+    c.SwaggerDoc("v1", new()
+    {
+        Title   = "DARAH ECM API — نظام إدارة المحتوى المؤسسي",
         Version = "v1"
     });
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Description = "JWT: Bearer {token}",
-        Name = "Authorization",
-        In   = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Name        = "Authorization",
+        In          = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type        = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme      = "Bearer"
     });
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement {{
         new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
@@ -41,14 +34,16 @@ builder.Services.AddSwaggerGen(c =>
     }});
 });
 
-// All ECM services
-builder.Services.AddEcmServices(builder.Configuration);
-
 builder.Services.AddCors(o => o.AddPolicy("Dev", p =>
     p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
+// ─── ECM Services (DI registration) ──────────────────────────────────────────
+builder.Services.AddEcmServices(builder.Configuration);
 
-// Middleware
+// ─── Build ────────────────────────────────────────────────────────────────────
+var app = builder.Build();
+
+// ─── Middleware pipeline ──────────────────────────────────────────────────────
 app.UseMiddleware<CorrelationIdMiddleware>();
 
 if (app.Environment.IsDevelopment())

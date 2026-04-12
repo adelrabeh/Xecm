@@ -137,12 +137,12 @@ public sealed class WorkflowEngine : IWorkflowEngine
                 if (task.AssignedToUserId.HasValue)
                 {
                     var doc = await _ctx.Set<Document>()
-                        .FirstOrDefaultAsync(d => d.DocumentId == task.Instance.DocumentId, ct);
-                    await _notifier.NotifySLABreachAsync(
+                        .FirstOrDefaultAsync(d => d.DocumentId == (await _ctx.Set<WorkflowInstance>().FindAsync(new object[] { task.InstanceId }, ct))!.DocumentId, ct);
+                    await _notifier.SendAsync(
                         task.AssignedToUserId.Value,
-                        doc?.TitleAr ?? "وثيقة",
-                        "مسار العمل",
-                        task.DueAt!.Value, ct);
+                        "تنبيه: انتهت مهلة المهمة",
+                        $"انتهت مهلة مهمة '{doc?.TitleAr ?? "وثيقة"}'",
+                        "SLABreach", ct: ct);
                 }
             }
 
@@ -160,7 +160,7 @@ public sealed class WorkflowEngine : IWorkflowEngine
     // ─── Private: step handlers ────────────────────────────────────────────────
     private async Task HandleApproveAsync(WorkflowTask task, CancellationToken ct)
     {
-        var instance = task.Instance;
+        var instance = await _ctx.Set<WorkflowInstance>().FindAsync(new object[] { task.InstanceId }, ct) ?? throw new InvalidOperationException($"WorkflowInstance {task.InstanceId} not found");
         var definition = await _ctx.Set<WorkflowDefinition>()
             .Include(d => d.Steps)
             .FirstAsync(d => d.DefinitionId == instance.DefinitionId, ct);
@@ -195,8 +195,8 @@ public sealed class WorkflowEngine : IWorkflowEngine
 
     private async Task HandleRejectAsync(WorkflowTask task, CancellationToken ct)
     {
-        task.Instance.Reject();
-        await UpdateDocumentStatusAsync(task.Instance.DocumentId, DocumentStatus.Rejected, ct);
+        instance.Reject();
+        await UpdateDocumentStatusAsync(instance.DocumentId, DocumentStatus.Rejected, ct);
     }
 
     private async Task HandleReturnAsync(WorkflowTask task, CancellationToken ct)
@@ -204,7 +204,7 @@ public sealed class WorkflowEngine : IWorkflowEngine
         // Return to previous step or to originator
         var definition = await _ctx.Set<WorkflowDefinition>()
             .Include(d => d.Steps)
-            .FirstAsync(d => d.DefinitionId == task.Instance.DefinitionId, ct);
+            .FirstAsync(d => d.DefinitionId == instance.DefinitionId, ct);
 
         var currentStep = definition.Steps
             .OrderBy(s => s.StepOrder)
@@ -214,14 +214,14 @@ public sealed class WorkflowEngine : IWorkflowEngine
         if (idx <= 0)
         {
             // Return to originator — reject
-            task.Instance.Reject();
-            await UpdateDocumentStatusAsync(task.Instance.DocumentId, DocumentStatus.Draft, ct);
+            instance.Reject();
+            await UpdateDocumentStatusAsync(instance.DocumentId, DocumentStatus.Draft, ct);
         }
         else
         {
             var prevStep = currentStep[idx - 1];
-            task.Instance.MoveToStep(prevStep.StepId);
-            await AssignTaskAsync(task.Instance, prevStep, task.Instance.DocumentId, ct);
+            instance.MoveToStep(prevStep.StepId);
+            await AssignTaskAsync(instance, prevStep, instance.DocumentId, ct);
         }
     }
 
@@ -230,9 +230,10 @@ public sealed class WorkflowEngine : IWorkflowEngine
     {
         task.Delegate(newUserId);
         // Notify new assignee
-        await _notifier.NotifyWorkflowTaskAssignedAsync(
-            newUserId, "وثيقة", "مسار العمل", "مهمة مفوضة",
-            task.TaskId, ct);
+        await _notifier.SendAsync(
+            newUserId, "مهمة جديدة مفوضة إليك",
+            "تم تفويض مهمة اعتماد إليك",
+            "WorkflowTaskAssigned", ct: ct);
     }
 
     private async Task AssignTaskAsync(WorkflowInstance instance,
@@ -260,8 +261,10 @@ public sealed class WorkflowEngine : IWorkflowEngine
         _ctx.Set<WorkflowTask>().Add(newTask);
 
         if (userId.HasValue && step.NotifyOnAssign)
-            await _notifier.NotifyWorkflowTaskAssignedAsync(
-                userId.Value, "وثيقة", "مسار العمل", step.NameAr, 0, ct);
+            await _notifier.SendAsync(
+                userId.Value, "مهمة جديدة تحتاج موافقتك",
+                $"يوجد طلب اعتماد في خطوة: {step.NameAr}",
+                "WorkflowTaskAssigned", ct: ct);
     }
 
     private async Task<(int? userId, int? roleId)> ResolveAssigneeAsync(
@@ -341,6 +344,3 @@ public sealed class WorkflowEngine : IWorkflowEngine
         => ProcessActionAsync(taskId, "Delegate", delegatedBy, null, newUserId, ct);
 }
 
-// Placeholder entity classes referenced (actual definitions in SQL Schema)
-public class Department { public int DepartmentId { get; set; } public int? ManagerId { get; set; } }
-public class UserRole   { public int UserId { get; set; } public int RoleId { get; set; } public bool IsActive { get; set; } }

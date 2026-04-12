@@ -197,3 +197,35 @@ public class AuditLog
             CreatedAt = DateTime.UtcNow
         };
 }
+
+// ─── USER ROLE ASSIGNMENT ─────────────────────────────────────────────────────
+public sealed class UserRole
+{
+    public int  Id       { get; set; }
+    public int  UserId   { get; set; }
+    public int  RoleId   { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+}
+
+// ─── ROLE ─────────────────────────────────────────────────────────────────────
+public sealed class Role
+{
+    public int     RoleId   { get; set; }
+    public string  RoleCode { get; set; } = string.Empty;
+    public string  NameAr   { get; set; } = string.Empty;
+    public string? NameEn   { get; set; }
+    public bool    IsActive { get; set; } = true;
+    public bool    IsSystem { get; set; } = false;
+}
+
+// ─── DEPARTMENT ───────────────────────────────────────────────────────────────
+public sealed class Department
+{
+    public int  DepartmentId { get; set; }
+    public string NameAr    { get; set; } = string.Empty;
+    public string? NameEn   { get; set; }
+    public int? ManagerId   { get; set; }
+    public int? ParentId    { get; set; }
+    public bool IsActive    { get; set; } = true;
+}

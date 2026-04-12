@@ -73,7 +73,7 @@ public sealed class NotificationService : INotificationService
         var body  = $"انتهت مهلة مهمتك في مسار '{workflowName}' للوثيقة: {documentTitle}. المهلة كانت: {dueAt:yyyy-MM-dd HH:mm}";
 
         await NotifyAsync(assignedUserId, title, body, "SLABreach",
-            "WorkflowTask", null, "/workflow/inbox", priority: 4, ct: ct);
+            "WorkflowTask", null, "/workflow/inbox", ct);
 
         await SendEmailSafeAsync(assignedUserId, title,
             $"<p><strong>تنبيه عاجل:</strong> {body}</p>", ct);

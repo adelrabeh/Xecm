@@ -1,12 +1,6 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using Microsoft.AspNetCore.Http;
 using Darah.ECM.Application.Common.Interfaces;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-
-namespace Darah.ECM.Infrastructure.Security;
-
 public sealed class CurrentUserService : ICurrentUser
 {
     private readonly ClaimsPrincipal? _user;

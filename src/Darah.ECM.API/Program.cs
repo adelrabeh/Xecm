@@ -3,68 +3,75 @@ using Darah.ECM.API.Middleware;
 using Hangfire;
 using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+// Bootstrap logger for startup errors
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-// ─── Serilog ──────────────────────────────────────────────────────────────────
-builder.Host.UseSerilog((ctx, cfg) =>
-    cfg.ReadFrom.Configuration(ctx.Configuration));
-
-// ─── Services ─────────────────────────────────────────────────────────────────
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+try
 {
-    c.SwaggerDoc("v1", new()
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Serilog from config
+    builder.Host.UseSerilog((ctx, cfg) =>
+        cfg.ReadFrom.Configuration(ctx.Configuration)
+           .WriteTo.Console());
+
+    // Services
+    builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
     {
-        Title   = "DARAH ECM API — نظام إدارة المحتوى المؤسسي",
-        Version = "v1"
+        c.SwaggerDoc("v1", new() { Title = "DARAH ECM API", Version = "v1" });
+        c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+        {
+            Description = "JWT: Bearer {token}",
+            Name = "Authorization",
+            In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+            Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+            Scheme = "Bearer"
+        });
     });
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Description = "JWT: Bearer {token}",
-        Name        = "Authorization",
-        In          = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type        = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme      = "Bearer"
-    });
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement {{
-        new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
-            Reference = new() { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
-        }, Array.Empty<string>()
-    }});
-});
 
-builder.Services.AddCors(o => o.AddPolicy("Dev", p =>
-    p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+    builder.Services.AddCors(o => o.AddPolicy("AllowAll", p =>
+        p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
-// ─── ECM Services (DI registration) ──────────────────────────────────────────
-builder.Services.AddEcmServices(builder.Configuration);
+    builder.Services.AddEcmServices(builder.Configuration);
 
-// ─── Build ────────────────────────────────────────────────────────────────────
-var app = builder.Build();
+    var app = builder.Build();
 
-// ─── Middleware pipeline ──────────────────────────────────────────────────────
-app.UseMiddleware<CorrelationIdMiddleware>();
-
-if (app.Environment.IsDevelopment())
-{
+    // Always enable Swagger (useful for testing)
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "DARAH ECM v1");
         c.RoutePrefix = "swagger";
-        c.DocumentTitle = "DARAH ECM API";
     });
-    app.UseCors("Dev");
+
+    app.UseCors("AllowAll");
+    app.UseSerilogRequestLogging();
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    try { app.UseHangfireDashboard("/hangfire"); }
+    catch (Exception ex) { Log.Warning(ex, "Hangfire dashboard failed to start"); }
+
+    app.UseMiddleware<CorrelationIdMiddleware>();
+    app.MapControllers();
+    app.MapHealthChecks("/health");
+    app.MapGet("/health/live", () => Results.Ok(new { status = "alive", time = DateTime.UtcNow }));
+    app.MapGet("/", () => Results.Redirect("/swagger"));
+
+    Log.Information("DARAH ECM API starting on port {Port}", 
+        Environment.GetEnvironmentVariable("PORT") ?? "8080");
+
+    app.Run();
 }
-
-app.UseSerilogRequestLogging();
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseHangfireDashboard("/hangfire");
-app.MapControllers();
-app.MapHealthChecks("/health");
-app.MapGet("/health/live", () => Results.Ok(new { status = "alive", time = DateTime.UtcNow }));
-app.MapGet("/", () => Results.Redirect("/swagger"));
-
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

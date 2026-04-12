@@ -1,73 +1,75 @@
 using Darah.ECM.Domain.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 
-namespace Darah.ECM.xECM.Infrastructure.Connectors.SAP;
 
-/// <summary>SAP OData v4 connector for business objects: WBSElement, PurchaseOrder, Contract, Vendor, CostCenter</summary>
-public sealed class SAPConnector : IExternalSystemConnector
+namespace Darah.ECM.xECM.Infrastructure.Connectors.SAP
 {
-    public string SystemCode => "SAP_PROD";
-
-    private readonly HttpClient _http;
-    private readonly ILogger<SAPConnector> _logger;
-
-    private static readonly IReadOnlyDictionary<string, string> EntitySetMap =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["WBSElement"]    = "/sap/opu/odata/sap/API_PROJECT/A_EnterpriseProjectElement('{id}')",
-            ["PurchaseOrder"] = "/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrder('{id}')",
-            ["Contract"]      = "/sap/opu/odata/sap/API_CONTRACT/A_Contract('{id}')",
-            ["Vendor"]        = "/sap/opu/odata/sap/API_BUSINESS_PARTNER/A_Supplier('{id}')",
-            ["CostCenter"]    = "/sap/opu/odata/sap/API_COSTCENTER_SRV/CostCenterCollection('{id}')"
-        };
-
-    public SAPConnector(HttpClient http, ILogger<SAPConnector> logger)
-        { _http = http; _logger = logger; }
-
-    public async Task<bool> TestConnectionAsync(CancellationToken ct = default)
+    /// <summary>SAP OData v4 connector for business objects: WBSElement, PurchaseOrder, Contract, Vendor, CostCenter</summary>
+    public sealed class SAPConnector : IExternalSystemConnector
     {
-        try { var r = await _http.GetAsync("/sap/opu/odata/sap/", ct); return r.IsSuccessStatusCode; }
-        catch { return false; }
-    }
+        public string SystemCode => "SAP_PROD";
 
-    public async Task<ExternalObjectPayload?> FetchObjectAsync(
-        string objectType, string objectId, CancellationToken ct = default)
-    {
-        if (!EntitySetMap.TryGetValue(objectType, out var template)) return null;
-        var endpoint = template.Replace("'{id}'", $"'{objectId}'");
-        try
+        private readonly HttpClient _http;
+        private readonly ILogger<SAPConnector> _logger;
+
+        private static readonly IReadOnlyDictionary<string, string> EntitySetMap =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["WBSElement"]    = "/sap/opu/odata/sap/API_PROJECT/A_EnterpriseProjectElement('{id}')",
+                ["PurchaseOrder"] = "/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrder('{id}')",
+                ["Contract"]      = "/sap/opu/odata/sap/API_CONTRACT/A_Contract('{id}')",
+                ["Vendor"]        = "/sap/opu/odata/sap/API_BUSINESS_PARTNER/A_Supplier('{id}')",
+                ["CostCenter"]    = "/sap/opu/odata/sap/API_COSTCENTER_SRV/CostCenterCollection('{id}')"
+            };
+
+        public SAPConnector(HttpClient http, ILogger<SAPConnector> logger)
+            { _http = http; _logger = logger; }
+
+        public async Task<bool> TestConnectionAsync(CancellationToken ct = default)
         {
-            var r = await _http.GetAsync(endpoint, ct);
-            if (!r.IsSuccessStatusCode) return null;
-            var json = await r.Content.ReadAsStringAsync(ct);
-            var doc  = System.Text.Json.JsonDocument.Parse(json);
-            var fields = new Dictionary<string, object?>();
-            var root = doc.RootElement.TryGetProperty("d", out var d) ? d : doc.RootElement;
-            foreach (var p in root.EnumerateObject())
-                if (!p.Name.StartsWith("__", StringComparison.Ordinal))
-                    fields[p.Name] = p.Value.ValueKind == System.Text.Json.JsonValueKind.Null
-                        ? null : p.Value.ToString();
-            return new ExternalObjectPayload(objectId, objectType, fields, DateTime.UtcNow);
+            try { var r = await _http.GetAsync("/sap/opu/odata/sap/", ct); return r.IsSuccessStatusCode; }
+            catch { return false; }
         }
-        catch (Exception ex) { _logger.LogError(ex, "SAP fetch error {Type}/{Id}", objectType, objectId); return null; }
-    }
 
-    public async Task<bool> PushUpdateAsync(string objectType, string objectId,
-        Dictionary<string, object> fields, CancellationToken ct = default)
-    {
-        if (!EntitySetMap.TryGetValue(objectType, out var template)) return false;
-        var endpoint = template.Replace("'{id}'", $"'{objectId}'");
-        var json     = System.Text.Json.JsonSerializer.Serialize(fields);
-        var content  = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-        var request  = new HttpRequestMessage(HttpMethod.Patch, endpoint) { Content = content };
-        request.Headers.Add("X-Requested-With", "XMLHttpRequest");
-        var r = await _http.SendAsync(request, ct);
-        return r.IsSuccessStatusCode;
-    }
+        public async Task<ExternalObjectPayload?> FetchObjectAsync(
+            string objectType, string objectId, CancellationToken ct = default)
+        {
+            if (!EntitySetMap.TryGetValue(objectType, out var template)) return null;
+            var endpoint = template.Replace("'{id}'", $"'{objectId}'");
+            try
+            {
+                var r = await _http.GetAsync(endpoint, ct);
+                if (!r.IsSuccessStatusCode) return null;
+                var json = await r.Content.ReadAsStringAsync(ct);
+                var doc  = System.Text.Json.JsonDocument.Parse(json);
+                var fields = new Dictionary<string, object?>();
+                var root = doc.RootElement.TryGetProperty("d", out var d) ? d : doc.RootElement;
+                foreach (var p in root.EnumerateObject())
+                    if (!p.Name.StartsWith("__", StringComparison.Ordinal))
+                        fields[p.Name] = p.Value.ValueKind == System.Text.Json.JsonValueKind.Null
+                            ? null : p.Value.ToString();
+                return new ExternalObjectPayload(objectId, objectType, fields, DateTime.UtcNow);
+            }
+            catch (Exception ex) { _logger.LogError(ex, "SAP fetch error {Type}/{Id}", objectType, objectId); return null; }
+        }
 
-    public Task<IEnumerable<ExternalObjectPayload>> FetchChangedSinceAsync(
-        string objectType, DateTime since, CancellationToken ct = default)
-        => Task.FromResult(Enumerable.Empty<ExternalObjectPayload>());
+        public async Task<bool> PushUpdateAsync(string objectType, string objectId,
+            Dictionary<string, object> fields, CancellationToken ct = default)
+        {
+            if (!EntitySetMap.TryGetValue(objectType, out var template)) return false;
+            var endpoint = template.Replace("'{id}'", $"'{objectId}'");
+            var json     = System.Text.Json.JsonSerializer.Serialize(fields);
+            var content  = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var request  = new HttpRequestMessage(HttpMethod.Patch, endpoint) { Content = content };
+            request.Headers.Add("X-Requested-With", "XMLHttpRequest");
+            var r = await _http.SendAsync(request, ct);
+            return r.IsSuccessStatusCode;
+        }
+
+        public Task<IEnumerable<ExternalObjectPayload>> FetchChangedSinceAsync(
+            string objectType, DateTime since, CancellationToken ct = default)
+            => Task.FromResult(Enumerable.Empty<ExternalObjectPayload>());
+    }
 }
 
 namespace Darah.ECM.xECM.Infrastructure.Connectors.Salesforce

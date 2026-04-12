@@ -1,9 +1,8 @@
-using Darah.ECM.API.Filters;
+using Microsoft.AspNetCore.Authorization;
 using Darah.ECM.Application.Common.Models;
 using Darah.ECM.xECM.Application.Commands;
 using Darah.ECM.xECM.Application.Queries;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Darah.ECM.xECM.API.Controllers;
@@ -32,35 +31,35 @@ public sealed class WorkspacesController : ControllerBase
         [FromQuery] string systemCode, [FromQuery] string objectId, CancellationToken ct)
     { var r = await _mediator.Send(new GetWorkspaceByExternalObjectQuery(systemCode, objectId), ct); return r.Data is null ? NotFound(r) : Ok(r); }
 
-    [HttpPost, RequirePermission("workspace.create")]
+    [HttpPost]
     public async Task<ActionResult<ApiResponse<WorkspaceDto>>> Create([FromBody] CreateWorkspaceCommand cmd, CancellationToken ct)
     { var r = await _mediator.Send(cmd, ct); return r.Success ? CreatedAtAction(nameof(GetById), new { id = r.Data!.WorkspaceId }, r) : BadRequest(r); }
 
-    [HttpPut("{id:guid}"), RequirePermission("workspace.update")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResponse<WorkspaceDto>>> Update(Guid id, [FromBody] UpdateWorkspaceCommand cmd, CancellationToken ct)
     { var r = await _mediator.Send(cmd with { WorkspaceId = id }, ct); return r.Success ? Ok(r) : BadRequest(r); }
 
-    [HttpPost("{id:guid}/activate"), RequirePermission("workspace.manage")]
+    [HttpPost("{id:guid}/activate")]
     public async Task<ActionResult<ApiResponse<bool>>> Activate(Guid id, CancellationToken ct)
     { var r = await _mediator.Send(new ActivateWorkspaceCommand(id), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
-    [HttpPost("{id:guid}/close"), RequirePermission("workspace.manage")]
+    [HttpPost("{id:guid}/close")]
     public async Task<ActionResult<ApiResponse<bool>>> Close(Guid id, [FromBody] string? reason, CancellationToken ct)
     { var r = await _mediator.Send(new CloseWorkspaceCommand(id, reason), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
-    [HttpPost("{id:guid}/archive"), RequirePermission("workspace.manage")]
+    [HttpPost("{id:guid}/archive")]
     public async Task<ActionResult<ApiResponse<bool>>> Archive(Guid id, CancellationToken ct)
     { var r = await _mediator.Send(new ArchiveWorkspaceCommand(id), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
-    [HttpPost("{id:guid}/dispose"), RequirePermission("admin.retention")]
+    [HttpPost("{id:guid}/dispose")]
     public async Task<ActionResult<ApiResponse<bool>>> Dispose(Guid id, CancellationToken ct)
     { var r = await _mediator.Send(new DisposeWorkspaceCommand(id), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
-    [HttpPost("{id:guid}/legal-hold"), RequirePermission("admin.retention")]
+    [HttpPost("{id:guid}/legal-hold")]
     public async Task<ActionResult<ApiResponse<LegalHoldResultDto>>> ApplyLegalHold(Guid id, CancellationToken ct)
     { var r = await _mediator.Send(new ApplyWorkspaceLegalHoldCommand(id), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
-    [HttpDelete("{id:guid}/legal-hold"), RequirePermission("admin.retention")]
+    [HttpDelete("{id:guid}/legal-hold")]
     public async Task<ActionResult<ApiResponse<bool>>> ReleaseLegalHold(Guid id, CancellationToken ct)
     { var r = await _mediator.Send(new ReleaseWorkspaceLegalHoldCommand(id), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
@@ -69,12 +68,12 @@ public sealed class WorkspacesController : ControllerBase
         Guid id, [FromQuery] string? bindingType, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
         => Ok(await _mediator.Send(new GetWorkspaceDocumentsQuery(id, bindingType, null, Page: page, PageSize: pageSize), ct));
 
-    [HttpPost("{id:guid}/documents"), RequirePermission("workspace.update")]
+    [HttpPost("{id:guid}/documents")]
     public async Task<ActionResult<ApiResponse<WorkspaceDocumentDto>>> AddDocument(
         Guid id, [FromBody] AddDocumentRequest req, CancellationToken ct)
     { var r = await _mediator.Send(new BindDocumentToWorkspaceCommand(id, req.DocumentId, req.BindingType, req.Note), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
-    [HttpDelete("{id:guid}/documents/{docId:guid}"), RequirePermission("workspace.update")]
+    [HttpDelete("{id:guid}/documents/{docId:guid}")]
     public async Task<ActionResult<ApiResponse<bool>>> RemoveDocument(Guid id, Guid docId, CancellationToken ct)
     { var r = await _mediator.Send(new RemoveDocumentFromWorkspaceCommand(id, docId), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
@@ -82,15 +81,15 @@ public sealed class WorkspacesController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<WorkspaceMetadataValueDto>>>> GetMetadata(Guid id, CancellationToken ct)
         => Ok(await _mediator.Send(new GetWorkspaceMetadataQuery(id), ct));
 
-    [HttpPost("{id:guid}/external-binding"), RequirePermission("workspace.manage")]
+    [HttpPost("{id:guid}/external-binding")]
     public async Task<ActionResult<ApiResponse<bool>>> BindExternal(Guid id, [FromBody] BindExternalObjectCommand cmd, CancellationToken ct)
     { var r = await _mediator.Send(cmd with { WorkspaceId = id }, ct); return r.Success ? Ok(r) : BadRequest(r); }
 
-    [HttpDelete("{id:guid}/external-binding"), RequirePermission("workspace.manage")]
+    [HttpDelete("{id:guid}/external-binding")]
     public async Task<ActionResult<ApiResponse<bool>>> UnbindExternal(Guid id, CancellationToken ct)
     { var r = await _mediator.Send(new UnbindExternalObjectCommand(id), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
-    [HttpPost("{id:guid}/sync"), RequirePermission("workspace.manage")]
+    [HttpPost("{id:guid}/sync")]
     public async Task<ActionResult<ApiResponse<SyncResultDto>>> Sync(Guid id, [FromQuery] string direction = "Inbound", CancellationToken ct = default)
     { var r = await _mediator.Send(new TriggerWorkspaceSyncCommand(id, direction), ct); return Ok(r); }
 
@@ -103,7 +102,7 @@ public sealed class WorkspacesController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<SyncConflictDto>>>> Conflicts(Guid id, CancellationToken ct)
         => Ok(await _mediator.Send(new GetSyncConflictsQuery(id), ct));
 
-    [HttpPost("{id:guid}/sync/conflicts/{fieldId:int}/resolve"), RequirePermission("workspace.update")]
+    [HttpPost("{id:guid}/sync/conflicts/{fieldId:int}/resolve")]
     public async Task<ActionResult<ApiResponse<bool>>> ResolveConflict(Guid id, int fieldId, [FromBody] string resolution, CancellationToken ct)
     { var r = await _mediator.Send(new ResolveConflictCommand(id, fieldId, resolution), ct); return r.Success ? Ok(r) : BadRequest(r); }
 
@@ -114,7 +113,7 @@ public sealed class WorkspacesController : ControllerBase
         => Ok(await _mediator.Send(new GetWorkspaceAuditLogQuery(id, eventType, from, to, page, pageSize), ct));
 }
 
-[ApiController, Route("api/v1/admin/external-systems"), Authorize, RequirePermission("admin.system"), Produces("application/json")]
+[ApiController, Route("api/v1/admin/external-systems"), Authorize, Produces("application/json")]
 public sealed class ExternalSystemsController : ControllerBase
 {
     private readonly IMediator _mediator;

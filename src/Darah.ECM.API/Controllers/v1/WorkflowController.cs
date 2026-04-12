@@ -1,7 +1,6 @@
 using Darah.ECM.API.Filters;
 using Darah.ECM.Application.Common.Models;
 using Darah.ECM.Application.Workflow.Commands;
-using Darah.ECM.Application.Common.Models;
 using Darah.ECM.Application.Notifications;
 using Darah.ECM.Application.Workflow.Queries;
 using MediatR;

@@ -116,3 +116,13 @@ public sealed record CreateMetadataFieldCommand(
     int SortOrder = 0, string? DefaultValue = null,
     int? DocumentTypeId = null)
     : IRequest<ApiResponse<MetadataFieldDto>>;
+
+// ─── ADDITIONAL NOTIFICATION QUERIES ─────────────────────────────────────────
+public sealed record GetNotificationsQuery(int Page = 1, int PageSize = 20)
+    : IRequest<ApiResponse<PagedResult<NotificationDto>>>;
+
+public sealed record GetUnreadCountQuery()
+    : IRequest<ApiResponse<int>>;
+
+public sealed record MarkAllNotificationsReadCommand()
+    : IRequest<ApiResponse<bool>>;

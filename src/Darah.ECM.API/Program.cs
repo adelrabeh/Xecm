@@ -47,7 +47,6 @@ builder.Services.AddEcmServices(builder.Configuration);
 builder.Services.AddCors(o => o.AddPolicy("Dev", p =>
     p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
-var app = builder.Build();
 
 // Middleware
 app.UseMiddleware<CorrelationIdMiddleware>();

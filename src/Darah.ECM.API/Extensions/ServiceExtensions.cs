@@ -1,5 +1,6 @@
 using Darah.ECM.Infrastructure.Persistence;
 using Darah.ECM.Infrastructure.Security;
+using Darah.ECM.Application.Common.Guards;
 using Darah.ECM.Infrastructure.Security.Abac;
 using Darah.ECM.Domain.Interfaces.Services;
 using Darah.ECM.Domain.Services;
@@ -59,7 +60,7 @@ public static class ServiceExtensions
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssemblyContaining<
-                Darah.ECM.Application.Common.ApplicationCommon>();
+                Darah.ECM.Application.Common.Models.ApiResponse<object>>();
         });
 
         // Domain Services
@@ -68,7 +69,9 @@ public static class ServiceExtensions
 
         // Security
         services.AddScoped<IPolicyEngine, PolicyEngine>();
-        services.AddScoped<ICurrentUser, CurrentUserService>();
+        services.AddScoped<CurrentUserService>();
+        services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserService>());
+        services.AddScoped<ICurrentUserAccessor>(sp => sp.GetRequiredService<CurrentUserService>());
 
         // Health Checks
         var hc = services.AddHealthChecks();

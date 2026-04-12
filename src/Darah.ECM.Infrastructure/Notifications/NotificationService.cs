@@ -164,6 +164,37 @@ public sealed class NotificationService : INotificationService
         </body>
         </html>
         """;
+
+
+    // ─── INotificationService implementation ─────────────────────────────────
+    public async Task SendAsync(int userId, string titleAr, string body,
+        string notificationType, string? entityType = null, string? entityId = null,
+        string? actionUrl = null, int priority = 2, CancellationToken ct = default)
+    {
+        var notification = Darah.ECM.Domain.Entities.Notification.Create(
+            userId, titleAr, body, notificationType,
+            entityType, entityId, actionUrl, priority);
+        _ctx.Set<Darah.ECM.Domain.Entities.Notification>().Add(notification);
+        await _ctx.SaveChangesAsync(ct);
+        _logger.LogDebug("Notification sent to user {UserId}: {Title}", userId, titleAr);
+    }
+
+    public async Task MarkReadAsync(long notificationId, int userId, CancellationToken ct = default)
+    {
+        var n = await _ctx.Set<Darah.ECM.Domain.Entities.Notification>()
+            .FirstOrDefaultAsync(x => x.NotificationId == notificationId && x.UserId == userId, ct);
+        if (n is not null) { n.MarkRead(); await _ctx.SaveChangesAsync(ct); }
+    }
+
+    public async Task<IEnumerable<Notification>> GetUnreadAsync(
+        int userId, CancellationToken ct = default)
+        => await _ctx.Set<Notification>()
+            .Where(n => n.UserId == userId && !n.IsRead)
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(50)
+            .ToListAsync(ct);
+
+
 }
 
 // ─── SMTP EMAIL SERVICE ───────────────────────────────────────────────────────
@@ -226,33 +257,5 @@ public sealed class SmtpEmailService : IEmailService
 
         await SendAsync(toEmail, toEmail, subject, body, ct);
     }
-
-    // ─── INotificationService implementation ─────────────────────────────────
-    public async Task SendAsync(int userId, string titleAr, string body,
-        string notificationType, string? entityType = null, string? entityId = null,
-        string? actionUrl = null, int priority = 2, CancellationToken ct = default)
-    {
-        var notification = Darah.ECM.Domain.Entities.Notification.Create(
-            userId, titleAr, body, notificationType,
-            entityType, entityId, actionUrl, priority);
-        _ctx.Set<Darah.ECM.Domain.Entities.Notification>().Add(notification);
-        await _ctx.SaveChangesAsync(ct);
-        _logger.LogDebug("Notification sent to user {UserId}: {Title}", userId, titleAr);
-    }
-
-    public async Task MarkReadAsync(long notificationId, int userId, CancellationToken ct = default)
-    {
-        var n = await _ctx.Set<Darah.ECM.Domain.Entities.Notification>()
-            .FirstOrDefaultAsync(x => x.NotificationId == notificationId && x.UserId == userId, ct);
-        if (n is not null) { n.MarkRead(); await _ctx.SaveChangesAsync(ct); }
-    }
-
-    public async Task<IEnumerable<Notification>> GetUnreadAsync(
-        int userId, CancellationToken ct = default)
-        => await _ctx.Set<Notification>()
-            .Where(n => n.UserId == userId && !n.IsRead)
-            .OrderByDescending(n => n.CreatedAt)
-            .Take(50)
-            .ToListAsync(ct);
 
 }

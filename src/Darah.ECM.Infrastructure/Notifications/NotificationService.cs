@@ -51,10 +51,11 @@ public class NotificationService : INotificationService
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<IEnumerable<Notification>> GetUnreadAsync(int userId, CancellationToken ct)
-    {
-        return await _db.Notifications
-            .Where(x => x.UserId == userId && !x.IsRead)
-            .ToListAsync(ct);
-    }
+    public async Task<IEnumerable<object>> GetUnreadAsync(int userId, CancellationToken ct)
+{
+    return await _db.Notifications
+        .Where(x => x.UserId == userId && !x.IsRead)
+        .Select(x => (object)x)
+        .ToListAsync(ct);
+}
 }

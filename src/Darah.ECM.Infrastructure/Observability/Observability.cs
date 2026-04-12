@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
 
@@ -14,7 +13,11 @@ public sealed class CorrelationIdMiddleware
 {
     private const string HeaderName = "X-Correlation-Id";
     private readonly RequestDelegate _next;
-    public CorrelationIdMiddleware(RequestDelegate next) => _next = next;
+
+    public CorrelationIdMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -37,52 +40,54 @@ public sealed class CorrelationIdMiddleware
 public sealed class EcmMetrics
 {
     private static readonly Meter Meter = new("Darah.ECM", "1.0");
-    public static readonly Counter<long> DocumentsCreated    = Meter.CreateCounter<long>("ecm.documents.created");
-    public static readonly Counter<long> DocumentsDownloaded = Meter.CreateCounter<long>("ecm.documents.downloaded");
-    public static readonly Counter<long> WorkflowApproved    = Meter.CreateCounter<long>("ecm.workflow.approved");
-    public static readonly Counter<long> AuthLoginFailed     = Meter.CreateCounter<long>("ecm.auth.login_failed");
-    public static readonly Counter<long> ApiErrors           = Meter.CreateCounter<long>("ecm.api.errors");
-    public static readonly Histogram<double> RequestDuration = Meter.CreateHistogram<double>("ecm.api.request_duration_ms", unit: "ms");
+
+    public static readonly Counter<long> DocumentsCreated =
+        Meter.CreateCounter<long>("ecm.documents.created");
+
+    public static readonly Counter<long> DocumentsDownloaded =
+        Meter.CreateCounter<long>("ecm.documents.downloaded");
+
+    public static readonly Counter<long> WorkflowApproved =
+        Meter.CreateCounter<long>("ecm.workflow.approved");
+
+    public static readonly Counter<long> AuthLoginFailed =
+        Meter.CreateCounter<long>("ecm.auth.login_failed");
+
+    public static readonly Counter<long> ApiErrors =
+        Meter.CreateCounter<long>("ecm.api.errors");
+
+    public static readonly Histogram<double> RequestDuration =
+        Meter.CreateHistogram<double>("ecm.api.request_duration_ms", unit: "ms");
 }
 
 /// <summary>Records request duration for every API call.</summary>
 public sealed class MetricsMiddleware
 {
     private readonly RequestDelegate _next;
-    public MetricsMiddleware(RequestDelegate next) => _next = next;
+
+    public MetricsMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
 
     public async Task InvokeAsync(HttpContext context)
     {
         var sw = Stopwatch.StartNew();
-        try { await _next(context); }
+
+        try
+        {
+            await _next(context);
+        }
         finally
         {
             sw.Stop();
+
             EcmMetrics.RequestDuration.Record(sw.Elapsed.TotalMilliseconds);
+
             if (context.Response.StatusCode >= 500)
+            {
                 EcmMetrics.ApiErrors.Add(1);
-        }
-    }
-}
-
-/// <summary>Checks file storage accessibility.</summary>
-public sealed class FileStorageHealthCheck : IHealthCheck
-{
-    private readonly IConfiguration _config;
-    public FileStorageHealthCheck(IConfiguration config) => _config = config;
-
-    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken ct = default)
-    {
-        try
-        {
-            var path = _config["Storage:LocalPath"] ?? "/app/ecm-storage";
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
-            return Task.FromResult(HealthCheckResult.Healthy("Storage OK"));
-        }
-        catch (Exception ex)
-        {
-            return Task.FromResult(HealthCheckResult.Unhealthy("Storage check failed", ex));
+            }
         }
     }
 }

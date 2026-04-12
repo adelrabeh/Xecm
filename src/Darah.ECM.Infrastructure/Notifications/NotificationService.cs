@@ -1,5 +1,6 @@
 using Darah.ECM.Application.Notifications;
 using Darah.ECM.Domain.Entities;
+using Darah.ECM.Domain.Interfaces.Repositories;
 using Darah.ECM.Domain.Interfaces.Services;
 using Darah.ECM.Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;

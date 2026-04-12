@@ -195,12 +195,16 @@ public sealed class WorkflowEngine : IWorkflowEngine
 
     private async Task HandleRejectAsync(WorkflowTask task, CancellationToken ct)
     {
+        var instance = await _ctx.Set<WorkflowInstance>().FindAsync(new object[] { task.InstanceId }, ct)
+            ?? throw new InvalidOperationException($"WorkflowInstance {task.InstanceId} not found");
         instance.Reject();
         await UpdateDocumentStatusAsync(instance.DocumentId, DocumentStatus.Rejected, ct);
     }
 
     private async Task HandleReturnAsync(WorkflowTask task, CancellationToken ct)
     {
+        var instance = await _ctx.Set<WorkflowInstance>().FindAsync(new object[] { task.InstanceId }, ct)
+            ?? throw new InvalidOperationException($"WorkflowInstance {task.InstanceId} not found");
         // Return to previous step or to originator
         var definition = await _ctx.Set<WorkflowDefinition>()
             .Include(d => d.Steps)

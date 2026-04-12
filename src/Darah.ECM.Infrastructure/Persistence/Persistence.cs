@@ -43,7 +43,6 @@ public sealed class EcmDbContext : DbContext
             .Property(d => d.DocumentId)
             .HasDefaultValueSql("NEWSEQUENTIALID()");
 
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
 
         // DocumentStatus stored as string (readable audit logs)
         mb.Entity<Document>()

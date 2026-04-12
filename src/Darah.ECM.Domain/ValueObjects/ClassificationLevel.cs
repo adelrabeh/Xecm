@@ -34,6 +34,8 @@ public sealed class ClassificationLevel : IEquatable<ClassificationLevel>
         return match ?? throw new ArgumentException($"'{code}' is not a valid ClassificationLevel.");
     }
 
+    public static ClassificationLevel FromCode(string code) => From(code);
+
     public static ClassificationLevel FromOrder(int order)
     {
         var match = All.FirstOrDefault(c => c.Order == order);

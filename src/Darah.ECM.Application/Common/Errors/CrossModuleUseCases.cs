@@ -270,8 +270,7 @@ public sealed class DeclareDocumentRecordUseCase
         {
             await _uow.RollbackTransactionAsync(ct);
             return ErrorResponseBuilder.InternalError<RecordDeclaredDto>(ex,
-                Microsoft.Extensions.Logging.LoggerFactory.Create(_ => { })
-                    .CreateLogger<DeclareDocumentRecordUseCase>(), "");
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<DeclareDocumentRecordUseCase>.Instance, "");
         }
     }
 }

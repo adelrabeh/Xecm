@@ -125,6 +125,7 @@ public class WorkflowTask : BaseEntity
     public int?   CompletedBy      { get; private set; }
     public bool   IsOverdue        { get; private set; }
     public bool   IsDelegated      { get; private set; }
+    public int?   DelegatedFrom    { get; private set; }
     public DateTime? EscalatedAt   { get; private set; }
     public DateTime? SLABreachNotifiedAt { get; private set; }
 
@@ -154,7 +155,7 @@ public class WorkflowTask : BaseEntity
     public void MarkOverdue()               => IsOverdue = true;
     public void MarkEscalated()             => EscalatedAt = DateTime.UtcNow;
     public void MarkSLABreachNotified()     => SLABreachNotifiedAt = DateTime.UtcNow;
-    public void Delegate(int newUserId)     { AssignedToUserId = newUserId; IsDelegated = true; }
+    public void Delegate(int newUserId)     { DelegatedFrom = AssignedToUserId; AssignedToUserId = newUserId; IsDelegated = true; }
 }
 
 // ─────────────────────────────────────────────────────────────

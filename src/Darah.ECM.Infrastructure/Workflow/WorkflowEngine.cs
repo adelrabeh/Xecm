@@ -69,7 +69,6 @@ public sealed class WorkflowEngine : IWorkflowEngine
         int actionBy, string? comment, int? delegateToUserId, CancellationToken ct)
     {
         var task = await _ctx.Set<WorkflowTask>()
-            .Include(t => t.Instance)
             .FirstOrDefaultAsync(t => t.TaskId == taskId && t.Status == "Pending", ct);
 
         if (task is null) return false;
@@ -120,7 +119,6 @@ public sealed class WorkflowEngine : IWorkflowEngine
     {
         var now = DateTime.UtcNow;
         var overdue = await _ctx.Set<WorkflowTask>()
-            .Include(t => t.Instance)
             .Where(t => t.Status == "Pending"
                      && t.DueAt.HasValue
                      && t.DueAt.Value < now
@@ -136,8 +134,8 @@ public sealed class WorkflowEngine : IWorkflowEngine
                 task.MarkSLABreachNotified();
                 if (task.AssignedToUserId.HasValue)
                 {
-                    var doc = await _ctx.Set<Document>()
-                        .FirstOrDefaultAsync(d => d.DocumentId == (await _ctx.Set<WorkflowInstance>().FindAsync(new object[] { task.InstanceId }, ct))!.DocumentId, ct);
+                    var wfInst = await _ctx.Set<WorkflowInstance>().FindAsync(new object[] { task.InstanceId }, ct);
+                    var doc = wfInst is null ? null : await _ctx.Set<Document>().FirstOrDefaultAsync(d => d.DocumentId == wfInst.DocumentId, ct);
                     await _notifier.SendAsync(
                         task.AssignedToUserId.Value,
                         "تنبيه: انتهت مهلة المهمة",

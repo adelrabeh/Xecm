@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Microsoft.AspNetCore.Http;

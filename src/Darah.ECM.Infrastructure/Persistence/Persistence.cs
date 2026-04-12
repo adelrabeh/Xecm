@@ -1,3 +1,4 @@
+using Darah.ECM.Application.Notifications;
 using Darah.ECM.Domain.Common;
 using Darah.ECM.Domain.Entities;
 using Darah.ECM.Domain.Interfaces.Repositories;
@@ -25,14 +26,6 @@ public sealed class EcmDbContext : DbContext
     public DbSet<WorkflowTask>    WorkflowTasks    => Set<WorkflowTask>();
     public DbSet<AuditLog>        AuditLogs        => Set<AuditLog>();
 
-    // xECM
-    public DbSet<Workspace>              Workspaces              => Set<Workspace>();
-    public DbSet<WorkspaceSecurityPolicy> WorkspaceSecurityPolicies => Set<WorkspaceSecurityPolicy>();
-    public DbSet<WorkspaceDocument>      WorkspaceDocuments      => Set<WorkspaceDocument>();
-    public DbSet<WorkspaceMetadataValue> WorkspaceMetadataValues => Set<WorkspaceMetadataValue>();
-    public DbSet<ExternalSystem>         ExternalSystems         => Set<ExternalSystem>();
-    public DbSet<MetadataSyncMapping>    MetadataSyncMappings    => Set<MetadataSyncMapping>();
-    public DbSet<SyncEventLog>           SyncEventLogs           => Set<SyncEventLog>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -44,15 +37,12 @@ public sealed class EcmDbContext : DbContext
         // Global soft-delete filters
         mb.Entity<Document>().HasQueryFilter(d => !d.IsDeleted);
         mb.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
-        mb.Entity<Workspace>().HasQueryFilter(w => !w.IsDeleted);
 
         // GUID defaults (NEWSEQUENTIALID() for insert-order performance)
         mb.Entity<Document>()
             .Property(d => d.DocumentId)
             .HasDefaultValueSql("NEWSEQUENTIALID()");
 
-        mb.Entity<Workspace>()
-            .Property(w => w.WorkspaceId)
             .HasDefaultValueSql("NEWSEQUENTIALID()");
 
         // DocumentStatus stored as string (readable audit logs)
@@ -109,54 +99,6 @@ public sealed class EcmDbContext : DbContext
 public interface ICurrentUserAccessor
 {
     int? UserId { get; }
-}
-
-// ─── UNIT OF WORK ─────────────────────────────────────────────────────────────
-public sealed class UnitOfWork : IUnitOfWork
-{
-    private readonly EcmDbContext _ctx;
-    private IDbContextTransaction? _tx;
-
-    public UnitOfWork(
-        EcmDbContext               ctx,
-        IDocumentRepository        documents,
-        IDocumentVersionRepository documentVersions,
-        IUserRepository            users,
-        IWorkflowRepository        workflows)
-    {
-        _ctx             = ctx;
-        Documents        = documents;
-        DocumentVersions = documentVersions;
-        Users            = users;
-        Workflows        = workflows;
-    }
-
-    public IDocumentRepository        Documents        { get; }
-    public IDocumentVersionRepository DocumentVersions { get; }
-    public IUserRepository            Users            { get; }
-    public IWorkflowRepository        Workflows        { get; }
-
-    public async Task<int> CommitAsync(CancellationToken ct = default)
-        => await _ctx.SaveChangesAsync(ct);
-
-    public async Task BeginTransactionAsync(CancellationToken ct = default)
-        => _tx = await _ctx.Database.BeginTransactionAsync(ct);
-
-    public async Task CommitTransactionAsync(CancellationToken ct = default)
-    {
-        if (_tx is not null) await _tx.CommitAsync(ct);
-    }
-
-    public async Task RollbackTransactionAsync(CancellationToken ct = default)
-    {
-        if (_tx is not null) await _tx.RollbackAsync(ct);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_tx is not null) await _tx.DisposeAsync();
-        await _ctx.DisposeAsync();
-    }
 }
 
 // ─── BASE REPOSITORY ──────────────────────────────────────────────────────────
@@ -225,6 +167,14 @@ public sealed class DocumentVersionRepository : BaseRepository<DocumentVersion>,
             .OrderByDescending(v => v.MajorVersion)
             .ThenByDescending(v => v.MinorVersion)
             .ToListAsync(ct);
+
+    public async Task<int> GetNextMinorVersionAsync(Guid documentId, int majorVersion, CancellationToken ct = default)
+    {
+        var maxMinor = await Ctx.DocumentVersions
+            .Where(v => v.DocumentId == documentId && v.MajorVersion == majorVersion)
+            .MaxAsync(v => (int?)v.MinorVersion, ct) ?? -1;
+        return maxMinor + 1;
+    }
 }
 
 // ─── USER REPOSITORY ─────────────────────────────────────────────────────────

@@ -26,7 +26,7 @@ public interface INotificationService
         string? entityType = null, string? entityId = null, string? actionUrl = null,
         int priority = 2, CancellationToken ct = default);
     Task MarkReadAsync(long notificationId, int userId, CancellationToken ct = default);
-    Task<IEnumerable<Notification>> GetUnreadAsync(int userId, CancellationToken ct = default);
+    Task<IEnumerable<Darah.ECM.Domain.Entities.Notification>> GetUnreadAsync(int userId, CancellationToken ct = default);
 }
 
 // ─── METADATA REPOSITORY ─────────────────────────────────────────────────────

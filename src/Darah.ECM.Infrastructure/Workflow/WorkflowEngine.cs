@@ -3,6 +3,7 @@ using Darah.ECM.Domain.Entities;
 using Darah.ECM.Domain.Interfaces.Repositories;
 using Darah.ECM.Domain.Interfaces.Services;
 using Darah.ECM.Domain.ValueObjects;
+using Darah.ECM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -325,6 +326,19 @@ public sealed class WorkflowEngine : IWorkflowEngine
 
         return false;
     }
+
+    // ─── Convenience wrappers (delegate to ProcessActionAsync) ────────────────
+    public Task<bool> ApproveTaskAsync(int taskId, int userId, string? comment,
+        CancellationToken ct = default)
+        => ProcessActionAsync(taskId, "Approve", userId, comment, null, ct);
+
+    public Task<bool> RejectTaskAsync(int taskId, int userId, string reason,
+        CancellationToken ct = default)
+        => ProcessActionAsync(taskId, "Reject", userId, reason, null, ct);
+
+    public Task<bool> DelegateTaskAsync(int taskId, int newUserId, int delegatedBy,
+        CancellationToken ct = default)
+        => ProcessActionAsync(taskId, "Delegate", delegatedBy, null, newUserId, ct);
 }
 
 // Placeholder entity classes referenced (actual definitions in SQL Schema)

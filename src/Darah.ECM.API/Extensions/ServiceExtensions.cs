@@ -69,10 +69,10 @@ public static class ServiceExtensions
 
         // Security
         services.AddScoped<IPolicyEngine, PolicyEngine>();
-        services.AddScoped<CurrentUserService>();
-        services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserService>());
-        services.AddScoped<Darah.ECM.Infrastructure.Persistence.ICurrentUserAccessor>(
-            sp => sp.GetRequiredService<CurrentUserService>());
+        // Register CurrentUserService - implements ICurrentUser and ICurrentUserAccessor
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, CurrentUserService>();
+        services.AddScoped<Darah.ECM.Infrastructure.Persistence.ICurrentUserAccessor, CurrentUserService>();
 
         // Health Checks
         var hc = services.AddHealthChecks();

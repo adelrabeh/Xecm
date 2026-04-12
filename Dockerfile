@@ -34,4 +34,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "Darah.ECM.API.dll"]
-# Cache bust: 1775990951
+# Cache bust: 1776008401

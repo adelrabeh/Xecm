@@ -1,90 +1,83 @@
-using Darah.ECM.Application.Common.Behaviors;
-using Darah.ECM.Application.Documents.Commands;
-using Darah.ECM.API.Filters;
-using Darah.ECM.Domain.Interfaces.Repositories;
-using Darah.ECM.Domain.Interfaces.Services;
-using Darah.ECM.Infrastructure.FileStorage.Local;
-using Darah.ECM.Infrastructure.Logging;
-using Darah.ECM.Infrastructure.Messaging;
 using Darah.ECM.Infrastructure.Persistence;
 using Darah.ECM.Infrastructure.Security;
-using FluentValidation;
-using MediatR;
+using Darah.ECM.Infrastructure.Security.Abac;
+using Darah.ECM.Domain.Interfaces.Services;
+using Darah.ECM.Domain.Services;
+using Darah.ECM.xECM.Domain.Services;
+using Hangfire;
+using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using Serilog;
+using System.Text;
 
 namespace Darah.ECM.API.Extensions;
 
-public static class ServiceCollectionExtensions
+public static class ServiceExtensions
 {
-    public static IServiceCollection AddEcmPersistence(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddEcmServices(
+        this IServiceCollection services, IConfiguration config)
     {
-        services.AddDbContext<EcmDbContext>(o => o.UseSqlServer(config.GetConnectionString("DefaultConnection"),
-            sql => { sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(10), null); sql.CommandTimeout(60); }));
-        services.AddScoped<IDocumentRepository, DocumentRepository>();
-        services.AddScoped<IDocumentVersionRepository, DocumentVersionRepository>();
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IWorkflowRepository, WorkflowRepository>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
-        return services;
-    }
+        // Database
+        services.AddDbContext<EcmDbContext>(opt =>
+            opt.UseSqlServer(config.GetConnectionString("DefaultConnection"),
+                sql => sql.EnableRetryOnFailure(3)));
 
-    public static IServiceCollection AddEcmServices(this IServiceCollection services, IConfiguration config)
-    {
-        services.AddHttpContextAccessor();
-        services.AddScoped<CurrentUserService>();
-        services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserService>());
-        services.AddScoped<ICurrentUserAccessor>(sp => sp.GetRequiredService<CurrentUserService>());
-        services.AddScoped<IFileStorageService, LocalFileStorageService>();
-        services.AddScoped<IAuditService, AuditService>();
-        services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddSingleton<IEventBus, InProcessEventBus>();
-        return services;
-    }
-
-    public static IServiceCollection AddEcmCqrs(this IServiceCollection services)
-    {
-        services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssembly(typeof(CreateDocumentCommand).Assembly);
-            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
-        });
-        services.AddValidatorsFromAssemblyContaining<CreateDocumentCommandValidator>();
-        return services;
-    }
-
-    public static IServiceCollection AddEcmAuthentication(this IServiceCollection services, IConfiguration config)
-    {
-        var key = config["Jwt:SecretKey"] ?? throw new InvalidOperationException("Jwt:SecretKey not configured.");
+        // JWT
+        var jwt = config.GetSection("Jwt");
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(o =>
+            .AddJwtBearer(opt => opt.TokenValidationParameters = new TokenValidationParameters
             {
-                o.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(key)),
-                    ValidateIssuer = true, ValidIssuer = config["Jwt:Issuer"],
-                    ValidateAudience = true, ValidAudience = config["Jwt:Audience"],
-                    ValidateLifetime = true, ClockSkew = TimeSpan.FromSeconds(30)
-                };
+                ValidateIssuer           = true,
+                ValidateAudience         = true,
+                ValidateLifetime         = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer              = jwt["Issuer"],
+                ValidAudience            = jwt["Audience"],
+                IssuerSigningKey         = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwt["SecretKey"] ?? "default-dev-key-change-me-32chars!")),
+                ClockSkew = TimeSpan.Zero
             });
         services.AddAuthorization();
-        return services;
-    }
 
-    public static IServiceCollection AddEcmSwagger(this IServiceCollection services)
-    {
-        services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen(o =>
+        // Redis Cache (falls back to memory if Redis not available)
+        var redis = config["Redis:ConnectionString"];
+        if (!string.IsNullOrEmpty(redis))
+            services.AddStackExchangeRedisCache(o => o.Configuration = redis);
+        else
+            services.AddDistributedMemoryCache();
+
+        // Hangfire
+        services.AddHangfire(hf => hf
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseSqlServerStorage(config.GetConnectionString("DefaultConnection")));
+        services.AddHangfireServer();
+
+        // MediatR — scans Application + xECM assemblies
+        services.AddMediatR(cfg =>
         {
-            o.SwaggerDoc("v1", new OpenApiInfo { Title = "DARAH ECM API", Version = "v1", Description = "Enterprise Content Management — دارة الملك عبدالعزيز" });
-            o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme { Name = "Authorization", Type = SecuritySchemeType.ApiKey, Scheme = "Bearer", BearerFormat = "JWT", In = ParameterLocation.Header });
-            o.AddSecurityRequirement(new OpenApiSecurityRequirement {{ new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, Array.Empty<string>() }});
+            cfg.RegisterServicesFromAssemblyContaining<
+                Darah.ECM.Application.Common.ApplicationCommon>();
         });
+
+        // Domain Services
+        services.AddScoped<DocumentLifecycleService>();
+        services.AddScoped<WorkspaceLifecycleService>();
+
+        // Security
+        services.AddScoped<IPolicyEngine, PolicyEngine>();
+        services.AddScoped<ICurrentUser, CurrentUserService>();
+
+        // Health Checks
+        var hc = services.AddHealthChecks();
+        var conn = config.GetConnectionString("DefaultConnection");
+        if (!string.IsNullOrEmpty(conn))
+            hc.AddSqlServer(conn, name: "sqlserver");
+
+        services.AddHttpContextAccessor();
+
         return services;
     }
 }

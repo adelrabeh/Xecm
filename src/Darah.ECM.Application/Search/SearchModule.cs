@@ -1,5 +1,5 @@
 using Darah.ECM.Application.Common.Models;
-using Darah.ECM.Application.Documents.DTOs;
+using Darah.ECM.Application.Common.Models;
 using MediatR;
 
 namespace Darah.ECM.Application.Search;

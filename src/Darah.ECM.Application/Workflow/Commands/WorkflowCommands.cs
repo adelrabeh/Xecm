@@ -1,4 +1,5 @@
 using Darah.ECM.Application.Common.Models;
+using Darah.ECM.Application.Notifications;
 using Darah.ECM.Domain.Entities;
 using Darah.ECM.Domain.Interfaces.Repositories;
 using Darah.ECM.Domain.Interfaces.Services;
@@ -7,6 +8,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Darah.ECM.Application.Workflow.Commands;
+
 
 // ─── SUBMIT TO WORKFLOW ───────────────────────────────────────────────────────
 public sealed record SubmitToWorkflowCommand(
@@ -157,58 +159,3 @@ public sealed class CreateDelegationCommandValidator : AbstractValidator<CreateD
 }
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
-namespace Darah.ECM.Application.Workflow.DTOs;
-
-public sealed record WorkflowInstanceDto(
-    int      InstanceId,
-    Guid     DocumentId,
-    string   Status,
-    int      DefinitionId,
-    int?     CurrentStepId,
-    int      Priority,
-    DateTime StartedAt,
-    DateTime? CompletedAt,
-    List<WorkflowTaskDto> Tasks);
-
-public sealed record WorkflowTaskDto(
-    int      TaskId,
-    int      InstanceId,
-    string   StepNameAr,
-    string?  StepNameEn,
-    string?  AssignedToNameAr,
-    string   Status,
-    DateTime AssignedAt,
-    DateTime? DueAt,
-    bool     IsOverdue,
-    bool     IsDelegated,
-    List<WorkflowActionDto> Actions);
-
-public sealed record WorkflowActionDto(
-    int      ActionId,
-    string   ActionType,
-    string?  Comment,
-    DateTime ActionAt,
-    string?  ActionByNameAr);
-
-public sealed record InboxItemDto(
-    int      TaskId,
-    int      InstanceId,
-    Guid     DocumentId,
-    string   DocumentTitleAr,
-    string   WorkflowNameAr,
-    string   StepNameAr,
-    string   Status,
-    DateTime AssignedAt,
-    DateTime? DueAt,
-    bool     IsOverdue,
-    int      Priority,
-    string?  DocumentTypeNameAr,
-    string?  DocumentNumber);
-
-public sealed record WorkflowSummaryDto(
-    int TotalPending,
-    int TotalOverdue,
-    int TotalDueToday,
-    int TotalDelegated,
-    double AvgCompletionHours,
-    double SlaCompliancePercent);

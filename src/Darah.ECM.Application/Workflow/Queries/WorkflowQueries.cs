@@ -1,5 +1,5 @@
 using Darah.ECM.Application.Common.Models;
-using Darah.ECM.Application.Workflow.DTOs;
+using Darah.ECM.Application.Notifications;
 using MediatR;
 
 namespace Darah.ECM.Application.Workflow.Queries;

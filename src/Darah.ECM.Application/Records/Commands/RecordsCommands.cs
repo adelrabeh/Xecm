@@ -1,4 +1,5 @@
 using Darah.ECM.Application.Common.Models;
+using Darah.ECM.Application.Notifications;
 using Darah.ECM.Domain.Entities;
 using Darah.ECM.Domain.Interfaces.Repositories;
 using Darah.ECM.Domain.Interfaces.Services;
@@ -8,6 +9,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Darah.ECM.Application.Records.Commands;
+
 
 // ─── DECLARE RECORD ───────────────────────────────────────────────────────────
 /// <summary>
@@ -229,33 +231,3 @@ public sealed class CreateDisposalRequestCommandHandler
 }
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
-namespace Darah.ECM.Application.Records.DTOs;
-
-public sealed record RecordDeclarationDto(
-    Guid    DocumentId,
-    string  DocumentNumber,
-    int     RecordClassId,
-    string  RetentionPolicyName,
-    DateOnly RetentionExpiryDate,
-    string  DisposalAction);
-
-public sealed record LegalHoldResultDto(
-    int    HoldId,
-    string HoldCode,
-    int    DocumentsApplied,
-    int    DocumentsSkipped);
-
-public sealed record DisposalRequestDto(
-    int      RequestId,
-    string   RequestCode,
-    string   DisposalType,
-    string   Status,
-    int      DocumentCount,
-    DateTime CreatedAt);
-
-public sealed record RetentionSummaryDto(
-    int TotalActive,
-    int TotalExpired,
-    int ExpiringIn30Days,
-    int OnLegalHold,
-    int AwaitingDisposal);

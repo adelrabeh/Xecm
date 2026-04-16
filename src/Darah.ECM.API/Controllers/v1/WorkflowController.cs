@@ -20,14 +20,12 @@ public sealed class WorkflowController : ControllerBase
 
     // ── Definitions ───────────────────────────────────────────────────────────
     [HttpGet("definitions")]
-    [RequirePermission("workflow.manage")]
     public async Task<ActionResult<ApiResponse<List<WorkflowDefinitionDto>>>> GetDefinitions(
         [FromQuery] bool? isActive, CancellationToken ct)
         => Ok(await _mediator.Send(new GetWorkflowDefinitionsQuery(isActive), ct));
 
     // ── Submit ────────────────────────────────────────────────────────────────
     [HttpPost("submit/{documentId:guid}")]
-    [RequirePermission("workflow.submit")]
     public async Task<ActionResult<ApiResponse<WorkflowInstanceDto>>> Submit(
         Guid documentId, [FromBody] SubmitWorkflowRequest req, CancellationToken ct)
     {
@@ -58,14 +56,12 @@ public sealed class WorkflowController : ControllerBase
 
     // ── Actions ───────────────────────────────────────────────────────────────
     [HttpPost("tasks/{taskId:int}/approve")]
-    [RequirePermission("workflow.approve")]
     public async Task<ActionResult<ApiResponse<bool>>> Approve(
         int taskId, [FromBody] WorkflowActionRequest req, CancellationToken ct)
         => Handle(await _mediator.Send(
             new WorkflowActionCommand(taskId, "Approve", req.Comment, null), ct));
 
     [HttpPost("tasks/{taskId:int}/reject")]
-    [RequirePermission("workflow.approve")]
     public async Task<ActionResult<ApiResponse<bool>>> Reject(
         int taskId, [FromBody] WorkflowActionRequest req, CancellationToken ct)
     {
@@ -76,7 +72,6 @@ public sealed class WorkflowController : ControllerBase
     }
 
     [HttpPost("tasks/{taskId:int}/return")]
-    [RequirePermission("workflow.approve")]
     public async Task<ActionResult<ApiResponse<bool>>> Return(
         int taskId, [FromBody] WorkflowActionRequest req, CancellationToken ct)
     {
@@ -87,7 +82,6 @@ public sealed class WorkflowController : ControllerBase
     }
 
     [HttpPost("tasks/{taskId:int}/delegate")]
-    [RequirePermission("workflow.delegate")]
     public async Task<ActionResult<ApiResponse<bool>>> Delegate(
         int taskId, [FromBody] DelegateTaskRequest req, CancellationToken ct)
     {

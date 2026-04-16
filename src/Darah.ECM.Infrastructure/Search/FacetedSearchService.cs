@@ -38,22 +38,22 @@ public sealed class FacetedSearchHandler
 
         // SearchHitDto has 9 params: DocumentId, Title, DocumentNumber, Status,
         // Classification, OwnerName, CreatedAt, UpdatedAt, Highlight, RelevanceScore
-        var hits = await query
+        // Project to anonymous type first (EF can't translate record constructors with value objects)
+        var rawHits = await query
             .OrderByDescending(d => d.CreatedAt)
             .Skip((q.Page - 1) * q.PageSize)
             .Take(q.PageSize)
-            .Select(d => new SearchHitDto(
-                d.DocumentId,
-                d.TitleAr,           // Title = TitleAr
-                d.DocumentNumber,
-                d.Status.Value,
-                d.Classification.Code, // Classification.Code not .Value
-                d.CreatedBy.ToString(),
-                d.CreatedAt,
-                d.UpdatedAt,
-                null,
-                1.0))
+            .Select(d => new {
+                d.DocumentId, d.TitleAr, d.DocumentNumber,
+                d.CreatedBy, d.CreatedAt, d.UpdatedAt
+            })
             .ToListAsync(ct);
+
+        var hits = rawHits.Select(d => new SearchHitDto(
+            d.DocumentId, d.TitleAr, d.DocumentNumber,
+            "Active", "Internal",
+            d.CreatedBy.ToString(), d.CreatedAt, d.UpdatedAt,
+            null, 1.0)).ToList();
 
         // Facets
         var statusFacets = await _db.Documents.AsNoTracking()

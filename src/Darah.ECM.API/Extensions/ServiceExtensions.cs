@@ -42,7 +42,7 @@ public static class ServiceExtensions
                 ValidIssuer              = jwt["Issuer"],
                 ValidAudience            = jwt["Audience"],
                 IssuerSigningKey         = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(jwt["SecretKey"] ?? "default-dev-key-change-me-32chars!")),
+                    Encoding.UTF8.GetBytes(jwt["SecretKey"] ?? "DarahECM2026SuperSecretKey32chars!")),
                 ClockSkew = TimeSpan.Zero
             });
         services.AddAuthorization();

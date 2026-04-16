@@ -1,7 +1,5 @@
 import axios from 'axios'
 
-// Use relative URL so Vercel proxies to Railway (avoids CORS)
-// In production: /api/* → https://xecm-production.up.railway.app/api/*
 const client = axios.create({
   baseURL: '',
   timeout: 15000,
@@ -17,7 +15,10 @@ client.interceptors.request.use(config => {
 client.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
+    // Only force logout if auth/me fails (token truly invalid)
+    // Do NOT logout on 401 from other endpoints - just let the page handle it
+    const url = err.config?.url || ''
+    if (err.response?.status === 401 && url.includes('/auth/me')) {
       localStorage.removeItem('ecm_token')
       localStorage.removeItem('ecm_user')
       window.location.href = '/login'

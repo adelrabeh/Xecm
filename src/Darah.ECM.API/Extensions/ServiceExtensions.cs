@@ -104,6 +104,16 @@ public static class ServiceExtensions
         services.AddScoped<Darah.ECM.Application.Common.Interfaces.INotificationService,
             Darah.ECM.Infrastructure.Services.NotificationService>();
 
+        // Gap closures — new services
+        services.AddScoped<Darah.ECM.Infrastructure.Identity.ILdapAuthService,
+            Darah.ECM.Infrastructure.Identity.LdapAuthService>();
+        services.AddScoped<Darah.ECM.Application.Search.IContentModelService,
+            Darah.ECM.Application.Search.ContentModelService>();
+        services.AddScoped<Darah.ECM.Infrastructure.CoAuthoring.ICoAuthoringService,
+            Darah.ECM.Infrastructure.CoAuthoring.OnlyOfficeCoAuthoringService>();
+        services.AddHttpClient<Darah.ECM.Infrastructure.CoAuthoring.OnlyOfficeCoAuthoringService>();
+        services.AddBpmnEngine(configuration);
+
         // Health Checks
         var hc = services.AddHealthChecks();
         var conn = config.GetConnectionString("DefaultConnection");

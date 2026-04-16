@@ -9,6 +9,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Darah.ECM.Application\Darah.ECM.Application.csproj" />
     <ProjectReference Include="..\Darah.ECM.Domain\Darah.ECM.Domain.csproj" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.3.3" />
+    <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>

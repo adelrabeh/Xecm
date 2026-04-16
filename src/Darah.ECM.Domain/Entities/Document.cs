@@ -133,7 +133,35 @@ public class Document : BaseEntity
     public void Move(int? newFolderId, int userId)
     { FolderId = newFolderId; SetUpdated(userId); }
 
-    public bool CanBeDeleted()      => !IsLegalHold && Status != DocumentStatus.Disposed;
+    // ─── Record Declaration (ISO 15489 §7.2) ──────────────────────────────────
+    public bool     IsRecord              { get; private set; }
+    public DateTime? DeclaredAsRecordAt   { get; private set; }
+    public int?     DeclaredAsRecordById  { get; private set; }
+    public string?  RetentionScheduleCode { get; private set; }
+
+    /// <summary>
+    /// Declares the document as an official immutable record.
+    /// Once declared: no edits, no deletions, no version changes allowed.
+    /// Complies with ISO 15489 §7.2 and AIIM records management standards.
+    /// </summary>
+    public void DeclareAsRecord(string retentionSchedule, int declaredBy)
+    {
+        if (IsRecord)
+            throw new InvalidOperationException("Document is already declared as a record");
+
+        IsRecord             = true;
+        DeclaredAsRecordAt   = DateTime.UtcNow;
+        DeclaredAsRecordById = declaredBy;
+        RetentionScheduleCode = retentionSchedule;
+        IsLegalHold          = true; // Records are automatically on legal hold
+
+        // Lock status — records cannot be in Draft or Rejected state
+        if (Status == DocumentStatus.Draft || Status == DocumentStatus.Rejected)
+            Status = DocumentStatus.Approved;
+    }
+
+    public bool CanBeDeleted()      => !IsLegalHold && !IsRecord && Status != DocumentStatus.Disposed;
+    public bool CanBeEdited()        => !IsRecord && !IsLegalHold;
     public bool CanSubmitToWorkflow() => !IsCheckedOut && !IsLegalHold &&
         (Status == DocumentStatus.Draft || Status == DocumentStatus.Rejected);
     public bool IsRetentionExpired() => RetentionExpiresAt.HasValue &&

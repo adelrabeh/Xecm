@@ -80,6 +80,22 @@ public static class ServiceExtensions
         services.AddScoped<ICurrentUser, Darah.ECM.Infrastructure.Security.CurrentUserService>();
         services.AddScoped<ICurrentUserAccessor, Darah.ECM.Infrastructure.Security.CurrentUserService>();
 
+        // Repositories
+        services.AddScoped<Darah.ECM.Domain.Interfaces.Repositories.IUserRepository,
+            Darah.ECM.Infrastructure.Persistence.UserRepository>();
+        services.AddScoped<Darah.ECM.Domain.Interfaces.Repositories.IDocumentRepository,
+            Darah.ECM.Infrastructure.Persistence.DocumentRepository>();
+        services.AddScoped<Darah.ECM.Domain.Interfaces.Repositories.IDocumentVersionRepository,
+            Darah.ECM.Infrastructure.Persistence.DocumentVersionRepository>();
+        services.AddScoped<Darah.ECM.Domain.Interfaces.Repositories.IWorkflowRepository,
+            Darah.ECM.Infrastructure.Persistence.WorkflowRepository>();
+
+        // Domain Services (Infrastructure implementations)
+        services.AddScoped<Darah.ECM.Domain.Interfaces.Services.IAuditService,
+            Darah.ECM.Infrastructure.Security.AuditService>();
+        services.AddScoped<Darah.ECM.Application.Notifications.INotificationService,
+            Darah.ECM.Infrastructure.Notifications.NotificationService>();
+
         // Health Checks
         var hc = services.AddHealthChecks();
         var conn = config.GetConnectionString("DefaultConnection");

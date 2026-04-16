@@ -19,28 +19,48 @@ public static class DatabaseSeeder
         try
         {
             if (db.Database.IsRelational())
+            {
+                // Real DB: run migrations
                 await db.Database.MigrateAsync();
+                logger.LogInformation("Migrations applied");
+            }
+            else
+            {
+                // InMemory: create schema
+                await db.Database.EnsureCreatedAsync();
+                logger.LogInformation("InMemory database schema created");
+            }
 
             await SeedAdminAsync(db, logger);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Seeding skipped: {Msg}", ex.Message);
+            logger.LogWarning(ex, "Seeding failed: {Msg}", ex.Message);
         }
     }
 
     private static async Task SeedAdminAsync(EcmDbContext db, ILogger logger)
     {
-        if (await db.Users.AnyAsync(u => u.Username == "admin"))
-            return;
+        try
+        {
+            if (await db.Users.AnyAsync(u => u.Username == "admin"))
+            {
+                logger.LogInformation("Admin user already exists");
+                return;
+            }
 
-        var hash = HashPassword("Admin@2026");
-        var admin = User.Create("admin", "admin@darah.gov.sa", hash,
-            "مدير النظام", createdBy: 0, fullNameEn: "System Admin");
+            var hash = HashPassword("Admin@2026");
+            var admin = User.Create("admin", "admin@darah.gov.sa", hash,
+                "مدير النظام", createdBy: 0, fullNameEn: "System Admin");
 
-        db.Users.Add(admin);
-        await db.SaveChangesAsync();
-        logger.LogInformation("✅ Admin user seeded — username: admin, password: Admin@2026");
+            db.Users.Add(admin);
+            await db.SaveChangesAsync();
+            logger.LogInformation("Admin user created: admin / Admin@2026");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not seed admin user: {Msg}", ex.Message);
+        }
     }
 
     public static string HashPassword(string password)

@@ -101,7 +101,7 @@ public static class ServiceExtensions
         // Domain Services (Infrastructure implementations)
         services.AddScoped<Darah.ECM.Domain.Interfaces.Services.IAuditService,
             Darah.ECM.Infrastructure.Logging.AuditService>();
-        services.AddScoped<Darah.ECM.Application.Notifications.INotificationService,
+        services.AddScoped<Darah.ECM.Application.Common.Interfaces.INotificationService,
             Darah.ECM.Infrastructure.Services.NotificationService>();
 
         // Health Checks

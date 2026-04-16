@@ -90,6 +90,14 @@ public static class ServiceExtensions
         services.AddScoped<Darah.ECM.Domain.Interfaces.Repositories.IWorkflowRepository,
             Darah.ECM.Infrastructure.Persistence.WorkflowRepository>();
 
+        // Stub repositories (placeholder until full implementation)
+        services.AddScoped<Darah.ECM.Application.Notifications.IMetadataRepository,
+            Darah.ECM.Infrastructure.Persistence.StubMetadataRepository>();
+        services.AddScoped<Darah.ECM.Application.Notifications.IRecordsRepository,
+            Darah.ECM.Infrastructure.Persistence.StubRecordsRepository>();
+        services.AddScoped<Darah.ECM.Application.Notifications.IFolderRepository,
+            Darah.ECM.Infrastructure.Persistence.StubFolderRepository>();
+
         // Domain Services (Infrastructure implementations)
         services.AddScoped<Darah.ECM.Domain.Interfaces.Services.IAuditService,
             Darah.ECM.Infrastructure.Security.AuditService>();

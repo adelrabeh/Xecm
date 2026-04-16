@@ -55,17 +55,40 @@ public sealed class EcmDbContext : DbContext
             .HasConversion(v => v.Order, v => ClassificationLevel.FromOrder(v))
             .HasColumnName("ClassificationLevelOrder");
 
-        // Primary key mappings (non-standard names)
-        // Supporting entities
-        mb.Entity<UserRole>().HasKey(ur => ur.Id);
-        mb.Entity<Role>().HasKey(r => r.RoleId);
-        mb.Entity<Department>().HasKey(d => d.DepartmentId);
+        // Primary key mappings (non-standard names — EF convention requires 'Id' or '[Type]Id')
+        // Core entities
+        mb.Entity<User>().HasKey(u => u.UserId);
+        mb.Entity<Document>().HasKey(d => d.DocumentId);
         mb.Entity<DocumentVersion>().HasKey(v => v.VersionId);
         mb.Entity<WorkflowInstance>().HasKey(i => i.InstanceId);
         mb.Entity<WorkflowTask>().HasKey(t => t.TaskId);
         mb.Entity<AuditLog>().HasKey(a => a.AuditId);
-        mb.Entity<User>().HasKey(u => u.UserId);
-        mb.Entity<Document>().HasKey(d => d.DocumentId);
+        // Supporting entities
+        mb.Entity<UserRole>().HasKey(ur => ur.Id);
+        mb.Entity<Role>().HasKey(r => r.RoleId);
+        mb.Entity<Department>().HasKey(d => d.DepartmentId);
+        // Folder & Library
+        mb.Entity<Folder>().HasKey(e => e.FolderId);
+        mb.Entity<DocumentLibrary>().HasKey(e => e.LibraryId);
+        mb.Entity<DocumentRelation>().HasKey(e => e.RelationId);
+        mb.Entity<CheckoutLock>().HasKey(e => e.LockId);
+        // Metadata
+        mb.Entity<MetadataField>().HasKey(e => e.FieldId);
+        mb.Entity<DocumentTypeMetadataField>().HasKey(e => e.DocumentTypeId);
+        mb.Entity<DocumentMetadataValue>().HasKey(e => e.ValueId);
+        // Records & Legal
+        mb.Entity<RecordClass>().HasKey(e => e.ClassId);
+        mb.Entity<RetentionPolicy>().HasKey(e => e.PolicyId);
+        mb.Entity<LegalHold>().HasKey(e => e.HoldId);
+        mb.Entity<DocumentLegalHold>().HasKey(e => e.DocumentId);
+        mb.Entity<DisposalRequest>().HasKey(e => e.RequestId);
+        mb.Entity<Notification>().HasKey(e => e.NotificationId);
+        // Workflow
+        mb.Entity<WorkflowDefinition>().HasKey(e => e.DefinitionId);
+        mb.Entity<WorkflowStep>().HasKey(e => e.StepId);
+        mb.Entity<WorkflowCondition>().HasKey(e => e.ConditionId);
+        mb.Entity<WorkflowAction>().HasKey(e => e.ActionId);
+        mb.Entity<WorkflowDelegation>().HasKey(e => e.DelegationId);
 
         // FileMetadata owned entity on DocumentVersion
         mb.Entity<DocumentVersion>().OwnsOne(v => v.File, fm =>

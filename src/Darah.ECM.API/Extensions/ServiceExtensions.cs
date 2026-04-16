@@ -65,8 +65,12 @@ public static class ServiceExtensions
         // MediatR — scans Application + xECM assemblies
         services.AddMediatR(cfg =>
         {
+            // Application handlers
             cfg.RegisterServicesFromAssemblyContaining<
                 Darah.ECM.Application.Common.Models.ApiResponse<object>>();
+            // Infrastructure handlers (FacetedSearchHandler, etc.)
+            cfg.RegisterServicesFromAssemblyContaining<
+                Darah.ECM.Infrastructure.Persistence.EcmDbContext>();
         });
 
         // Domain Services
@@ -113,6 +117,9 @@ public static class ServiceExtensions
             Darah.ECM.Infrastructure.CoAuthoring.OnlyOfficeCoAuthoringService>();
         services.AddHttpClient<Darah.ECM.Infrastructure.CoAuthoring.OnlyOfficeCoAuthoringService>();
         services.AddBpmnEngine(configuration);
+
+        // AC2: Metadata-driven security
+        services.AddScoped<Darah.ECM.Infrastructure.Security.MetadataSecurityPolicy>();
 
         // Health Checks
         var hc = services.AddHealthChecks();

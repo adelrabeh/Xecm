@@ -23,7 +23,7 @@ export default function WorkflowsPage() {
   const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
-    client.get('/api/v1/workflow/my-tasks').then(res => {
+    client.get('/api/v1/workflow/inbox').then(res => {
       const data = res.data?.data || res.data
       if (Array.isArray(data) && data.length > 0) setTasks(data)
     }).catch(() => {})
@@ -36,13 +36,14 @@ export default function WorkflowsPage() {
       if (action === 'approve') {
         await client.post(`/api/v1/workflow/tasks/${selected.id}/approve`, { comment })
       } else if (action === 'reject') {
-        await client.post(`/api/v1/workflow/tasks/${selected.id}/reject`, { reason: comment })
+        await client.post(`/api/v1/workflow/tasks/${selected.id}/reject`, { comment })
       }
       setTasks(t => t.filter(x => x.id !== selected.id))
       setSelected(null)
       setComment('')
-    } catch {
-      alert('تعذر تنفيذ الإجراء — قد تكون غير متصل بالخادم')
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.errors?.[0] || 'تعذر تنفيذ الإجراء'
+      alert(msg)
     } finally {
       setActionLoading(false)
     }

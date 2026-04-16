@@ -27,7 +27,10 @@ public sealed class CurrentUserService : ICurrentUser, ICurrentUserAccessor
     public IEnumerable<string> Permissions => Principal?.FindAll("perm").Select(c => c.Value)
         ?? Enumerable.Empty<string>();
     public bool HasPermission(string permission) =>
-        Permissions.Contains(permission, StringComparer.OrdinalIgnoreCase);
+        Permissions.Any(p =>
+            p.Equals(permission, StringComparison.OrdinalIgnoreCase) ||
+            (p.EndsWith(".*") && permission.StartsWith(
+                p[..^2], StringComparison.OrdinalIgnoreCase)));
 }
 
 public interface IJwtTokenService

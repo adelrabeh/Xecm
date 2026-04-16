@@ -292,20 +292,20 @@ public static class BpmnTemplates
 {
     /// <summary>Document approval process — 2 levels.</summary>
     public static string DocumentApproval(string processKey,
-        string firstApproverGroup, string finalApproverGroup) => $"""
+        string firstApproverGroup, string finalApproverGroup) => """
         <?xml version="1.0" encoding="UTF-8"?>
         <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
                      xmlns:flowable="http://flowable.org/bpmn"
                      targetNamespace="http://darah.gov.sa/bpmn">
 
-          <process id="{processKey}" name="Document Approval" isExecutable="true">
+          <process id="__PROCESS_KEY__" name="Document Approval" isExecutable="true">
 
             <startEvent id="start" name="Document Submitted"/>
 
             <sequenceFlow sourceRef="start" targetRef="review1"/>
 
             <userTask id="review1" name="First Review"
-                      flowable:candidateGroups="{firstApproverGroup}">
+                      flowable:candidateGroups="__FIRST_APPROVER__">
               <documentation>First level review and approval</documentation>
             </userTask>
 
@@ -314,15 +314,15 @@ public static class BpmnTemplates
             <exclusiveGateway id="gateway1" name="First Review Decision"/>
 
             <sequenceFlow sourceRef="gateway1" targetRef="review2">
-              <conditionExpression>${{action == 'approve'}}</conditionExpression>
+              <conditionExpression>${action == 'approve'}</conditionExpression>
             </sequenceFlow>
 
             <sequenceFlow sourceRef="gateway1" targetRef="rejected">
-              <conditionExpression>${{action == 'reject'}}</conditionExpression>
+              <conditionExpression>${action == 'reject'}</conditionExpression>
             </sequenceFlow>
 
             <userTask id="review2" name="Final Approval"
-                      flowable:candidateGroups="{finalApproverGroup}">
+                      flowable:candidateGroups="__FINAL_APPROVER__">
               <documentation>Final approval by senior management</documentation>
             </userTask>
 
@@ -331,11 +331,11 @@ public static class BpmnTemplates
             <exclusiveGateway id="gateway2" name="Final Decision"/>
 
             <sequenceFlow sourceRef="gateway2" targetRef="approved">
-              <conditionExpression>${{action == 'approve'}}</conditionExpression>
+              <conditionExpression>${action == 'approve'}</conditionExpression>
             </sequenceFlow>
 
             <sequenceFlow sourceRef="gateway2" targetRef="rejected">
-              <conditionExpression>${{action == 'reject'}}</conditionExpression>
+              <conditionExpression>${action == 'reject'}</conditionExpression>
             </sequenceFlow>
 
             <endEvent id="approved" name="Document Approved">
@@ -348,15 +348,15 @@ public static class BpmnTemplates
 
           </process>
         </definitions>
-        """;
+        """.Replace("__PROCESS_KEY__", processKey).Replace("__FIRST_APPROVER__", firstApproverGroup).Replace("__FINAL_APPROVER__", finalApproverGroup);
 
     /// <summary>Records disposal approval process.</summary>
-    public static string RecordsDisposal(string processKey) => $"""
+    public static string RecordsDisposal(string processKey) => """
         <?xml version="1.0" encoding="UTF-8"?>
         <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
                      xmlns:flowable="http://flowable.org/bpmn"
                      targetNamespace="http://darah.gov.sa/bpmn">
-          <process id="{processKey}" name="Records Disposal" isExecutable="true">
+          <process id="__PROCESS_KEY__" name="Records Disposal" isExecutable="true">
             <startEvent id="start"/>
             <sequenceFlow sourceRef="start" targetRef="legalReview"/>
             <userTask id="legalReview" name="Legal Review"
@@ -371,5 +371,5 @@ public static class BpmnTemplates
             <endEvent id="end"/>
           </process>
         </definitions>
-        """;
+        """.Replace("__PROCESS_KEY__", processKey);
 }

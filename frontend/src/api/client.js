@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+// Use relative URL so Vercel proxies to Railway (avoids CORS)
+// In production: /api/* → https://xecm-production.up.railway.app/api/*
 const client = axios.create({
-  baseURL: 'https://xecm-production.up.railway.app',
+  baseURL: '',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' }
 })

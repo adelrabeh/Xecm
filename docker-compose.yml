@@ -1,0 +1,274 @@
+version: "3.9"
+
+# ─── DARAH ECM Full Architecture ─────────────────────────────────────────────
+# Implements the complete flowchart TB architecture diagram
+
+networks:
+  ecm-internal:
+    driver: bridge
+  ecm-external:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
+  elasticsearch-data:
+  rabbitmq-data:
+
+services:
+
+  # ─── API Gateway (Kong) ─────────────────────────────────────────────────────
+  gateway:
+    image: kong:3.7-ubuntu
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yaml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    volumes:
+      - ./src/Darah.ECM.Gateway/kong.yaml:/etc/kong/kong.yaml:ro
+    ports:
+      - "443:8443"   # HTTPS public
+      - "80:8000"    # HTTP redirect
+      - "8001:8001"  # Kong Admin (internal)
+    networks: [ecm-external, ecm-internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 30s
+
+  # ─── ECM Core API ───────────────────────────────────────────────────────────
+  ecm-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: ${DATABASE_URL}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER:-ecm}
+      RabbitMQ__Password: ${RABBITMQ_PASS}
+      Redis__ConnectionString: redis:6379
+      Storage__MinIO__Endpoint: minio:9000
+      Storage__MinIO__AccessKey: ${MINIO_ACCESS_KEY}
+      Storage__MinIO__SecretKey: ${MINIO_SECRET_KEY}
+      Jwt__SecretKey: ${JWT_SECRET}
+      Jwt__Issuer: darah-ecm
+      Jwt__Audience: darah-ecm-users
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otelcollector:4317
+    ports:
+      - "8080:8080"
+    networks: [ecm-internal]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  # ─── Search Service (Elasticsearch) ─────────────────────────────────────────
+  search-service:
+    build:
+      context: .
+      dockerfile: src/Darah.ECM.SearchService/Dockerfile
+    environment:
+      Elasticsearch__Uri: http://elasticsearch:9200
+      RabbitMQ__Host: rabbitmq
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otelcollector:4317
+    ports:
+      - "8081:8081"
+    networks: [ecm-internal]
+    depends_on:
+      elasticsearch: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  # ─── OCR/AI Service ──────────────────────────────────────────────────────────
+  ocr-service:
+    build:
+      context: .
+      dockerfile: src/Darah.ECM.OcrService/Dockerfile
+    environment:
+      RabbitMQ__Host: rabbitmq
+      Azure__DocumentIntelligence__Endpoint: ${AZURE_DI_ENDPOINT:-}
+      Azure__DocumentIntelligence__ApiKey: ${AZURE_DI_KEY:-}
+      Storage__MinIO__Endpoint: minio:9000
+    ports:
+      - "8082:8082"
+    networks: [ecm-internal]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  # ─── Governance Service ──────────────────────────────────────────────────────
+  governance-service:
+    build:
+      context: .
+      dockerfile: src/Darah.ECM.GovernanceService/Dockerfile
+    environment:
+      ConnectionStrings__DefaultConnection: ${DATABASE_URL}
+      RabbitMQ__Host: rabbitmq
+    ports:
+      - "8083:8083"
+    networks: [ecm-internal]
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  # ─── PostgreSQL Cluster ──────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: darah_ecm
+      POSTGRES_USER: ${DB_USER:-ecm}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks: [ecm-internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecm -d darah_ecm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      postgres
+        -c max_connections=200
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c maintenance_work_mem=64MB
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=16MB
+        -c default_statistics_target=100
+
+  # ─── Redis (Cache + Sessions + Job Queue) ───────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+        --maxmemory 512mb
+        --maxmemory-policy allkeys-lru
+        --requirepass ${REDIS_PASS}
+        --save 60 1000
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks: [ecm-internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+
+  # ─── MinIO Object Storage ────────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    networks: [ecm-internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+
+  # ─── Elasticsearch ───────────────────────────────────────────────────────────
+  elasticsearch:
+    image: elasticsearch:8.14.3
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      xpack.security.enabled: "false"
+      # Arabic analysis plugin pre-installed
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks: [ecm-internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ─── RabbitMQ (Event Bus) ────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-ecm}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    networks: [ecm-internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      retries: 5
+
+  # ─── Observability: Prometheus ───────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./infrastructure/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks: [ecm-internal]
+    restart: unless-stopped
+
+  # ─── Observability: Grafana ──────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.0.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASS:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3001:3000"
+    networks: [ecm-internal]
+    restart: unless-stopped
+
+  # ─── Observability: OpenTelemetry Collector ──────────────────────────────────
+  otelcollector:
+    image: otel/opentelemetry-collector-contrib:0.103.0
+    volumes:
+      - ./infrastructure/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks: [ecm-internal]
+    restart: unless-stopped
+
+  # ─── ELK: Elasticsearch for Logs ────────────────────────────────────────────
+  logstash:
+    image: logstash:8.14.3
+    volumes:
+      - ./infrastructure/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    networks: [ecm-internal]
+    depends_on: [elasticsearch]
+    restart: unless-stopped
+
+  kibana:
+    image: kibana:8.14.3
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    ports:
+      - "5601:5601"
+    networks: [ecm-internal]
+    depends_on: [elasticsearch]
+    restart: unless-stopped

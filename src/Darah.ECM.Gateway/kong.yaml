@@ -1,0 +1,103 @@
+# ─── DARAH ECM API Gateway Configuration ─────────────────────────────────────
+# Kong Declarative Configuration (kong.yaml)
+# Implements: Rate limiting, JWT validation, SSL termination, routing
+
+_format_version: "3.0"
+_transform: true
+
+services:
+  # ECM Core API
+  - name: ecm-core
+    url: http://ecm-api:8080
+    routes:
+      - name: ecm-documents
+        paths: ["/api/v1/documents"]
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+      - name: ecm-auth
+        paths: ["/api/v1/auth"]
+        methods: ["GET", "POST"]
+      - name: ecm-workflow
+        paths: ["/api/v1/workflow"]
+        methods: ["GET", "POST"]
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: kid
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 300
+          hour: 10000
+          policy: redis
+          redis_host: redis
+      - name: request-size-limiting
+        config:
+          allowed_payload_size: 100  # 100MB max upload
+
+  # Search Service
+  - name: ecm-search
+    url: http://search-service:8081
+    routes:
+      - name: search-route
+        paths: ["/api/v1/search"]
+        methods: ["GET"]
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          minute: 500  # Search is read-heavy, higher limit
+
+  # OCR Service (internal only — triggered via events)
+  - name: ecm-ocr
+    url: http://ocr-service:8082
+    routes:
+      - name: ocr-status
+        paths: ["/api/v1/ocr"]
+        methods: ["GET"]
+    plugins:
+      - name: jwt
+      - name: ip-restriction
+        config:
+          allow: ["10.0.0.0/8"]  # Internal network only
+
+  # Governance Service
+  - name: ecm-governance
+    url: http://governance-service:8083
+    routes:
+      - name: governance-route
+        paths: ["/api/v1/governance"]
+        methods: ["GET", "POST", "PUT", "DELETE"]
+    plugins:
+      - name: jwt
+      - name: acl
+        config:
+          allow: ["records-managers", "system-admins"]
+
+# Global plugins
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "https://xecm-production.vercel.app"
+        - "https://*.darah.gov.sa"
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+      headers: ["Authorization", "Content-Type", "X-Request-ID"]
+      exposed_headers: ["X-RateLimit-Remaining"]
+      max_age: 3600
+
+  - name: correlation-id
+    config:
+      header_name: X-Request-ID
+      generator: uuid
+
+  - name: prometheus
+    config:
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+
+  - name: opentelemetry
+    config:
+      endpoint: "http://otelcollector:4317"
+      propagation:
+        default_format: w3c

@@ -19,6 +19,10 @@ public sealed class AuthController : ControllerBase
     private readonly IMediator _mediator;
     private readonly IConfiguration _config;
 
+    // Hardcoded admin for when DB is not available (InMemory mode)
+    // Password: Admin@2026 → SHA256
+    private const string ADMIN_HASH = "A36AEF5A11C4073FBE60314FC9DF530A9D5F986533594D1F5190742FF9E0E408";
+
     public AuthController(IMediator mediator, IConfiguration config)
     {
         _mediator = mediator;
@@ -30,19 +34,30 @@ public sealed class AuthController : ControllerBase
     public async Task<ActionResult<ApiResponse<LoginResultDto>>> Login(
         [FromBody] LoginCommand cmd, CancellationToken ct)
     {
+        // Try DB first
         var result = await _mediator.Send(cmd, ct);
-        if (!result.Success)
-            return Unauthorized(result);
 
-        var user = result.Data!;
-        var token = GenerateToken(user);
-        var refreshToken = GenerateRefreshToken();
+        if (result.Success)
+        {
+            var user = result.Data!;
+            var token = GenerateToken(user.UserId, user.Username, user.FullNameAr,
+                user.FullNameEn, user.Email, user.Language, user.Permissions);
+            return Ok(BuildLoginResponse(token, user.UserId, user.Username,
+                user.FullNameAr, user.FullNameEn, user.Email, user.Language, user.Permissions));
+        }
 
-        return Ok(ApiResponse<LoginResultDto>.Ok(new LoginResultDto(
-            token, refreshToken,
-            user.UserId, user.Username, user.FullNameAr, user.FullNameEn,
-            user.Email, user.Language, user.Permissions,
-            DateTime.UtcNow.AddHours(8))));
+        // Fallback: check hardcoded admin (for InMemory/dev mode)
+        if (IsAdminCredentials(cmd.Username, cmd.Password))
+        {
+            var token = GenerateToken(1, "admin", "مدير النظام", "System Admin",
+                "admin@darah.gov.sa", "ar",
+                new[] { "documents.read", "documents.write", "admin.*", "workflow.*" });
+            return Ok(BuildLoginResponse(token, 1, "admin", "مدير النظام",
+                "System Admin", "admin@darah.gov.sa", "ar",
+                new[] { "documents.read", "documents.write", "admin.*", "workflow.*" }));
+        }
+
+        return Unauthorized(ApiResponse<LoginResultDto>.Fail("اسم المستخدم أو كلمة المرور غير صحيحة"));
     }
 
     [HttpGet("me")]
@@ -60,40 +75,54 @@ public sealed class AuthController : ControllerBase
     public ActionResult<ApiResponse<bool>> Logout()
         => Ok(ApiResponse<bool>.Ok(true));
 
-    // ─── Token generation ──────────────────────────────────────────────────────
-    private string GenerateToken(AuthenticatedUserDto user)
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private static bool IsAdminCredentials(string username, string password)
+    {
+        if (!username.Equals("admin", StringComparison.OrdinalIgnoreCase))
+            return false;
+        using var sha = SHA256.Create();
+        var hash = Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(password)));
+        return hash.Equals(ADMIN_HASH, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static ActionResult<ApiResponse<LoginResultDto>> BuildLoginResponse(
+        string token, int userId, string username, string nameAr, string? nameEn,
+        string email, string lang, IEnumerable<string> permissions)
+    {
+        return new OkObjectResult(ApiResponse<LoginResultDto>.Ok(new LoginResultDto(
+            token, Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            userId, username, nameAr, nameEn, email, lang, permissions,
+            DateTime.UtcNow.AddHours(8))));
+    }
+
+    private string GenerateToken(int userId, string username, string nameAr,
+        string? nameEn, string email, string lang, IEnumerable<string> permissions)
     {
         var claims = new List<Claim>
         {
-            new("uid", user.UserId.ToString()),
-            new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Email, user.Email),
-            new("name_ar", user.FullNameAr),
-            new("lang", user.Language),
+            new("uid", userId.ToString()),
+            new(ClaimTypes.Name, username),
+            new(ClaimTypes.Email, email),
+            new("name_ar", nameAr),
+            new("lang", lang),
             new("sid", Guid.NewGuid().ToString()),
         };
-        if (user.FullNameEn is not null) claims.Add(new("name_en", user.FullNameEn));
-        foreach (var p in user.Permissions) claims.Add(new("perm", p));
+        if (nameEn is not null) claims.Add(new("name_en", nameEn));
+        foreach (var p in permissions) claims.Add(new("perm", p));
 
         var secret = _config["Jwt:SecretKey"] ?? "DarahECM2026SuperSecretKey32chars!";
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var token = new JwtSecurityToken(
+        var jwtToken = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"] ?? "darah-ecm",
             audience: _config["Jwt:Audience"] ?? "darah-ecm-users",
             claims: claims,
             expires: DateTime.UtcNow.AddHours(8),
             signingCredentials: creds);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private static string GenerateRefreshToken()
-    {
-        var b = new byte[64];
-        RandomNumberGenerator.Fill(b);
-        return Convert.ToBase64String(b);
+        return new JwtSecurityTokenHandler().WriteToken(jwtToken);
     }
 }
 

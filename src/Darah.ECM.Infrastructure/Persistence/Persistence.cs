@@ -55,6 +55,18 @@ public sealed class EcmDbContext : DbContext
             .HasConversion(v => v.Order, v => ClassificationLevel.FromOrder(v))
             .HasColumnName("ClassificationLevelOrder");
 
+        // Primary key mappings (non-standard names)
+        // Supporting entities
+        mb.Entity<UserRole>().HasKey(ur => ur.Id);
+        mb.Entity<Role>().HasKey(r => r.RoleId);
+        mb.Entity<Department>().HasKey(d => d.DepartmentId);
+        mb.Entity<DocumentVersion>().HasKey(v => v.VersionId);
+        mb.Entity<WorkflowInstance>().HasKey(i => i.InstanceId);
+        mb.Entity<WorkflowTask>().HasKey(t => t.TaskId);
+        mb.Entity<AuditLog>().HasKey(a => a.AuditId);
+        mb.Entity<User>().HasKey(u => u.UserId);
+        mb.Entity<Document>().HasKey(d => d.DocumentId);
+
         // FileMetadata owned entity on DocumentVersion
         mb.Entity<DocumentVersion>().OwnsOne(v => v.File, fm =>
         {
@@ -68,7 +80,7 @@ public sealed class EcmDbContext : DbContext
         });
 
         // AuditLog — append-only, no update/delete via EF tracking
-        mb.Entity<AuditLog>().ToTable("AuditLogs").HasKey(a => a.AuditId);
+        mb.Entity<AuditLog>().ToTable("AuditLogs");
         mb.Entity<AuditLog>().Property(a => a.AuditId).ValueGeneratedOnAdd();
         mb.Entity<AuditLog>().HasIndex(a => a.CreatedAt);
         mb.Entity<AuditLog>().HasIndex(a => new { a.EntityType, a.EntityId });

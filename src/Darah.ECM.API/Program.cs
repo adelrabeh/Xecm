@@ -3,7 +3,6 @@ using Darah.ECM.API.Middleware;
 using Hangfire;
 using Serilog;
 
-// Bootstrap logger for startup errors
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
@@ -12,12 +11,20 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    // Serilog from config
     builder.Host.UseSerilog((ctx, cfg) =>
-        cfg.ReadFrom.Configuration(ctx.Configuration)
-           .WriteTo.Console());
+        cfg.ReadFrom.Configuration(ctx.Configuration).WriteTo.Console());
 
-    // Services
+    // ─── CORS — must be registered before anything else ──────────────────────
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowAll", policy =>
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .WithExposedHeaders("Authorization", "Content-Disposition"));
+    });
+
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
@@ -33,14 +40,13 @@ try
         });
     });
 
-    builder.Services.AddCors(o => o.AddPolicy("AllowAll", p =>
-        p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
-
     builder.Services.AddEcmServices(builder.Configuration);
 
     var app = builder.Build();
 
-    // Always enable Swagger (useful for testing)
+    // ─── CORS must be first in pipeline ──────────────────────────────────────
+    app.UseCors("AllowAll");
+
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
@@ -48,7 +54,6 @@ try
         c.RoutePrefix = "swagger";
     });
 
-    app.UseCors("AllowAll");
     app.UseSerilogRequestLogging();
     app.UseAuthentication();
     app.UseAuthorization();
@@ -62,10 +67,9 @@ try
     app.MapGet("/health/live", () => Results.Ok(new { status = "alive", time = DateTime.UtcNow }));
     app.MapGet("/", () => Results.Redirect("/swagger"));
 
-    // Seed database with initial admin user
     await Darah.ECM.API.Infrastructure.DatabaseSeeder.SeedAsync(app.Services);
 
-    Log.Information("DARAH ECM API starting on port {Port}", 
+    Log.Information("DARAH ECM API starting on port {Port}",
         Environment.GetEnvironmentVariable("PORT") ?? "8080");
 
     app.Run();

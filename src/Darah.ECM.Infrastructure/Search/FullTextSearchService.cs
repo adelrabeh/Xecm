@@ -1,3 +1,4 @@
+using Darah.ECM.Application.Search;
 using Darah.ECM.Application.Common.Models;
 using Darah.ECM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -27,13 +28,7 @@ public record SearchResultDto(
     int PageSize,
     TimeSpan Elapsed);
 
-public record SearchHitDto(
-    Guid DocumentId,
-    string TitleAr,
-    string? TitleEn,
-    string Status,
-    double Rank,
-    string? Headline);
+// SearchHitDto moved to Application.Search namespace to avoid conflict
 
 public sealed class PostgresFullTextSearchService : IFullTextSearchService
 {
@@ -93,8 +88,16 @@ public sealed class PostgresFullTextSearchService : IFullTextSearchService
 
             return new SearchResultDto(
                 results.Select(r => new SearchHitDto(
-                    r.DocumentId, r.TitleAr, r.TitleEn,
-                    r.Status, r.Rank, r.Headline)),
+                    DocumentId: r.DocumentId,
+                    Title: r.TitleAr ?? "",
+                    DocumentNumber: "",
+                    Status: r.Status ?? "Active",
+                    Classification: "Internal",
+                    OwnerName: "",
+                    CreatedAt: DateTime.UtcNow,
+                    UpdatedAt: null,
+                    Highlight: r.Headline,
+                    RelevanceScore: r.Rank)),
                 total, query.Page, query.PageSize, sw.Elapsed);
         }
         catch (Exception ex)

@@ -62,6 +62,9 @@ try
     app.MapGet("/health/live", () => Results.Ok(new { status = "alive", time = DateTime.UtcNow }));
     app.MapGet("/", () => Results.Redirect("/swagger"));
 
+    // Seed database with initial admin user
+    await Darah.ECM.API.Infrastructure.DatabaseSeeder.SeedAsync(app.Services);
+
     Log.Information("DARAH ECM API starting on port {Port}", 
         Environment.GetEnvironmentVariable("PORT") ?? "8080");
 

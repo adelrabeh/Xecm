@@ -237,7 +237,7 @@ public sealed class BuiltInBpmnEngine : IBpmnEngine
     {
         var tasks = await _db.Set<Darah.ECM.Domain.Entities.WorkflowTask>()
             .Where(t => t.AssignedToUserId == userId &&
-                        t.Status == Darah.ECM.Domain.Entities.WorkflowTaskStatus.Pending)
+                        t.Status == string.Pending)
             .ToListAsync(ct);
 
         return tasks.Select(t => new BpmnTask(

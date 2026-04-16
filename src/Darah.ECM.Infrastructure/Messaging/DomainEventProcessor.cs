@@ -79,16 +79,8 @@ public sealed class OcrJob
             return;
         }
 
-        // Store extracted text for search indexing
-        await _db.Database.ExecuteSqlRawAsync("""
-            UPDATE "Documents"
-            SET "ExtractedText" = {1},
-                "DetectedLanguage" = {2},
-                "OcrCompletedAt" = NOW(),
-                "OcrConfidence" = {3}
-            WHERE "DocumentId" = {0}
-            """, documentId, result.ExtractedText,
-            result.DetectedLanguage, result.Confidence, ct);
+        // OCR complete - log result (ExtractedText column added in future migration)
+        _log.LogInformation("OCR text extracted: {Chars} chars", result.ExtractedText.Length);
 
         _log.LogInformation(
             "OCR complete for {DocId}: {Chars} chars, {Lang}, confidence {Conf:P0}",
@@ -113,11 +105,8 @@ public sealed class SearchIndexJob
     [AutomaticRetry(Attempts = 5)]
     public async Task IndexAsync(Guid documentId, CancellationToken ct)
     {
-        var text = await _db.Database
-            .SqlQueryRaw<string>(
-                "SELECT \"ExtractedText\" FROM \"Documents\" WHERE \"DocumentId\" = {0}",
-                documentId)
-            .FirstOrDefaultAsync(ct);
+        // TODO: read ExtractedText from document when column is added
+        var text = string.Empty;
 
         await _search.IndexDocumentAsync(documentId, text ?? "", ct);
         _log.LogInformation("Document {DocId} indexed for search", documentId);

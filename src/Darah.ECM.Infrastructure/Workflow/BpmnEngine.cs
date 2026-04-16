@@ -241,8 +241,8 @@ public sealed class BuiltInBpmnEngine : IBpmnEngine
             .ToListAsync(ct);
 
         return tasks.Select(t => new BpmnTask(
-            t.TaskId.ToString(), t.TaskName, t.InstanceId.ToString(),
-            userId.ToString(), t.AssignedAt ?? DateTime.UtcNow,
+            t.TaskId.ToString(), $"Task-{t.StepId}", t.InstanceId.ToString(),
+            userId.ToString(), t.AssignedAt,
             t.DueAt, "50", new Dictionary<string, object>()));
     }
 

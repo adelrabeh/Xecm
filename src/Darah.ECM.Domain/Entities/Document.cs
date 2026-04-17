@@ -88,6 +88,8 @@ public class Document : BaseEntity
         RaiseDomainEvent(new DocumentCheckedInEvent(DocumentId, persistedVersionId, userId));
     }
 
+    public void Restore(int userId) { SetUpdated(userId); }
+
     public void TransitionStatus(DocumentStatus newStatus, int userId)
     {
         if (!Status.CanTransitionTo(newStatus))

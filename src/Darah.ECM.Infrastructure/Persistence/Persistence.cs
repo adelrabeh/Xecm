@@ -23,6 +23,18 @@ public sealed class EcmDbContext : DbContext
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
     public DbSet<WorkflowTask>    WorkflowTasks    => Set<WorkflowTask>();
+
+    // Platform entities
+    public DbSet<Partition>         Partitions       => Set<Partition>();
+    public DbSet<DocumentTask>      DocumentTasks    => Set<DocumentTask>();
+    public DbSet<TaskComment>       TaskComments     => Set<TaskComment>();
+    public DbSet<ApplicationRole>   ApplicationRoles => Set<ApplicationRole>();
+    public DbSet<UserApplicationRole> UserAppRoles   => Set<UserApplicationRole>();
+    public DbSet<OAuthClient>       OAuthClients     => Set<OAuthClient>();
+    public DbSet<SystemConfig>      SystemConfigs    => Set<SystemConfig>();
+    public DbSet<RecycleBinEntry>   RecycleBin       => Set<RecycleBinEntry>();
+    public DbSet<UserGroup>         UserGroups       => Set<UserGroup>();
+    public DbSet<GroupMember>       GroupMembers     => Set<GroupMember>();
     public DbSet<AuditLog>        AuditLogs        => Set<AuditLog>();
 
 
@@ -56,6 +68,17 @@ public sealed class EcmDbContext : DbContext
             .HasColumnName("ClassificationLevelOrder");
 
         // Primary key mappings (non-standard names — EF convention requires 'Id' or '[Type]Id')
+        // Platform entities
+        mb.Entity<Partition>().HasKey(e => e.PartitionId);
+        mb.Entity<DocumentTask>().HasKey(e => e.TaskId);
+        mb.Entity<TaskComment>().HasKey(e => e.CommentId);
+        mb.Entity<ApplicationRole>().HasKey(e => e.AppRoleId);
+        mb.Entity<UserApplicationRole>().HasKey(e => e.Id);
+        mb.Entity<OAuthClient>().HasKey(e => e.ClientId);
+        mb.Entity<SystemConfig>().HasKey(e => e.ConfigId);
+        mb.Entity<RecycleBinEntry>().HasKey(e => e.EntryId);
+        mb.Entity<UserGroup>().HasKey(e => e.GroupId);
+        mb.Entity<GroupMember>().HasKey(e => e.MemberId);
         // Core entities
         mb.Entity<User>().HasKey(u => u.UserId);
         mb.Entity<Document>().HasKey(d => d.DocumentId);

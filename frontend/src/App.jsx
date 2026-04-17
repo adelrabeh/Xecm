@@ -7,6 +7,7 @@ import DashboardPage from './modules/dashboard/DashboardPage'
 import DocumentsPage from './modules/documents/DocumentsPage'
 import WorkflowsPage from './modules/workflows/WorkflowsPage'
 import { RecordsPage, AdminPage } from './modules/other/OtherPages'
+import LibraryPage from './modules/library/LibraryPage'
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuthStore()
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="workflows" element={<WorkflowsPage />} />
           <Route path="records" element={<RecordsPage />} />
+          <Route path="library" element={<LibraryPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

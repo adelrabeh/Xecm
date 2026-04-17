@@ -279,7 +279,7 @@ export default function WorkflowsPage() {
       const id = selected.taskId
       if (action==='approve')    await client.post(`/api/v1/workflow/tasks/${id}/approve`, { comment })
       if (action==='reject')     await client.post(`/api/v1/workflow/tasks/${id}/reject`, { comment })
-      if (action==='delegate')   await client.post(`/api/v1/workflow/tasks/${id}/delegate`, { toUserId: Number(delegateTo), comment })
+      if (action==='delegate')   await client.post(`/api/v1/workflow/tasks/${id}/delegate`, { toUserId: delegateTo?.userId || Number(delegateTo), comment })
       if (action==='claim')      await client.post(`/api/v1/workflow/tasks/${id}/claim`)
       if (action==='return')     await client.post(`/api/v1/workflow/tasks/${id}/return-to-group`, { comment })
       const msgs = { approve:'تمت الموافقة ✅', reject:'تم الرفض', delegate:'تمت الإحالة', claim:'تمت المطالبة بالمهمة', return:'تم إرجاع المهمة للمجموعة' }
@@ -425,11 +425,10 @@ export default function WorkflowsPage() {
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right resize-none"/>
               </div>
 
+              {/* Username search for delegate */}
               <div className="mb-4">
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">إحالة إلى (رقم المستخدم)</label>
-                <input type="number" value={delegateTo} onChange={e=>setDelegateTo(e.target.value)}
-                  placeholder="رقم المستخدم..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">إحالة إلى</label>
+                <UserSearch onSelect={u => setDelegateTo(u)} selected={delegateTo} />
               </div>
 
               <div className="space-y-2">

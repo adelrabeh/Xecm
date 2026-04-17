@@ -91,7 +91,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-semibold text-gray-800">آخر النشاطات</h2>
-            <button className="text-primary-700 text-xs hover:underline">عرض الكل</button>
+            <button onClick={()=>window.location.href='/documents'} className="text-primary-700 text-xs hover:underline">عرض الكل</button>
           </div>
           <div className="divide-y divide-gray-50">
             {RECENT_ACTIVITY.map((item, i) => (

@@ -105,7 +105,7 @@ public class WorkflowInstance : BaseEntity
     public void MoveToStep(int stepId) => CurrentStepId = stepId;
     public void Complete() { Status = "Approved"; CompletedAt = DateTime.UtcNow; }
     public void Reject()   { Status = "Rejected"; CompletedAt = DateTime.UtcNow; }
-    public void Cancel()   { Status = "Cancelled"; CompletedAt = DateTime.UtcNow; }
+    public void Cancel(int userId = 0, string? reason = null) { Status = "Cancelled"; CompletedAt = DateTime.UtcNow; }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -130,6 +130,18 @@ public class WorkflowTask : BaseEntity
     public DateTime? SLABreachNotifiedAt { get; private set; }
 
     private WorkflowTask() { }
+
+    public void ClaimBy(int userId)
+    {
+        AssignedToUserId = userId;
+        Status = "InProgress";
+    }
+
+    public void ReturnToGroup(int userId, string? comment = null)
+    {
+        AssignedToUserId = null;
+        Status = "Pending";
+    }
 
     public static WorkflowTask Create(int instanceId, int stepId,
         int? userId, int? roleId, int? slaHours)

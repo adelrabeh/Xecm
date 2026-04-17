@@ -68,7 +68,7 @@ public sealed class AuthController : ControllerBase
         {
             var token = MakeToken(1, "admin", "مدير النظام", "System Admin",
                 "admin@darah.gov.sa", "ar",
-                new[] { "admin.*", "documents.*", "workflow.*" });
+                new[] { "admin.*", "documents.*", "workflow.*", "audit.*", "records.*" });
             return Ok(new
             {
                 success = true,
@@ -82,7 +82,7 @@ public sealed class AuthController : ControllerBase
                     fullNameEn = "System Admin",
                     email = "admin@darah.gov.sa",
                     language = "ar",
-                    permissions = new[] { "admin.*", "documents.*", "workflow.*" },
+                    permissions = new[] { "admin.*", "documents.*", "workflow.*", "audit.*", "records.*" },
                     expiresAt = DateTime.UtcNow.AddHours(8)
                 }
             });

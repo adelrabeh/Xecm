@@ -1,3 +1,4 @@
+import { WorkflowBuilderModal } from '../../components/WorkflowBuilderModal'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import React, { useState, useEffect } from 'react'
 import client from '../../api/client'
@@ -261,6 +262,7 @@ export default function WorkflowsPage() {
   const [delegateTo, setDelegateTo]   = useState('')
   const [actionLoading, setActionLoading] = useState(false)
   const [showStart, setShowStart]     = useState(false)
+  const [showBuilder, setShowBuilder]  = useState(false)
   const [wfFilter, setWfFilter]       = useState('all')
   const { show, ToastContainer }      = useToast()
 
@@ -332,11 +334,16 @@ export default function WorkflowsPage() {
   return (
     <div className="space-y-4 max-w-5xl">
       <ToastContainer />
-      {showStart && (
-        <StartWorkflowModal
-          onClose={() => setShowStart(false)}
-          onSuccess={(msg, newTask) => { show(msg, 'success'); setShowStart(false); if(newTask) setTasks(prev=>[newTask,...prev]) }}
-          show={show}
+      {showBuilder && (
+        <WorkflowBuilderModal
+          onClose={() => setShowBuilder(false)}
+          onSuccess={(msg, newTask) => {
+            show(msg, 'success')
+            setShowBuilder(false)
+            if (newTask) setTasks(prev => [newTask, ...prev])
+            const wf = { instanceId: Date.now(), title: newTask?.title || 'سير عمل جديد', status:'Active', progress:0, steps:1, done:0, started: new Date().toISOString().split('T')[0], priority: newTask?.priority || 'مهم' }
+            setMyWorkflows(prev => [wf, ...prev])
+          }}
         />
       )}
 
@@ -349,9 +356,9 @@ export default function WorkflowsPage() {
             {overdue.length > 0 && <span className="text-red-500 mr-2">• {overdue.length} متأخرة</span>}
           </p>
         </div>
-        <button onClick={() => setShowStart(true)}
+        <button onClick={() => setShowBuilder(true)}
           className="bg-blue-700 text-white text-sm px-4 py-2 rounded-xl hover:bg-blue-800 transition-colors flex items-center gap-2 shadow-sm">
-          🚀 بدء سير عمل
+          🚀 بناء سير عمل
         </button>
       </div>
 

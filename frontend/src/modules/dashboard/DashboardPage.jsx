@@ -1,3 +1,4 @@
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
@@ -59,8 +60,8 @@ export default function DashboardPage() {
   const navigate   = useNavigate()
   const { show, ToastContainer } = useToast()
 
-  const [tasks, setTasks]         = useState(MY_TASKS)
-  const [docs, setDocs]           = useState(MY_DOCS)
+  const [tasks, setTasks]         = useLocalStorage('ecm_inbox_tasks', MY_TASKS)
+  const [docs, setDocs]           = useLocalStorage('ecm_docs_recent', MY_DOCS)
   const [workflows]               = useState(MY_WORKFLOWS)
   const [notifs, setNotifs]       = useState(NOTIFS)
   const [showNotifs, setShowNotifs] = useState(false)

@@ -1,3 +1,4 @@
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import React, { useState, useEffect } from 'react'
 import client from '../../api/client'
 import { useToast } from '../../components/Toast'
@@ -252,8 +253,8 @@ function ProcessDiagram({ workflow }) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function WorkflowsPage() {
   const [view, setView]               = useState('inbox')  // inbox | my-workflows
-  const [tasks, setTasks]             = useState(MOCK_TASKS)
-  const [myWorkflows, setMyWorkflows] = useState(MOCK_MY_WORKFLOWS)
+  const [tasks, setTasks]             = useLocalStorage('ecm_inbox_tasks', MOCK_TASKS)
+  const [myWorkflows, setMyWorkflows] = useLocalStorage('ecm_my_workflows', MOCK_MY_WORKFLOWS)
   const [selected, setSelected]       = useState(null)
   const [selWorkflow, setSelWorkflow] = useState(null)
   const [comment, setComment]         = useState('')

@@ -1,3 +1,4 @@
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import React, { useState, useEffect } from 'react'
 import client from '../../api/client'
 import { UploadModal } from '../../components/UploadModal'
@@ -54,7 +55,7 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 }
 
 export default function DocumentsPage() {
-  const [docs, setDocs]       = useState(MOCK_DOCS)
+  const [docs, setDocs]       = useLocalStorage('ecm_docs', MOCK_DOCS)
   const [search, setSearch]   = useState('')
   const [filter, setFilter]   = useState('all')
   const [loading, setLoading] = useState(false)

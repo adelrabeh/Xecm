@@ -1,7 +1,7 @@
 import client from '../../api/client'
 import { PreviewModal } from '../../components/PreviewModal'
 import { ShareModal } from '../../components/ShareModal'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useToast } from '../../components/Toast'
 
 const MOCK_FOLDERS = [

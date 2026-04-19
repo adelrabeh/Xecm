@@ -37,7 +37,7 @@ public sealed class UsersController : ControllerBase
         [FromBody] CreateUserRequest req, CancellationToken ct)
     {
         var hash = HashPassword(req.Password ?? "Change@Me1234");
-        var user = User.Create(req.Username.ToLowerInvariant(), req.Email, hash, req.FullNameAr, 1);
+        var user = Darah.ECM.Domain.Entities.User.Create(req.Username.ToLowerInvariant(), req.Email, hash, req.FullNameAr, 1);
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
         return Ok(ApiResponse<object>.Ok(new {

@@ -20,7 +20,7 @@ public sealed class AuthController : ControllerBase
     private readonly IConfiguration _config;
 
     // SHA256 of "Admin@2026"
-    private const string ADMIN_HASH = "A36AEF5A11C4073FBE60314FC9DF530A9D5F986533594D1F5190742FF9E0E408";
+    private static string ADMIN_HASH => Environment.GetEnvironmentVariable("ADMIN_PASSWORD_HASH") ?? "A36AEF5A11C4073FBE60314FC9DF530A9D5F986533594D1F5190742FF9E0E408";
 
     public AuthController(IMediator mediator, IConfiguration config)
     {

@@ -21,7 +21,11 @@ public static class ServiceExtensions
         this IServiceCollection services, IConfiguration config)
     {
         // Database
-        var connStr = config.GetConnectionString("DefaultConnection");
+        // Read from Railway env var formats or appsettings
+        var connStr = config.GetConnectionString("DefaultConnection")
+            ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+            ?? Environment.GetEnvironmentVariable("POSTGRESQL_URL")
+            ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
         services.AddDbContext<EcmDbContext>(opt =>
         {
             if (!string.IsNullOrEmpty(connStr))
@@ -42,7 +46,7 @@ public static class ServiceExtensions
                 ValidIssuer              = jwt["Issuer"],
                 ValidAudience            = jwt["Audience"],
                 IssuerSigningKey         = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(jwt["SecretKey"] ?? "DarahECM2026SuperSecretKey32chars!")),
+                    Encoding.UTF8.GetBytes(jwt["SecretKey"] ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? "DarahECM2026SuperSecretKey32chars!")),
                 ClockSkew = TimeSpan.Zero
             });
         services.AddAuthorization();

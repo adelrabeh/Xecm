@@ -19,9 +19,14 @@ try
     {
         options.AddPolicy("AllowAll", policy =>
             policy
-                .AllowAnyOrigin()
+                .WithOrigins(
+                    "https://xecm-7nah.vercel.app",
+                    "http://localhost:5173",
+                    "http://localhost:3000"
+                )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
+                .AllowCredentials()
                 .WithExposedHeaders("Authorization", "Content-Disposition"));
     });
 

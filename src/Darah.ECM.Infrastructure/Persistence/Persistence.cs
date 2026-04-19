@@ -35,6 +35,8 @@ public sealed class EcmDbContext : DbContext
     public DbSet<RecycleBinEntry>   RecycleBin       => Set<RecycleBinEntry>();
     public DbSet<UserGroup>         UserGroups       => Set<UserGroup>();
     public DbSet<GroupMember>       GroupMembers     => Set<GroupMember>();
+    public DbSet<TaxonomyCategory>  TaxonomyCategories => Set<TaxonomyCategory>();
+    public DbSet<DocumentCategory>  DocumentCategories => Set<DocumentCategory>();
     public DbSet<AuditLog>        AuditLogs        => Set<AuditLog>();
 
 
@@ -79,6 +81,8 @@ public sealed class EcmDbContext : DbContext
         mb.Entity<RecycleBinEntry>().HasKey(e => e.EntryId);
         mb.Entity<UserGroup>().HasKey(e => e.GroupId);
         mb.Entity<GroupMember>().HasKey(e => e.MemberId);
+        mb.Entity<TaxonomyCategory>().HasKey(e => e.CategoryId);
+        mb.Entity<DocumentCategory>().HasKey(e => e.Id);
         // Core entities
         mb.Entity<User>().HasKey(u => u.UserId);
         mb.Entity<Document>().HasKey(d => d.DocumentId);

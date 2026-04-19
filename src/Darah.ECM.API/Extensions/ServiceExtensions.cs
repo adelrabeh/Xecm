@@ -113,7 +113,7 @@ public static class ServiceExtensions
             Darah.ECM.Infrastructure.Services.NotificationService>();
 
         // Gap closures — new services
-        services.AddScoped<Darah.ECM.Application.Workflow.Interfaces.IWorkflowEngine,
+        services.AddScoped<Darah.ECM.Application.Notifications.IWorkflowEngine,
             Darah.ECM.Infrastructure.Workflow.WorkflowEngine>();
         services.AddScoped<Darah.ECM.Infrastructure.Identity.ILdapAuthService,
             Darah.ECM.Infrastructure.Identity.LdapAuthService>();

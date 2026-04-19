@@ -123,21 +123,13 @@ public sealed class WorkflowController : ControllerBase
 
     private ActionResult<ApiResponse<bool>> Handle(ApiResponse<bool> r)
         => r.Success ? Ok(r) : BadRequest(r);
-}
 
-// ─── REQUEST MODELS ───────────────────────────────────────────────────────────
-public sealed record SubmitWorkflowRequest(
-    int? WorkflowDefinitionId, int Priority = 2, string? Comment = null);
 
-public sealed record WorkflowActionRequest(string? Comment);
-
-public sealed record DelegateTaskRequest(int ToUserId, string? Comment);
-
-// ─── WORKFLOW TEMPLATES ────────────────────────────────────────────────────────
-/// <summary>Get predefined workflow templates for quick start.</summary>
-[HttpGet("templates")]
-public IActionResult GetTemplates()
-{
+    // ─── WORKFLOW TEMPLATES ────────────────────────────────────────────────────────
+    /// <summary>Get predefined workflow templates for quick start.</summary>
+    [HttpGet("templates")]
+    public IActionResult GetTemplates()
+    {
     var templates = new[]
     {
         new { id=1, code="NEW_TASK",       nameAr="تكليف مهمة جديدة",         nameEn="New Task Assignment",      icon="📋", steps=1, description="تكليف مباشر لمستخدم أو مجموعة" },
@@ -147,14 +139,14 @@ public IActionResult GetTemplates()
         new { id=5, code="SINGLE_APPROVE", nameAr="اعتماد مستخدم واحد",       nameEn="Single Reviewer Approval", icon="👤", steps=1, description="اعتماد من شخص محدد" },
     };
     return Ok(ApiResponse<object>.Ok(templates));
-}
+    }
 
-/// <summary>Get workflows initiated by current user.</summary>
-[HttpGet("my-workflows")]
-public async Task<ActionResult<ApiResponse<object>>> GetMyWorkflows(
+    /// <summary>Get workflows initiated by current user.</summary>
+    [HttpGet("my-workflows")]
+    public async Task<ActionResult<ApiResponse<object>>> GetMyWorkflows(
     [FromQuery] string? status, [FromQuery] int page=1, [FromQuery] int pageSize=20,
     CancellationToken ct = default)
-{
+    {
     var userIdStr = User.FindFirst("uid")?.Value;
     if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
@@ -178,13 +170,13 @@ public async Task<ActionResult<ApiResponse<object>>> GetMyWorkflows(
         .ToListAsync(ct);
 
     return Ok(ApiResponse<object>.Ok(new { items, total, page, pageSize }));
-}
+    }
 
-/// <summary>Get full workflow instance details with tasks and history.</summary>
-[HttpGet("instances/{instanceId:int}")]
-public async Task<ActionResult<ApiResponse<object>>> GetInstance(
+    /// <summary>Get full workflow instance details with tasks and history.</summary>
+    [HttpGet("instances/{instanceId:int}")]
+    public async Task<ActionResult<ApiResponse<object>>> GetInstance(
     int instanceId, CancellationToken ct)
-{
+    {
     var instance = await Ctx.WorkflowInstances
         .AsNoTracking()
         .FirstOrDefaultAsync(i => i.InstanceId == instanceId, ct);
@@ -208,13 +200,13 @@ public async Task<ActionResult<ApiResponse<object>>> GetInstance(
         .ToListAsync(ct);
 
     return Ok(ApiResponse<object>.Ok(new { instance, tasks, history }));
-}
+    }
 
-/// <summary>Cancel an active workflow — removes all pending tasks.</summary>
-[HttpPost("instances/{instanceId:int}/cancel")]
-public async Task<ActionResult<ApiResponse<bool>>> CancelWorkflow(
+    /// <summary>Cancel an active workflow — removes all pending tasks.</summary>
+    [HttpPost("instances/{instanceId:int}/cancel")]
+    public async Task<ActionResult<ApiResponse<bool>>> CancelWorkflow(
     int instanceId, [FromBody] CancelWorkflowRequest req, CancellationToken ct)
-{
+    {
     var userIdStr = User.FindFirst("uid")?.Value;
     if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
@@ -234,13 +226,13 @@ public async Task<ActionResult<ApiResponse<bool>>> CancelWorkflow(
 
     await Ctx.SaveChangesAsync(ct);
     return Ok(ApiResponse<bool>.Ok(true));
-}
+    }
 
-/// <summary>Delete a completed workflow.</summary>
-[HttpDelete("instances/{instanceId:int}")]
-public async Task<ActionResult<ApiResponse<bool>>> DeleteWorkflow(
+    /// <summary>Delete a completed workflow.</summary>
+    [HttpDelete("instances/{instanceId:int}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteWorkflow(
     int instanceId, CancellationToken ct)
-{
+    {
     var userIdStr = User.FindFirst("uid")?.Value;
     if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
@@ -254,13 +246,13 @@ public async Task<ActionResult<ApiResponse<bool>>> DeleteWorkflow(
         instanceId.ToString(), userId));
     await Ctx.SaveChangesAsync(ct);
     return Ok(ApiResponse<bool>.Ok(true));
-}
+    }
 
-/// <summary>Claim a pooled task from a group.</summary>
-[HttpPost("tasks/{taskId:int}/claim")]
-public async Task<ActionResult<ApiResponse<bool>>> ClaimTask(
+    /// <summary>Claim a pooled task from a group.</summary>
+    [HttpPost("tasks/{taskId:int}/claim")]
+    public async Task<ActionResult<ApiResponse<bool>>> ClaimTask(
     int taskId, CancellationToken ct)
-{
+    {
     var userIdStr = User.FindFirst("uid")?.Value;
     if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
@@ -272,13 +264,13 @@ public async Task<ActionResult<ApiResponse<bool>>> ClaimTask(
         taskId.ToString(), userId));
     await Ctx.SaveChangesAsync(ct);
     return Ok(ApiResponse<bool>.Ok(true));
-}
+    }
 
-/// <summary>Return task back to group pool.</summary>
-[HttpPost("tasks/{taskId:int}/return-to-group")]
-public async Task<ActionResult<ApiResponse<bool>>> ReturnToGroup(
+    /// <summary>Return task back to group pool.</summary>
+    [HttpPost("tasks/{taskId:int}/return-to-group")]
+    public async Task<ActionResult<ApiResponse<bool>>> ReturnToGroup(
     int taskId, [FromBody] WorkflowActionRequest req, CancellationToken ct)
-{
+    {
     var userIdStr = User.FindFirst("uid")?.Value;
     if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
@@ -290,13 +282,13 @@ public async Task<ActionResult<ApiResponse<bool>>> ReturnToGroup(
         taskId.ToString(), userId));
     await Ctx.SaveChangesAsync(ct);
     return Ok(ApiResponse<bool>.Ok(true));
-}
+    }
 
-/// <summary>Submit multiple documents to the same workflow.</summary>
-[HttpPost("bulk-submit")]
-public async Task<ActionResult<ApiResponse<object>>> BulkSubmit(
+    /// <summary>Submit multiple documents to the same workflow.</summary>
+    [HttpPost("bulk-submit")]
+    public async Task<ActionResult<ApiResponse<object>>> BulkSubmit(
     [FromBody] BulkSubmitRequest req, CancellationToken ct)
-{
+    {
     var userIdStr = User.FindFirst("uid")?.Value;
     if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
@@ -320,12 +312,22 @@ public async Task<ActionResult<ApiResponse<object>>> BulkSubmit(
         failed    = results.Count(r => !((dynamic)r).success),
         results
     }));
-}
+    }
 
-// ── Private DB access ──────────────────────────────────────────────────────────
-private Darah.ECM.Infrastructure.Persistence.EcmDbContext Ctx =>
+    // ── Private DB access ──────────────────────────────────────────────────────────
+    private Darah.ECM.Infrastructure.Persistence.EcmDbContext Ctx =>
     HttpContext.RequestServices
         .GetRequiredService<Darah.ECM.Infrastructure.Persistence.EcmDbContext>();
+
+}
+
+// ─── REQUEST MODELS ───────────────────────────────────────────────────────────
+public sealed record SubmitWorkflowRequest(
+    int? WorkflowDefinitionId, int Priority = 2, string? Comment = null);
+
+public sealed record WorkflowActionRequest(string? Comment);
+
+public sealed record DelegateTaskRequest(int ToUserId, string? Comment);
 
 public sealed record CancelWorkflowRequest(string? Reason = null);
 public sealed record BulkSubmitRequest(

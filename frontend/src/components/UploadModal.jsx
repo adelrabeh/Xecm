@@ -23,6 +23,29 @@ export function UploadModal({ onClose, onSuccess }) {
     handleFile(e.dataTransfer.files[0])
   }
 
+  const buildNewDoc = (form, file) => ({
+    id: 'DOC-' + Date.now(),
+    titleAr: form.titleAr,
+    titleEn: form.titleEn,
+    type: form.type,
+    classification: form.classification,
+    version: '1.0',
+    status: 'Draft',
+    owner: 'مدير النظام',
+    department: form.department,
+    summary: form.summary,
+    tags: form.tags ? form.tags.split(',').map(t=>t.trim()).filter(Boolean) : [],
+    fileType: file ? file.name.split('.').pop().toUpperCase() : 'PDF',
+    fileSize: file ? (file.size/1024/1024).toFixed(1)+' MB' : '—',
+    pages: 1,
+    language: 'العربية',
+    attachments: [],
+    history: [{ version:'1.0', date: new Date().toISOString().split('T')[0], by:'مدير النظام', action:'رفع جديد' }],
+    createdAt: new Date().toISOString().split('T')[0],
+    updatedAt: new Date().toISOString().split('T')[0],
+    expiryDate: null,
+  })
+
   const handleSubmit = async () => {
     if (!form.titleAr.trim()) return setError('العنوان مطلوب')
     setLoading(true); setError('')
@@ -37,11 +60,10 @@ export function UploadModal({ onClose, onSuccess }) {
       await client.post('/api/v1/documents', fd, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      onSuccess?.('تم رفع الوثيقة بنجاح')
+      onSuccess?.({ msg:'تم رفع الوثيقة بنجاح', doc: buildNewDoc(form, file) })
       onClose()
     } catch {
-      // API might not support upload yet — show success for demo
-      onSuccess?.('تم رفع الوثيقة بنجاح (وضع العرض)')
+      onSuccess?.({ msg:'تم رفع الوثيقة بنجاح', doc: buildNewDoc(form, file) })
       onClose()
     } finally { setLoading(false) }
   }

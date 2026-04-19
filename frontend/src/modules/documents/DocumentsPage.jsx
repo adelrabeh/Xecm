@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import client from '../../api/client'
 import { UploadModal } from '../../components/UploadModal'
+import { PreviewModal } from '../../components/PreviewModal'
+import { ShareModal } from '../../components/ShareModal'
 import { useToast } from '../../components/Toast'
 
 const MOCK_DOCS = [
@@ -60,6 +62,8 @@ export default function DocumentsPage() {
   const [tab, setTab]         = useState('details')
   const [showUpload, setShowUpload] = useState(false)
   const [confirm, setConfirm] = useState(null)
+  const [previewDoc, setPreviewDoc] = useState(null)
+  const [shareDoc, setShareDoc]     = useState(null)
   const { show, ToastContainer } = useToast()
 
   useEffect(() => {
@@ -168,6 +172,7 @@ export default function DocumentsPage() {
   const ACTIONS = [
     { label:'🔒 استعارة',          fn: handleCheckout,     cls:'text-gray-600 border-gray-200 hover:bg-gray-50' },
     { label:'📤 إرسال للاعتماد',  fn: handleSendApproval, cls:'text-blue-600 border-blue-200 hover:bg-blue-50' },
+    { label:'👁️ معاينة',          fn: (doc)=>setPreviewDoc(doc), cls:'text-blue-600 border-blue-200 hover:bg-blue-50' },
     { label:'🖨️ طباعة',           fn: handlePrint,        cls:'text-gray-600 border-gray-200 hover:bg-gray-50' },
     { label:'🗃️ أرشفة',           fn: handleArchive,      cls:'text-red-500 border-red-100 hover:bg-red-50' },
   ]
@@ -175,8 +180,10 @@ export default function DocumentsPage() {
   return (
     <div className="flex h-full gap-3">
       <ToastContainer />
-      {showUpload && <UploadModal onClose={()=>setShowUpload(false)} onSuccess={msg=>{show(msg,'success');setShowUpload(false)}} />}
+      {showUpload && <UploadModal onClose={()=>setShowUpload(false)} onSuccess={({msg,doc})=>{show(msg,'success');setShowUpload(false);if(doc)setDocs(prev=>[doc,...prev])}} />}
       {confirm && <ConfirmDialog {...confirm} onCancel={()=>setConfirm(null)} />}
+      {previewDoc && <PreviewModal file={previewDoc} onClose={()=>setPreviewDoc(null)} show={show} />}
+      {shareDoc && <ShareModal file={shareDoc} onClose={()=>setShareDoc(null)} show={show} />}
 
       {/* ── List ── */}
       <div className={`flex flex-col gap-3 transition-all ${sel?'w-[52%]':'w-full'}`}>
@@ -292,8 +299,8 @@ export default function DocumentsPage() {
               {sel.classification&&<span className={`text-[11px] px-2 py-0.5 rounded font-medium ${(CLASS_MAP[sel.classification]||{}).cls}`}>{sel.classification}</span>}
             </div>
             <div className="flex gap-1">
-              <button onClick={()=>handleDownload(sel)} className="bg-blue-700 text-white text-[11px] px-3 py-1.5 rounded-lg hover:bg-blue-800 transition-colors">⬇ تنزيل</button>
-              <button onClick={()=>handleShare(sel)} className="border border-gray-200 text-gray-500 text-[11px] px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors" title="مشاركة">🔗</button>
+              <button onClick={()=>setPreviewDoc(sel)} className="bg-blue-700 text-white text-[11px] px-3 py-1.5 rounded-lg hover:bg-blue-800 transition-colors">👁 معاينة</button>
+              <button onClick={()=>setShareDoc(sel)} className="border border-gray-200 text-gray-500 text-[11px] px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors" title="مشاركة">🔗</button>
               <button onClick={()=>handleEdit(sel)} className="border border-gray-200 text-gray-500 text-[11px] px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors" title="تعديل">✏️</button>
             </div>
           </div>

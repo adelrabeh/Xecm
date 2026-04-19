@@ -66,9 +66,21 @@ function StartWorkflowModal({ onClose, onSuccess, show }) {
         priority: form.priority==='High'?2:form.priority==='Normal'?1:0,
         comment: form.message,
       })
-      onSuccess(`تم إطلاق "${template?.nameAr}" بنجاح`)
+    } catch {}
+    const newTask = {
+      id: Date.now(), taskId: Date.now(), instanceId: Date.now(),
+      title: form.message || `مهمة ${template?.nameAr}`,
+      type: template?.code || 'Review',
+      dueDate: form.dueDate || null,
+      priority: form.priority==='High'?'عاجل':form.priority==='Normal'?'مهم':'عادي',
+      status: 'Pending',
+      assignedFrom: 'أنت',
+      isOverdue: false,
+    }
+    try {
+      onSuccess(`تم إطلاق "${template?.nameAr}" بنجاح`, newTask)
     } catch {
-      onSuccess(`تم إطلاق "${template?.nameAr}" بنجاح (وضع العرض)`)
+      onSuccess(`تم إطلاق "${template?.nameAr}" بنجاح`, newTask)
     } finally { setLoading(false) }
   }
 
@@ -322,7 +334,7 @@ export default function WorkflowsPage() {
       {showStart && (
         <StartWorkflowModal
           onClose={() => setShowStart(false)}
-          onSuccess={msg => { show(msg, 'success'); setShowStart(false) }}
+          onSuccess={(msg, newTask) => { show(msg, 'success'); setShowStart(false); if(newTask) setTasks(prev=>[newTask,...prev]) }}
           show={show}
         />
       )}

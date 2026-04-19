@@ -1,3 +1,5 @@
+import { PreviewModal } from '../../components/PreviewModal'
+import { ShareModal } from '../../components/ShareModal'
 import React, { useState } from 'react'
 import { useToast } from '../../components/Toast'
 
@@ -65,6 +67,8 @@ export default function LibraryPage() {
   const [files, setFiles]         = useState(MOCK_FILES)
   const [folders]                 = useState(MOCK_FOLDERS)
   const [dragOver, setDragOver]   = useState(false)
+  const [previewFile, setPreviewFile] = useState(null)
+  const [shareFile, setShareFile]     = useState(null)
 
   const navigate = (folderId) => {
     setCF(folderId)
@@ -124,6 +128,8 @@ export default function LibraryPage() {
   return (
     <div className="flex flex-col -m-4 sm:-m-6" style={{height:'calc(100vh - 72px)'}}>
       <ToastContainer />
+      {previewFile && <PreviewModal file={previewFile} onClose={()=>setPreviewFile(null)} show={show} />}
+      {shareFile && <ShareModal file={shareFile} onClose={()=>setShareFile(null)} show={show} />}
 
       {/* Toolbar */}
       <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2 flex-wrap flex-shrink-0">
@@ -357,7 +363,7 @@ export default function LibraryPage() {
                       <span className="text-xs text-gray-400 w-14 text-left hidden md:block">{f.size}</span>
                       <span className="text-xs text-gray-400 hidden xl:block">{f.modified}</span>
                       <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
-                        <button onClick={e=>{e.stopPropagation();show(`معاينة: ${f.name}`,'info')}}    title="معاينة"  className="p-1.5 rounded-lg hover:bg-gray-200 text-sm">👁</button>
+                        <button onClick={e=>{e.stopPropagation();setPreviewFile(f)}}    title="معاينة"  className="p-1.5 rounded-lg hover:bg-gray-200 text-sm">👁</button>
                         <button onClick={e=>{e.stopPropagation();show(`تنزيل: ${f.name}`,'info')}}     title="تنزيل"   className="p-1.5 rounded-lg hover:bg-gray-200 text-sm">⬇</button>
                         <button onClick={e=>{e.stopPropagation();toggleFav(f)}}                        title="مفضلة"   className="p-1.5 rounded-lg hover:bg-gray-200 text-sm">{f.isFav?'⭐':'☆'}</button>
                         <button onClick={e=>{e.stopPropagation();setInfoFile(f)}}                      title="تفاصيل"  className="p-1.5 rounded-lg hover:bg-gray-200 text-sm">ℹ</button>
@@ -413,9 +419,10 @@ export default function LibraryPage() {
               )}
               <div className="space-y-1.5 pt-2 border-t border-gray-100">
                 <p className="text-xs font-semibold text-gray-400 mb-2">إجراءات</p>
-                {[['⬇️ تنزيل'],['✏️ تعديل البيانات'],['🔒 استعارة'],['📤 إرسال للاعتماد'],['🔗 مشاركة'],['🗑️ حذف']].map(([a])=>(
+                {[['👁️ معاينة'],['⬇️ تنزيل'],['✏️ تعديل البيانات'],['🔒 استعارة'],['📤 إرسال للاعتماد'],['🔗 مشاركة'],['🗑️ حذف']].map(([a])=>(
                   <button key={a} onClick={()=>show(a,'info')}
-                    className={`w-full text-right text-xs px-3 py-2 rounded-lg border transition-colors ${a.includes('حذف')?'border-red-100 text-red-500 hover:bg-red-50':'border-gray-100 text-gray-600 hover:bg-gray-50'}`}>
+                    onClick={()=>a.includes('معاينة')?setPreviewFile(infoFile):a.includes('مشاركة')?setShareFile(infoFile):show(a,'info')}
+                    className={`w-full text-right text-xs px-3 py-2 rounded-lg border transition-colors ${a.includes('حذف')?'border-red-100 text-red-500 hover:bg-red-50':a.includes('معاينة')?'border-blue-100 text-blue-600 hover:bg-blue-50':'border-gray-100 text-gray-600 hover:bg-gray-50'}`}>
                     {a}
                   </button>
                 ))}

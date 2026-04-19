@@ -1,3 +1,4 @@
+import client from '../../api/client'
 import { PreviewModal } from '../../components/PreviewModal'
 import { ShareModal } from '../../components/ShareModal'
 import React, { useState } from 'react'
@@ -67,6 +68,34 @@ export default function LibraryPage() {
   const [files, setFiles]         = useState(MOCK_FILES)
   const [folders]                 = useState(MOCK_FOLDERS)
   const [dragOver, setDragOver]   = useState(false)
+  const [apiLoading, setApiLoading] = useState(false)
+
+  useEffect(() => {
+    setApiLoading(true)
+    client.get('/api/v1/documents', { params: { page:1, pageSize:50 } })
+      .then(r => {
+        const d = r.data?.data?.items || r.data?.data || r.data
+        if (Array.isArray(d) && d.length > 0)
+          setFiles(d.map(doc => ({
+            id: doc.documentId || doc.id,
+            name: doc.titleAr || doc.title,
+            type: doc.fileType || 'PDF',
+            size: doc.fileSize || '—',
+            modified: doc.updatedAt ? new Date(doc.updatedAt).toLocaleDateString('ar-SA') : '—',
+            created: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('ar-SA') : '—',
+            version: doc.currentVersion || '1.0',
+            owner: doc.ownerName || '—',
+            folder: 'f1',
+            tags: doc.tags || [],
+            isFav: false, isCheckedOut: false, likes: 0, comments: 0,
+            thumb: {PDF:'📕',DOCX:'📘',XLSX:'📗',PPTX:'📙',ZIP:'📦'}[doc.fileType] || '📄',
+            classification: doc.classification || 'داخلي',
+            status: doc.status || 'Active',
+          })))
+      })
+      .catch(() => {}) // keep mock data
+      .finally(() => setApiLoading(false))
+  }, [])
   const [previewFile, setPreviewFile] = useState(null)
   const [shareFile, setShareFile]     = useState(null)
 

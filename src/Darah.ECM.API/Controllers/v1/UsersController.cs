@@ -38,7 +38,7 @@ public sealed class UsersController : ControllerBase
     {
         var hash = HashPassword(req.Password ?? "Change@Me1234");
         var user = User.Create(req.Username.ToLowerInvariant(), req.Email,
-            hash, req.FullNameAr, 1, fullNameEn: req.FullNameEn);
+            hash, req.FullNameAr, 1, null, req.FullNameEn);
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
         return Ok(ApiResponse<object>.Ok(new {

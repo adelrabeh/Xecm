@@ -11,8 +11,9 @@ const PERMISSIONS = [
 
 const PERM_MAP = Object.fromEntries(PERMISSIONS.map(p => [p.value, p]))
 
-export function ShareModal({ file, onClose }) {
-  const { show, ToastContainer } = useToast()
+export function ShareModal({ file, onClose, show: showProp }) {
+  const { show: internalShow, ToastContainer } = useToast()
+  const show = showProp || internalShow
 
   const [selectedUser, setSelectedUser]   = useState(null)
   const [permission, setPermission]       = useState('read')
@@ -61,7 +62,7 @@ export function ShareModal({ file, onClose }) {
   }
 
   const copyLink = () => {
-    const url = `https://xecm-7nah.vercel.app/documents/${file?.id || 'doc'}`
+    const url = `https://xecm-7nah.vercel.app/documents/${file?.id || file?.documentId || Date.now()}`
     navigator.clipboard?.writeText(url)
       .then(() => show('✅ تم نسخ الرابط', 'success'))
       .catch(() => show('الرابط: ' + url, 'info'))
@@ -77,7 +78,7 @@ export function ShareModal({ file, onClose }) {
           <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">🔗</div>
           <div className="flex-1 min-w-0">
             <h2 className="font-bold text-gray-900 text-sm">مشاركة الملف</h2>
-            <p className="text-xs text-gray-400 truncate">{file?.name || file?.titleAr || 'الملف'}</p>
+            <p className="text-xs text-gray-400 truncate">{file?.name || file?.titleAr || file?.title || 'الملف'}</p>
           </div>
           <button onClick={onClose} className="text-gray-300 hover:text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">✕</button>
         </div>

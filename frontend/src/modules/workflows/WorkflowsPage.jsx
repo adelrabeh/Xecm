@@ -222,10 +222,11 @@ function StartWorkflowModal({ onClose, onSuccess, show }) {
 
 // ─── Process Diagram ───────────────────────────────────────────────────────────
 function ProcessDiagram({ workflow }) {
+  const ds = workflow.doneSteps ?? workflow.done ?? 0
   const steps = [
     { name:'بدء', status:'done' },
-    { name:'مراجعة أولى', status: workflow.doneSteps >= 1 ? 'done' : 'active' },
-    { name:'اعتماد', status: workflow.doneSteps >= 2 ? 'done' : workflow.doneSteps === 1 ? 'active' : 'pending' },
+    { name:'مراجعة أولى', status: ds >= 1 ? 'done' : 'active' },
+    { name:'اعتماد', status: ds >= 2 ? 'done' : ds === 1 ? 'active' : 'pending' },
     { name:'اكتمل', status: workflow.status==='Completed' ? 'done' : 'pending' },
   ]
   return (
@@ -341,7 +342,7 @@ export default function WorkflowsPage() {
             show(msg, 'success')
             setShowBuilder(false)
             if (newTask) setTasks(prev => [newTask, ...prev])
-            const wf = { instanceId: Date.now(), title: newTask?.title || 'سير عمل جديد', status:'Active', progress:0, steps:1, done:0, started: new Date().toISOString().split('T')[0], priority: newTask?.priority || 'مهم' }
+            const wf = { instanceId: Date.now(), title: newTask?.title || 'سير عمل جديد', status:'Active', progress:0, steps:1, done:0, doneSteps:0, started: new Date().toISOString().split('T')[0], priority: newTask?.priority || 'مهم' }
             setMyWorkflows(prev => [wf, ...prev])
           }}
         />
@@ -515,7 +516,7 @@ export default function WorkflowsPage() {
 
             {filteredWf.map(wf => {
               const isSelected = selWorkflow?.instanceId === wf.instanceId
-              const pct = wf.steps > 0 ? Math.round((wf.doneSteps/wf.steps)*100) : 0
+              const pct = wf.steps > 0 ? Math.round(((wf.doneSteps??wf.done??0)/wf.steps)*100) : 0
               return (
                 <div key={wf.instanceId} onClick={()=>isSelected?setSelWorkflow(null):setSelWorkflow(wf)}
                   className={`bg-white rounded-xl border-2 p-4 cursor-pointer transition-all ${isSelected?'border-blue-500 shadow-md':'border-gray-100 hover:border-blue-200'}`}>
@@ -536,7 +537,7 @@ export default function WorkflowsPage() {
                       <div className={`h-full rounded-full transition-all ${wf.status==='Completed'?'bg-green-500':'bg-blue-500'}`}
                         style={{width:`${pct}%`}}/>
                     </div>
-                    <span className="text-xs text-gray-400">{wf.doneSteps}/{wf.steps}</span>
+                    <span className="text-xs text-gray-400">{wf.doneSteps??wf.done??0}/{wf.steps??1}</span>
                   </div>
                   <ProcessDiagram workflow={wf} />
                 </div>
@@ -559,7 +560,7 @@ export default function WorkflowsPage() {
               <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-1.5">
                 <div className="flex justify-between text-xs"><span className="text-gray-400">الحالة</span><span className={`font-medium ${STATUS_CLS[selWorkflow.status]?.split(' ')[1]}`}>{selWorkflow.status==='Active'?'نشط':selWorkflow.status==='Completed'?'مكتمل':'ملغى'}</span></div>
                 <div className="flex justify-between text-xs"><span className="text-gray-400">تاريخ البدء</span><span>{new Date(selWorkflow.started).toLocaleDateString('ar-SA')}</span></div>
-                <div className="flex justify-between text-xs"><span className="text-gray-400">التقدم</span><span>{selWorkflow.doneSteps} من {selWorkflow.steps} خطوات</span></div>
+                <div className="flex justify-between text-xs"><span className="text-gray-400">التقدم</span><span>{selWorkflow.doneSteps??selWorkflow.done??0} من {selWorkflow.steps??1} خطوات</span></div>
                 <div className="flex justify-between text-xs"><span className="text-gray-400">الأولوية</span><span className={PRIORITY_CLS[selWorkflow.priority]?.split(' ')[1]}>{selWorkflow.priority}</span></div>
               </div>
 

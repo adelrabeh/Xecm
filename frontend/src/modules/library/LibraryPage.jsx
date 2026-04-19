@@ -1,3 +1,4 @@
+import { useLibraryFiles } from '../../hooks/useLibraryFiles'
 import client from '../../api/client'
 import { PreviewModal } from '../../components/PreviewModal'
 import { ShareModal } from '../../components/ShareModal'
@@ -114,7 +115,12 @@ export default function LibraryPage() {
   const toggleExp = (id) => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   const toggleFav = (file) => { setFiles(p => p.map(f => f.id===file.id ? {...f, isFav:!f.isFav} : f)); show(file.isFav?'إزالة من المفضلة':'إضافة للمفضلة','success') }
 
-  const displayed = files
+  // Merge API files with locally uploaded files (by id dedup)
+  const allFiles = [
+    ...(Array.isArray(libraryUploads) ? libraryUploads : []),
+    ...files.filter(f => !(Array.isArray(libraryUploads) ? libraryUploads : []).find(u => u.id === f.id))
+  ]
+  const displayed = allFiles
     .filter(f => {
       if (area==='myfiles') return f.owner==='أحمد الزهراني'
       if (currentFolder)    return f.folder===currentFolder
@@ -157,8 +163,8 @@ export default function LibraryPage() {
   return (
     <div className="flex flex-col -m-4 sm:-m-6" style={{height:'calc(100vh - 72px)'}}>
       <ToastContainer />
-      {previewFile && <PreviewModal file={previewFile} onClose={()=>setPreviewFile(null)} show={show} />}
-      {shareFile && <ShareModal file={shareFile} onClose={()=>setShareFile(null)} show={show} />}
+      {previewFile && <PreviewModal file={previewFile} onClose={()=>setPreviewFile(null)} />}
+      {shareFile && <ShareModal file={shareFile} onClose={()=>setShareFile(null)} />}
 
       {/* Toolbar */}
       <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2 flex-wrap flex-shrink-0">
@@ -328,7 +334,7 @@ export default function LibraryPage() {
                       </div>
                       {f.isCheckedOut && <span className="absolute top-1.5 left-1.5 bg-yellow-400 text-white text-[9px] px-1 rounded font-bold">🔒</span>}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all flex items-end justify-center gap-1 pb-2 opacity-0 group-hover:opacity-100">
-                        <button onClick={e=>{e.stopPropagation();show(`معاينة: ${f.name}`,'info')}}  className="bg-white shadow text-xs px-2 py-1 rounded-lg">👁</button>
+                        <button onClick={e=>{e.stopPropagation();setPreviewFile(f)}}  className="bg-white shadow text-xs px-2 py-1 rounded-lg">👁</button>
                         <button onClick={e=>{e.stopPropagation();setInfoFile(f)}}                     className="bg-white shadow text-xs px-2 py-1 rounded-lg">ℹ</button>
                       </div>
                     </div>
@@ -357,7 +363,7 @@ export default function LibraryPage() {
                     {f.isFav && <span className="text-yellow-400 text-xs">⭐</span>}
                     <span className="text-xs text-gray-400">{f.size}</span>
                     <div className="opacity-0 group-hover:opacity-100 flex gap-1">
-                      <button onClick={e=>{e.stopPropagation();show(`معاينة: ${f.name}`,'info')}} className="p-1 rounded hover:bg-gray-200 text-gray-500 text-sm">👁</button>
+                      <button onClick={e=>{e.stopPropagation();setPreviewFile(f)}} className="p-1 rounded hover:bg-gray-200 text-gray-500 text-sm">👁</button>
                       <button onClick={e=>{e.stopPropagation();setInfoFile(f)}}                    className="p-1 rounded hover:bg-gray-200 text-gray-500 text-sm">ℹ</button>
                     </div>
                   </div>
@@ -450,7 +456,11 @@ export default function LibraryPage() {
                 <p className="text-xs font-semibold text-gray-400 mb-2">إجراءات</p>
                 {[['👁️ معاينة'],['⬇️ تنزيل'],['✏️ تعديل البيانات'],['🔒 استعارة'],['📤 إرسال للاعتماد'],['🔗 مشاركة'],['🗑️ حذف']].map(([a])=>(
                   <button key={a} onClick={()=>show(a,'info')}
-                    onClick={()=>a.includes('معاينة')?setPreviewFile(infoFile):a.includes('مشاركة')?setShareFile(infoFile):show(a,'info')}
+                    onClick={()=>{
+                      if(a.includes('معاينة')) setPreviewFile(infoFile)
+                      else if(a.includes('مشاركة')) setShareFile(infoFile)
+                      else show(a,'info')
+                    }}
                     className={`w-full text-right text-xs px-3 py-2 rounded-lg border transition-colors ${a.includes('حذف')?'border-red-100 text-red-500 hover:bg-red-50':a.includes('معاينة')?'border-blue-100 text-blue-600 hover:bg-blue-50':'border-gray-100 text-gray-600 hover:bg-gray-50'}`}>
                     {a}
                   </button>

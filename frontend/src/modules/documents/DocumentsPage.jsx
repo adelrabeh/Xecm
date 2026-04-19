@@ -183,8 +183,8 @@ export default function DocumentsPage() {
       <ToastContainer />
       {showUpload && <UploadModal onClose={()=>setShowUpload(false)} onSuccess={({msg,doc})=>{show(msg,'success');setShowUpload(false);if(doc)setDocs(prev=>[doc,...prev])}} />}
       {confirm && <ConfirmDialog {...confirm} onCancel={()=>setConfirm(null)} />}
-      {previewDoc && <PreviewModal file={previewDoc} onClose={()=>setPreviewDoc(null)} show={show} />}
-      {shareDoc && <ShareModal file={shareDoc} onClose={()=>setShareDoc(null)} show={show} />}
+      {previewDoc && <PreviewModal file={previewDoc} onClose={()=>setPreviewDoc(null)} />}
+      {shareDoc && <ShareModal file={shareDoc} onClose={()=>setShareDoc(null)} />}
 
       {/* ── List ── */}
       <div className={`flex flex-col gap-3 transition-all ${sel?'w-[52%]':'w-full'}`}>

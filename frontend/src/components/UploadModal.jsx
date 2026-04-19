@@ -1,3 +1,4 @@
+import { addToLibrary } from '../hooks/useLibraryFiles'
 import React, { useState, useRef } from 'react'
 import client from '../api/client'
 
@@ -165,6 +166,8 @@ export function UploadModal({ onClose, onSuccess }) {
     }
 
     setLoading(false)
+    // Save to shared library store so it appears in Library page
+    addToLibrary(newDoc)
     onSuccess?.({ msg: `✅ تم رفع "${form.titleAr}" في ${subject.label}`, doc: newDoc })
     onClose()
   }

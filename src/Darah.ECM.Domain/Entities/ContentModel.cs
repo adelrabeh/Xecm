@@ -53,7 +53,7 @@ public enum OcrQuality
     Excellent       = 4,   // > 95%
 }
 
-public enum ClassificationLevel
+public enum AssetConfidentiality
 {
     Public          = 0,
     Internal        = 1,
@@ -125,7 +125,7 @@ public sealed class KnowledgeAsset : Common.BaseEntity
     public string?      QualityScore     { get; private set; }  // 0-100
 
     // ── darah:rights Aspect ────────────────────────────────────────────────────
-    public ClassificationLevel Confidentiality { get; private set; } = ClassificationLevel.Internal;
+    public AssetConfidentiality Confidentiality { get; private set; } = AssetConfidentiality.Internal;
     public string?      RightsStatement  { get; private set; }
     public string?      License          { get; private set; }  // CC-BY, Proprietary, etc.
     public string?      Copyright        { get; private set; }

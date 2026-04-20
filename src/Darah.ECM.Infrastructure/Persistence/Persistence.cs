@@ -35,6 +35,7 @@ public sealed class EcmDbContext : DbContext
     public DbSet<RecycleBinEntry>   RecycleBin       => Set<RecycleBinEntry>();
     public DbSet<UserGroup>         UserGroups       => Set<UserGroup>();
     public DbSet<GroupMember>       GroupMembers     => Set<GroupMember>();
+    public DbSet<KnowledgeAsset>    KnowledgeAssets    => Set<KnowledgeAsset>();
     public DbSet<TaxonomyCategory>  TaxonomyCategories => Set<TaxonomyCategory>();
     public DbSet<DocumentCategory>  DocumentCategories => Set<DocumentCategory>();
     public DbSet<AuditLog>        AuditLogs        => Set<AuditLog>();
@@ -81,6 +82,13 @@ public sealed class EcmDbContext : DbContext
         mb.Entity<RecycleBinEntry>().HasKey(e => e.EntryId);
         mb.Entity<UserGroup>().HasKey(e => e.GroupId);
         mb.Entity<GroupMember>().HasKey(e => e.MemberId);
+        mb.Entity<KnowledgeAsset>().HasKey(e => e.AssetId);
+        mb.Entity<KnowledgeAsset>().Property(e => e.Type).HasConversion<int>();
+        mb.Entity<KnowledgeAsset>().Property(e => e.Status).HasConversion<int>();
+        mb.Entity<KnowledgeAsset>().Property(e => e.DigitizationStatus).HasConversion<int>();
+        mb.Entity<KnowledgeAsset>().Property(e => e.OcrQuality).HasConversion<int>();
+        mb.Entity<KnowledgeAsset>().Property(e => e.Confidentiality).HasConversion<int>();
+        mb.Entity<KnowledgeAsset>().Property(e => e.Retention).HasConversion<int>();
         mb.Entity<TaxonomyCategory>().HasKey(e => e.CategoryId);
         mb.Entity<DocumentCategory>().HasKey(e => e.Id);
         // Core entities

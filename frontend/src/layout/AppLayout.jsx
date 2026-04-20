@@ -7,6 +7,7 @@ const NAV = [
   { to: '/documents', icon: '📄', label: 'الوثائق' },
   { to: '/workflows', icon: '✅', label: 'سير العمل' },
   { to: '/library', icon: '📚', label: 'المكتبة' },
+    { to: '/content-model', icon: '🏛️', label: 'نموذج المحتوى' },
     { to: '/records', icon: '🗂', label: 'السجلات' },
   { to: '/admin', icon: '⚙️', label: 'الإدارة' },
 ]

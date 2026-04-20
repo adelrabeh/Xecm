@@ -151,7 +151,7 @@ public sealed class ContentModelController : ControllerBase
         _                            => "أصل معرفي",
     };
 
-    private static object GetFieldDefinitions() => new[]
+    private static object GetFieldDefinitions() => new object[]
     {
         // Cataloging
         new { field="titleAr",         labelAr="العنوان بالعربية",        aspect="cataloging",    required=true,  type="text" },

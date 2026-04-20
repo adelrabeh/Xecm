@@ -36,6 +36,12 @@ public sealed class EcmDbContext : DbContext
     public DbSet<UserGroup>         UserGroups       => Set<UserGroup>();
     public DbSet<GroupMember>       GroupMembers     => Set<GroupMember>();
     public DbSet<KnowledgeAsset>    KnowledgeAssets    => Set<KnowledgeAsset>();
+    // Record Model
+    public DbSet<RecordDomain>      RecordDomains      => Set<RecordDomain>();
+    public DbSet<RecordType>        RecordTypes        => Set<RecordType>();
+    public DbSet<MetadataFieldDef>  MetadataFieldDefs  => Set<MetadataFieldDef>();
+    public DbSet<Record>            Records            => Set<Record>();
+    public DbSet<RecordAttachment>  RecordAttachments  => Set<RecordAttachment>();
     public DbSet<TaxonomyCategory>  TaxonomyCategories => Set<TaxonomyCategory>();
     public DbSet<DocumentCategory>  DocumentCategories => Set<DocumentCategory>();
     public DbSet<AuditLog>        AuditLogs        => Set<AuditLog>();
@@ -83,6 +89,15 @@ public sealed class EcmDbContext : DbContext
         mb.Entity<UserGroup>().HasKey(e => e.GroupId);
         mb.Entity<GroupMember>().HasKey(e => e.MemberId);
         mb.Entity<KnowledgeAsset>().HasKey(e => e.AssetId);
+        mb.Entity<RecordDomain>().HasKey(e => e.DomainId);
+        mb.Entity<RecordType>().HasKey(e => e.TypeId);
+        mb.Entity<MetadataFieldDef>().HasKey(e => e.FieldDefId);
+        mb.Entity<MetadataFieldDef>().Property(e => e.DataType).HasConversion<int>();
+        mb.Entity<MetadataFieldDef>().Property(e => e.Scope).HasConversion<int>();
+        mb.Entity<Record>().HasKey(e => e.RecordId);
+        mb.Entity<Record>().Property(e => e.Status).HasConversion<int>();
+        mb.Entity<Record>().Property(e => e.SecurityLevel).HasConversion<int>();
+        mb.Entity<RecordAttachment>().HasKey(e => e.AttachmentId);
         mb.Entity<KnowledgeAsset>().Property(e => e.Type).HasConversion<int>();
         mb.Entity<KnowledgeAsset>().Property(e => e.Status).HasConversion<int>();
         mb.Entity<KnowledgeAsset>().Property(e => e.DigitizationStatus).HasConversion<int>();

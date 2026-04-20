@@ -97,6 +97,8 @@ export default function LibraryPage() {
       .catch(() => {}) // keep mock data
       .finally(() => setApiLoading(false))
   }, [])
+  const [libraryUploadsRaw]       = useLibraryFiles()
+  const libraryUploads = Array.isArray(libraryUploadsRaw) ? libraryUploadsRaw : []
   const [previewFile, setPreviewFile] = useState(null)
   const [shareFile, setShareFile]     = useState(null)
 

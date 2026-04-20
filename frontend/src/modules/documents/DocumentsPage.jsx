@@ -171,6 +171,7 @@ export default function DocumentsPage() {
   }
 
   const ACTIONS = [
+    { label:'🔗 مشاركة',           fn: (doc)=>setShareDoc(doc), cls:'text-purple-600 border-purple-200 hover:bg-purple-50' },
     { label:'🔒 استعارة',          fn: handleCheckout,     cls:'text-gray-600 border-gray-200 hover:bg-gray-50' },
     { label:'📤 إرسال للاعتماد',  fn: handleSendApproval, cls:'text-blue-600 border-blue-200 hover:bg-blue-50' },
     { label:'👁️ معاينة',          fn: (doc)=>setPreviewDoc(doc), cls:'text-blue-600 border-blue-200 hover:bg-blue-50' },

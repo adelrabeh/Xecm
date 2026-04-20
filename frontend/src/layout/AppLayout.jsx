@@ -1,3 +1,4 @@
+import { ChangePasswordModal } from '../components/ChangePasswordModal'
 import React, { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
@@ -15,11 +16,14 @@ const NAV = [
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const { user, logout } = useAuthStore()
+  const [showChangePass, setShowChangePass] = React.useState(false)
   const navigate = useNavigate()
 
   const handleLogout = () => { logout(); navigate('/login') }
 
   return (
+    <>
+      {showChangePass && <ChangePasswordModal onClose={() => setShowChangePass(false)} />}
     <div className="flex h-screen bg-gray-50 overflow-hidden" dir="rtl">
       {/* Sidebar */}
       <aside className={`${collapsed ? 'w-16' : 'w-64'} bg-gov-900 text-white flex flex-col transition-all duration-300 flex-shrink-0`}
@@ -61,6 +65,7 @@ export default function AppLayout() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{user?.username || 'مستخدم'}</p>
               </div>
+              <button onClick={() => setShowChangePass(true)} className="text-white/50 hover:text-white text-xs">🔑 كلمة المرور</button>
               <button onClick={handleLogout} className="text-white/50 hover:text-white text-xs">خروج</button>
             </div>
           ) : (
@@ -97,5 +102,6 @@ export default function AppLayout() {
         </main>
       </div>
     </div>
+    </>
   )
 }

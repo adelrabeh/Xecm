@@ -54,12 +54,38 @@ public sealed class UsersController : ControllerBase
         return Ok(ApiResponse<bool>.Ok(true));
     }
 
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest req, CancellationToken ct)
+    {
+        var userIdStr = User.FindFirst("uid")?.Value;
+        if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
+
+        var user = await _db.Users.FindAsync(new object[] { userId }, ct);
+        if (user is null) return NotFound();
+
+        // Verify current password
+        var currentHash = HashPassword(req.CurrentPassword);
+        if (!user.PasswordHash.Equals(currentHash, StringComparison.OrdinalIgnoreCase))
+            return BadRequest(ApiResponse<bool>.Fail("كلمة المرور الحالية غير صحيحة"));
+
+        // Update password using reflection (private setter)
+        typeof(Darah.ECM.Domain.Entities.User)
+            .GetProperty("PasswordHash")?
+            .SetValue(user, HashPassword(req.NewPassword));
+
+        await _db.SaveChangesAsync(ct);
+        return Ok(ApiResponse<bool>.Ok(true, "تم تغيير كلمة المرور بنجاح"));
+    }
+
     private static string HashPassword(string p)
     {
         using var sha = SHA256.Create();
         return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(p)));
     }
 }
+
+public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 
 public sealed record CreateUserRequest(
     string Username, string Email, string FullNameAr,

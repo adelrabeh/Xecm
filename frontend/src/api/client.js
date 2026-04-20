@@ -18,10 +18,14 @@ client.interceptors.response.use(
     // Only force logout if auth/me fails (token truly invalid)
     // Do NOT logout on 401 from other endpoints - just let the page handle it
     const url = err.config?.url || ''
-    if (err.response?.status === 401 && url.includes('/auth/me')) {
-      localStorage.removeItem('ecm_token')
-      localStorage.removeItem('ecm_user')
-      window.location.href = '/login'
+    if (err.response?.status === 401) {
+      if (url.includes('/auth/me')) {
+        localStorage.removeItem('ecm_token')
+        localStorage.removeItem('ecm_user')
+        window.location.href = '/login'
+      }
+      // For other endpoints: token expired but don't force logout
+      // Pages use mock data fallback in .catch()
     }
     return Promise.reject(err)
   }

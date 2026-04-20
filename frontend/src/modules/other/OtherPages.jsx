@@ -158,7 +158,12 @@ export function AdminPage() {
             status: u.isActive ? 'active' : 'inactive',
             username: u.username,
           })))
-      }).catch(() => {})
+      }).catch(err => {
+        // 401 = token expired — show message but keep mock data
+        if (err.response?.status === 401) {
+          show('⚠️ انتهت صلاحية الجلسة — يعمل النظام بالبيانات المحلية. سجّل دخولك مجدداً للتزامن مع الخادم.', 'warning')
+        }
+      })
   }, [])
 
   const handleAdd = async () => {

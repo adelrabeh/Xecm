@@ -117,8 +117,8 @@ export default function LibraryPage() {
 
   // Merge API files with locally uploaded files (by id dedup)
   const allFiles = [
-    ...(Array.isArray(libraryUploads) ? libraryUploads : []),
-    ...files.filter(f => !(Array.isArray(libraryUploads) ? libraryUploads : []).find(u => u.id === f.id))
+    ...libraryUploads,
+    ...files.filter(f => !libraryUploads.find(u => u.id === f.id))
   ]
   const displayed = allFiles
     .filter(f => {
@@ -129,19 +129,19 @@ export default function LibraryPage() {
     .filter(f => {
       if (filter==='editing')   return f.isCheckedOut
       if (filter==='others')    return f.isCheckedOut && f.owner!=='أحمد الزهراني'
-      if (filter==='recent')    return new Date(f.modified) > new Date(Date.now()-7*864e5)
-      if (filter==='added')     return new Date(f.created)  > new Date(Date.now()-7*864e5)
+      if (filter==='recent')    return (() => { try { return new Date(f.modified) > new Date(Date.now()-7*864e5) } catch { return true } })()
+      if (filter==='added')     return (() => { try { return new Date(f.created) > new Date(Date.now()-7*864e5) } catch { return true } })()
       if (filter==='favorites') return f.isFav
       return true
     })
     .filter(f => {
-      if (activeTags.size>0) return [...activeTags].every(t => f.tags.includes(t))
-      if (search) return f.name.includes(search)||f.owner.includes(search)||f.tags.some(t=>t.includes(search))
+      if (activeTags.size>0) return [...activeTags].every(t => (f.tags||[]).includes(t))
+      if (search) return (f.name||'').includes(search)||(f.owner||'').includes(search)||(f.tags||[]).some(t=>t.includes(search))
       return true
     })
     .sort((a,b) => {
-      const va = sort==='name'?a.name:sort==='size'?a.size:a[sort]||''
-      const vb = sort==='name'?b.name:sort==='size'?b.size:b[sort]||''
+      const va = (sort==='name'?a.name:sort==='size'?a.size:a[sort])||''
+      const vb = (sort==='name'?b.name:sort==='size'?b.size:b[sort])||''
       return sortDir==='asc' ? (va>vb?1:-1) : (va<vb?1:-1)
     })
 

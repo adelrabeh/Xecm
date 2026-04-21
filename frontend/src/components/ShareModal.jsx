@@ -44,6 +44,16 @@ export function ShareModal({ file, onClose, show: showProp }) {
         permission,
       }]
     })
+    // Save to recipient's shared-with-me list in localStorage
+    if (selectedUser.username && file) {
+      try {
+        const key = 'ecm_shared_' + selectedUser.username
+        const existing = JSON.parse(localStorage.getItem(key) || '[]')
+        const entry = { docId: file.id, permission, sharedAt: new Date().toISOString() }
+        const updated = [entry, ...existing.filter(e => e.docId !== file.id)]
+        localStorage.setItem(key, JSON.stringify(updated))
+      } catch {}
+    }
 
     show(`✅ تمت المشاركة مع ${selectedUser.fullNameAr} (${PERM_MAP[permission].label})`, 'success')
     setSelectedUser(null)   // clears UserSearch via useEffect

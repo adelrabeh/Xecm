@@ -1,3 +1,4 @@
+import { useAuthStore } from '../../store/authStore'
 import { useLibraryFilesV2 } from '../../hooks/useFolderStore'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import React, { useState, useEffect } from 'react'
@@ -6,6 +7,7 @@ import { UploadModal } from '../../components/UploadModal'
 import { PreviewModal } from '../../components/PreviewModal'
 import { ShareModal } from '../../components/ShareModal'
 import { useToast } from '../../components/Toast'
+import { useLocalStorage as useLS } from '../../hooks/useLocalStorage'
 
 const MOCK_DOCS = [
   { id:'DOC-2026-001', titleAr:'تقرير الميزانية السنوي 2026', titleEn:'Annual Budget Report 2026', status:'Approved', type:'تقرير مالي', classification:'سري', version:'3.1', createdAt:'2026-04-01', updatedAt:'2026-04-10', expiryDate:'2027-04-01', owner:'أحمد الزهراني', department:'الشؤون المالية', fileSize:'2.4 MB', fileType:'PDF', pages:48, language:'العربية', summary:'يتضمن الميزانية السنوية لعام 2026 مع تفصيل البنود والاعتمادات المالية لجميع الإدارات.', tags:['مالي','ميزانية','2026'], attachments:[{name:'الميزانية التفصيلية.xlsx',size:'1.1 MB',type:'XLSX'},{name:'مرفق الاعتمادات.pdf',size:'0.8 MB',type:'PDF'}], history:[{version:'3.1',date:'2026-04-10',by:'أحمد الزهراني',action:'اعتماد نهائي'},{version:'3.0',date:'2026-04-05',by:'سارة العتيبي',action:'مراجعة'},{version:'2.0',date:'2026-03-20',by:'أحمد الزهراني',action:'تحديث'}] },
@@ -56,7 +58,11 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 }
 
 export default function DocumentsPage() {
+  const { user }              = useAuthStore()
+  const isAdmin               = (user?.permissions||[]).some(p => p==='admin.*'||p==='documents.all')
+  const currentUser           = user?.fullNameAr || user?.username || 'أنت'
   const [docs, setDocs]       = useLocalStorage('ecm_docs', MOCK_DOCS)
+  const [sharedWithMe]        = useLocalStorage('ecm_shared_'+user?.username, [])
   const [libraryFilesRaw]     = useLibraryFilesV2()
   const libraryUploads        = Array.isArray(libraryFilesRaw) ? libraryFilesRaw : []
   const [search, setSearch]   = useState('')
@@ -83,14 +89,24 @@ export default function DocumentsPage() {
 
   const open = (doc) => { setSel(doc); setTab('details') }
 
-  // Merge docs with library uploads (avoid duplicates by id)
+  // Merge all sources
   const allDocs = [
     ...libraryUploads.filter(u => !docs.find(d => d.id === u.id)),
     ...docs
   ]
-  const filtered = allDocs.filter(d => {
-    const t = (d.titleAr||d.title||'') + (d.id||'')
-    return t.includes(search) && (filter==='all'||d.status===filter)
+
+  // Permission filter: admin sees all, others see only their files + shared with them
+  const visibleDocs = isAdmin
+    ? allDocs
+    : allDocs.filter(d => {
+        const isOwner   = (d.owner === currentUser) || (d.owner === 'أنت') || !d.owner
+        const isShared  = (Array.isArray(sharedWithMe) ? sharedWithMe : []).some(s => s.docId === d.id)
+        return isOwner || isShared
+      })
+
+  const filtered = visibleDocs.filter(d => {
+    const t = (d.titleAr||d.title||d.name||'').toLowerCase() + (d.id||'').toLowerCase()
+    return t.includes(search.toLowerCase()) && (filter==='all'||d.status===filter)
   })
 
   // ── Button handlers ──────────────────────────────────────────────────────────
@@ -200,7 +216,7 @@ export default function DocumentsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-gray-900">إدارة الوثائق</h1>
-            <p className="text-gray-400 text-xs">{filtered.length} وثيقة</p>
+            <p className="text-gray-400 text-xs">{filtered.length} {isAdmin ? "وثيقة (عرض المدير)" : "ملف خاص بك"}</p>
           </div>
           <div className="flex gap-2">
             <button onClick={handleImport}

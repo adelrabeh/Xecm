@@ -189,6 +189,22 @@ export function AdminPage() {
     show(u.status==='active' ? `تم تعطيل ${u.name}` : `تم تفعيل ${u.name}`, u.status==='active'?'warning':'success')
   }
 
+  const handleGrantAccess = (u) => {
+    setUsers(prev => prev.map(x => x.id===u.id ? {...x, fullAccess:!x.fullAccess} : x))
+    // Save permission to user's localStorage permissions
+    try {
+      const key = 'ecm_user_perms_' + u.username
+      const perms = JSON.parse(localStorage.getItem(key)||'[]')
+      if (!u.fullAccess) {
+        localStorage.setItem(key, JSON.stringify([...perms, 'documents.all']))
+        show(`✅ منح ${u.name} صلاحية البحث في كل الملفات`, 'success')
+      } else {
+        localStorage.setItem(key, JSON.stringify(perms.filter(p=>p!=='documents.all')))
+        show(`تم سحب صلاحية الوصول الكامل من ${u.name}`, 'warning')
+      }
+    } catch {}
+  }
+
   const handleExport = () => {
     const csv = ['الاسم,البريد,المستخدم,الدور,القسم,الحالة',
       ...users.map(u=>`${u.name},${u.email},${u.username},${u.role},${u.dept||'—'},${u.status==='active'?'فعال':'معطل'}`)
@@ -382,6 +398,9 @@ export function AdminPage() {
                     <button onClick={()=>handleEdit(u)} className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline">تعديل</button>
                     <button onClick={()=>handleToggle(u.id)} className={`text-xs font-medium hover:underline ${u.status==='active'?'text-red-500 hover:text-red-700':'text-green-600 hover:text-green-800'}`}>
                       {u.status==='active'?'تعطيل':'تفعيل'}
+                    </button>
+                    <button onClick={()=>handleGrantAccess(u)} className={`text-xs font-medium hover:underline ${u.fullAccess?'text-purple-700':'text-gray-400 hover:text-purple-600'}`} title="صلاحية البحث في كل الملفات">
+                      {u.fullAccess?'🔓 وصول كامل':'🔐 منح وصول'}
                     </button>
                   </div>
                 </td>

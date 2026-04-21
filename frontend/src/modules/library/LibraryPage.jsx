@@ -162,24 +162,31 @@ function UploadModal({ folders, onClose, defaultFolder, onSuccess }) {
     setLoading(true)
     const ext = (file.name.split('.').pop()||'PDF').toUpperCase()
     const folder = folders.find(f=>f.id===selectedFolder)
+    const displayName = form.name.trim() || file.name.replace(/\.[^.]+$/, '')
     const newFile = {
-      id: 'up-'+Date.now(),
-      name: form.name.trim() + '.' + ext.toLowerCase(),
-      type: ext,
-      size: (file.size/1024/1024).toFixed(2)+' MB',
-      folder: selectedFolder,
-      folderName: folder?.name||'',
-      owner: 'أنت',
-      created: new Date().toISOString().split('T')[0],
-      modified: new Date().toISOString().split('T')[0],
-      version: '1.0',
+      id:           'up-'+Date.now(),
+      titleAr:      displayName,
+      title:        displayName,
+      name:         displayName + '.' + ext.toLowerCase(),
+      originalName: file.name,
+      type:         ext,
+      fileType:     ext,
+      size:         (file.size/1024/1024).toFixed(2)+' MB',
+      fileSize:     (file.size/1024/1024).toFixed(2)+' MB',
+      folder:       selectedFolder,
+      folderName:   folder?.name||'',
+      owner:        'أنت',
+      created:      new Date().toISOString().split('T')[0],
+      modified:     new Date().toISOString().split('T')[0],
+      createdAt:    new Date().toISOString().split('T')[0],
+      version:      '1.0',
       classification: form.classification,
-      tags: form.tags.split('،').map(t=>t.trim()).filter(Boolean),
-      thumb: TYPE_ICON[ext]||'📄',
-      status: 'Active',
-      isFav: false,
+      tags:         form.tags.split('،').map(t=>t.trim()).filter(Boolean),
+      thumb:        TYPE_ICON[ext]||'📄',
+      status:       'Active',
+      isFav:        false,
       isCheckedOut: false,
-      likes: 0,
+      likes:        0,
     }
     setLoading(false)
     onSuccess(newFile)

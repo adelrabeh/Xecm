@@ -61,26 +61,38 @@ export function UploadModal({ onClose, onSuccess, defaultFolderId = null }) {
       await client.post('/api/v1/documents', fd, { headers: {'Content-Type':'multipart/form-data'} })
     } catch {}
 
+    const displayName = form.name.trim() || file.name.replace(/\.[^.]+$/, '')
     const newDoc = {
-      id:       'up-' + Date.now(),
-      name:     form.name.trim() + '.' + ext.toLowerCase(),
-      type:     ext,
-      size:     (file.size / 1024 / 1024).toFixed(2) + ' MB',
-      folder:   selectedFolder,
-      folderName: selectedFolderObj?.name || '',
-      folderPath: folderPath().map(f => f.name).join(' › '),
-      owner:    'أنت',
-      created:  new Date().toISOString().split('T')[0],
-      modified: new Date().toISOString().split('T')[0],
-      version:  '1.0',
+      id:           'up-' + Date.now(),
+      titleAr:      displayName,          // used by DocumentsPage
+      title:        displayName,
+      name:         displayName + '.' + ext.toLowerCase(),  // full filename with ext
+      originalName: file.name,            // original upload filename
+      fileType:     ext,
+      type:         ext,
+      fileSize:     (file.size / 1024 / 1024).toFixed(2) + ' MB',
+      size:         (file.size / 1024 / 1024).toFixed(2) + ' MB',
+      folder:       selectedFolder,
+      folderName:   selectedFolderObj?.name || '',
+      folderPath:   folderPath().map(f => f.name).join(' › '),
+      owner:        'أنت',
+      created:      new Date().toISOString().split('T')[0],
+      modified:     new Date().toISOString().split('T')[0],
+      createdAt:    new Date().toISOString(),
+      updatedAt:    new Date().toISOString(),
+      version:      '1.0',
       classification: form.classification,
-      tags:     form.tags.split('،').map(t => t.trim()).filter(Boolean),
-      description: form.description,
-      thumb:    FILE_ICON[ext] || '📄',
-      status:   'Active',
-      isFav:    false,
+      tags:         form.tags.split('،').map(t => t.trim()).filter(Boolean),
+      description:  form.description,
+      summary:      form.description,
+      thumb:        FILE_ICON[ext] || '📄',
+      status:       'Active',
+      isFav:        false,
       isCheckedOut: false,
-      likes:    0,
+      likes:        0,
+      pages:        1,
+      attachments:  [],
+      history:      [{ version:'1.0', date: new Date().toISOString().split('T')[0], by:'أنت', action:'رفع جديد' }],
     }
 
     // Save to shared library store

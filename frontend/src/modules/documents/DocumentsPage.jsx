@@ -270,8 +270,8 @@ export default function DocumentsPage() {
                               <div className="flex items-center gap-2">
                                 <span className="text-lg">{FILE_ICON[doc.fileType]||'📄'}</span>
                                 <div>
-                                  <p className="font-semibold text-gray-800 truncate max-w-[160px]">{doc.titleAr||doc.title}</p>
-                                  <p className="text-gray-400 text-[10px]">{doc.id} • {doc.type||'وثيقة'}</p>
+                                  <p className="font-semibold text-gray-800 truncate max-w-[160px]">{doc.titleAr||doc.name||doc.title}</p>
+                                  <p className="text-gray-400 text-[10px]">{doc.fileType||doc.type||'وثيقة'} • {doc.fileSize||doc.size||''}</p>
                                 </div>
                               </div>
                             </td>

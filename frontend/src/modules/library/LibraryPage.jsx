@@ -297,6 +297,34 @@ export default function LibraryPage() {
   const [files, setFiles]          = useLibraryFilesV2()
 
   const isAdmin = (user?.permissions||[]).some(p => p === 'admin.*' || p === 'admin.library')
+  const currentUser = user?.fullNameAr || user?.username || 'أنت'
+
+  // Folders the current user has files in (directly or in subfolders)
+  const myFolderIds = React.useMemo(() => {
+    if (isAdmin) return new Set(safeFolders.map(f => f.id))
+    const myFiles = safeFiles.filter(f =>
+      f.owner === currentUser || f.owner === 'أنت' || !f.owner
+    )
+    const directIds = new Set(myFiles.map(f => f.folder).filter(Boolean))
+    // Also include all ancestor folders of those folders
+    const allIds = new Set(directIds)
+    directIds.forEach(folderId => {
+      let cur = safeFolders.find(f => f.id === folderId)
+      while (cur?.parent) {
+        allIds.add(cur.parent)
+        cur = safeFolders.find(f => f.id === cur.parent)
+      }
+    })
+    return allIds
+  }, [isAdmin, safeFiles, safeFolders, currentUser])
+
+  // Subfolders visible to user (only those with their files)
+  const visibleChildOf = (id) => safeFolders.filter(f =>
+    f.parent === id && (isAdmin || myFolderIds.has(f.id))
+  )
+  const visibleRoots = safeFolders.filter(f =>
+    !f.parent && (isAdmin || myFolderIds.has(f.id))
+  )
 
   const [currentFolder, setCF]     = useState(null)
   const [folderPath, setFolderPath] = useState([])
@@ -313,8 +341,8 @@ export default function LibraryPage() {
   const safeFolders = Array.isArray(folders) ? folders : []
   const safeFiles   = Array.isArray(files) ? files : []
 
-  const roots   = safeFolders.filter(f => !f.parent)
-  const childOf = (id) => safeFolders.filter(f => f.parent === id)
+  const roots   = visibleRoots || safeFolders.filter(f => !f.parent)
+  const childOf = (id) => safeFolders.filter(f => f.parent === id)  // all children (for counts)
 
   const navigate = (folderId) => {
     setCF(folderId)
@@ -328,13 +356,18 @@ export default function LibraryPage() {
 
   // Count files per folder (including subfolders)
   const countInFolder = (folderId) => {
-    const direct = safeFiles.filter(f=>f.folder===folderId).length
+    const direct = myFiles.filter(f=>f.folder===folderId).length
     const childCount = childOf(folderId).reduce((s,c)=>s+countInFolder(c.id),0)
     return direct + childCount
   }
 
+  // Files visible to current user
+  const myFiles = isAdmin
+    ? safeFiles
+    : safeFiles.filter(f => f.owner === currentUser || f.owner === 'أنت' || !f.owner)
+
   // Files to display
-  const displayed = safeFiles
+  const displayed = myFiles
     .filter(f => {
       if (currentFolder) return f.folder === currentFolder
       return true
@@ -373,7 +406,7 @@ export default function LibraryPage() {
 
   const renderFolderTree = (folder, depth=0) => {
     const isActive = currentFolder === folder.id
-    const children = childOf(folder.id)
+    const children = visibleChildOf(folder.id)
     const isExpanded = expanded.has(folder.id)
     const count = countInFolder(folder.id)
 
@@ -445,11 +478,11 @@ export default function LibraryPage() {
 
         {/* Folder tree */}
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {roots.map(f => renderFolderTree(f))}
-          {roots.length===0&&(
+          {visibleRoots.map(f => renderFolderTree(f))}
+          {visibleRoots.length===0&&(
             <div className="text-center py-6 text-gray-400">
               <div className="text-2xl mb-1">📁</div>
-              <p className="text-xs">{isAdmin?'ابدأ بإنشاء مجلد':'لا توجد مجلدات'}</p>
+              <p className="text-xs">{isAdmin?'ابدأ بإنشاء مجلد':'لا توجد ملفات لك في المكتبة بعد'}</p>
             </div>
           )}
         </div>
@@ -510,9 +543,9 @@ export default function LibraryPage() {
         </div>
 
         {/* Subfolder chips (if in a folder with children) */}
-        {currentFolder && childOf(currentFolder).length>0 && (
+        {currentFolder && visibleChildOf(currentFolder).length>0 && (
           <div className="bg-white border-b border-gray-100 px-5 py-2 flex gap-2 overflow-x-auto flex-shrink-0">
-            {childOf(currentFolder).map(sub=>(
+            {visibleChildOf(currentFolder).map(sub=>(
               <button key={sub.id} onClick={()=>navigate(sub.id)}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-xl text-xs font-medium text-gray-700 hover:text-blue-700 transition-all">
                 {sub.icon} {sub.name}
@@ -529,7 +562,7 @@ export default function LibraryPage() {
             <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">
               <div className="text-5xl mb-3">📂</div>
               <p className="font-semibold text-gray-600">
-                {currentFolder ? `المجلد "${currentFolderObj?.name}" فارغ` : 'لا توجد ملفات'}
+                {currentFolder ? `لا توجد ملفات لك في "${currentFolderObj?.name}"` : 'لا توجد ملفات خاصة بك'}
               </p>
               <button onClick={()=>setShowUpload(true)}
                 className="mt-4 bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-800 transition-colors">

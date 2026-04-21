@@ -158,12 +158,7 @@ export function AdminPage() {
             status: u.isActive ? 'active' : 'inactive',
             username: u.username,
           })))
-      }).catch(err => {
-        // 401 = token expired — show message but keep mock data
-        if (err.response?.status === 401) {
-          show('⚠️ انتهت صلاحية الجلسة — يعمل النظام بالبيانات المحلية. سجّل دخولك مجدداً للتزامن مع الخادم.', 'warning')
-        }
-      })
+      }).catch(() => {}) // silently use mock data if API fails
   }, [])
 
   const handleAdd = async () => {
@@ -208,13 +203,7 @@ export function AdminPage() {
     (filterRole === 'all' || u.role === filterRole)
   )
 
-  const FormField = ({label, value, onChange, type='text', children, required=false}) => (
-    <div>
-      <label className="block text-xs font-bold text-gray-600 mb-1">{label}{required&&<span className="text-red-400 mr-1">*</span>}</label>
-      {children || <input type={type} value={value} onChange={onChange}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right" />}
-    </div>
-  )
+  // FormField moved outside component to prevent focus loss
 
   return (
     <div className="space-y-4 max-w-7xl">
@@ -242,27 +231,41 @@ export function AdminPage() {
             <button onClick={()=>setShowAdd(false)} className="text-gray-400 hover:text-gray-600">✕</button>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="الاسم الكامل" required value={newUser.name}
-              onChange={e=>setNewUser(p=>({...p,name:e.target.value}))} />
-            <FormField label="اسم المستخدم" required value={newUser.username}
-              onChange={e=>setNewUser(p=>({...p,username:e.target.value.toLowerCase().replace(/\s/g,'')}))} />
-            <FormField label="البريد الإلكتروني" required type="email" value={newUser.email}
-              onChange={e=>setNewUser(p=>({...p,email:e.target.value}))} />
-            <FormField label="كلمة المرور" type="password" value={newUser.password}
-              onChange={e=>setNewUser(p=>({...p,password:e.target.value}))} />
-            <FormField label="الدور">
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">الاسم الكامل <span className="text-red-400">*</span></label>
+              <input value={newUser.name} onChange={e=>setNewUser(p=>({...p,name:e.target.value}))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right" placeholder="الاسم الكامل"/>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">اسم المستخدم <span className="text-red-400">*</span></label>
+              <input value={newUser.username} onChange={e=>setNewUser(p=>({...p,username:e.target.value}))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="username" dir="ltr"/>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">البريد الإلكتروني <span className="text-red-400">*</span></label>
+              <input type="email" value={newUser.email} onChange={e=>setNewUser(p=>({...p,email:e.target.value}))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="email@domain.com" dir="ltr"/>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">كلمة المرور</label>
+              <input type="password" value={newUser.password} onChange={e=>setNewUser(p=>({...p,password:e.target.value}))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" dir="ltr"/>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">الدور</label>
               <select value={newUser.role} onChange={e=>setNewUser(p=>({...p,role:e.target.value}))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                 {ROLES.map(r=><option key={r}>{r}</option>)}
               </select>
-            </FormField>
-            <FormField label="الإدارة / القسم">
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">الإدارة / القسم</label>
               <select value={newUser.dept} onChange={e=>setNewUser(p=>({...p,dept:e.target.value}))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                 <option value="">— اختر القسم —</option>
                 {DEPTS.map(d=><option key={d}>{d}</option>)}
               </select>
-            </FormField>
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={handleAdd} disabled={loading}

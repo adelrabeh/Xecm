@@ -1,3 +1,4 @@
+import { useLibraryFilesV2 } from '../../hooks/useFolderStore'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import React, { useState, useEffect } from 'react'
 import client from '../../api/client'
@@ -56,6 +57,8 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 
 export default function DocumentsPage() {
   const [docs, setDocs]       = useLocalStorage('ecm_docs', MOCK_DOCS)
+  const [libraryFilesRaw]     = useLibraryFilesV2()
+  const libraryUploads        = Array.isArray(libraryFilesRaw) ? libraryFilesRaw : []
   const [search, setSearch]   = useState('')
   const [filter, setFilter]   = useState('all')
   const [loading, setLoading] = useState(false)
@@ -80,7 +83,12 @@ export default function DocumentsPage() {
 
   const open = (doc) => { setSel(doc); setTab('details') }
 
-  const filtered = docs.filter(d => {
+  // Merge docs with library uploads (avoid duplicates by id)
+  const allDocs = [
+    ...libraryUploads.filter(u => !docs.find(d => d.id === u.id)),
+    ...docs
+  ]
+  const filtered = allDocs.filter(d => {
     const t = (d.titleAr||d.title||'') + (d.id||'')
     return t.includes(search) && (filter==='all'||d.status===filter)
   })

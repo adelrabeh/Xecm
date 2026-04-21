@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { useLibraryFilesV2 } from '../hooks/useFolderStore'
 import { useFolderStore }    from '../hooks/useFolderStore'
-import { addToLibrary }      from '../hooks/useLibraryFiles'
+import { addToLibraryV2 }    from '../hooks/useFolderStore'
 import client                from '../api/client'
 
 const FILE_ICON = { PDF:'📕', DOCX:'📘', XLSX:'📗', PPTX:'📙', ZIP:'📦', DOC:'📘', XLS:'📗', PNG:'🖼', JPG:'🖼' }
@@ -84,7 +84,7 @@ export function UploadModal({ onClose, onSuccess, defaultFolderId = null }) {
     }
 
     // Save to shared library store
-    addToLibrary(newDoc)
+    addToLibraryV2(newDoc)
     setLoading(false)
     onSuccess?.({ msg: `✅ تم رفع "${newDoc.name}" في ${newDoc.folderName}`, doc: newDoc })
     onClose()

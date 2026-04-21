@@ -43,4 +43,13 @@ export function useLibraryFilesV2() {
   return useLocalStorage(FILES_KEY, SEED_FILES)
 }
 
+export function addToLibraryV2(file) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(FILES_KEY) || 'null')
+    const arr = Array.isArray(existing) ? existing : SEED_FILES
+    const updated = [file, ...arr.filter(f => f.id !== file.id)]
+    localStorage.setItem(FILES_KEY, JSON.stringify(updated))
+  } catch {}
+}
+
 export function DEFAULT_FOLDER_TREE() { return DEFAULT_FOLDERS }

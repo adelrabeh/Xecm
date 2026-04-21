@@ -296,36 +296,6 @@ export default function LibraryPage() {
   const [folders, setFolders]      = useFolderStore()
   const [files, setFiles]          = useLibraryFilesV2()
 
-  const isAdmin = (user?.permissions||[]).some(p => p === 'admin.*' || p === 'admin.library')
-  const currentUser = user?.fullNameAr || user?.username || 'أنت'
-
-  // Folders the current user has files in (directly or in subfolders)
-  const myFolderIds = React.useMemo(() => {
-    if (isAdmin) return new Set(safeFolders.map(f => f.id))
-    const myFiles = safeFiles.filter(f =>
-      f.owner === currentUser || f.owner === 'أنت' || !f.owner
-    )
-    const directIds = new Set(myFiles.map(f => f.folder).filter(Boolean))
-    // Also include all ancestor folders of those folders
-    const allIds = new Set(directIds)
-    directIds.forEach(folderId => {
-      let cur = safeFolders.find(f => f.id === folderId)
-      while (cur?.parent) {
-        allIds.add(cur.parent)
-        cur = safeFolders.find(f => f.id === cur.parent)
-      }
-    })
-    return allIds
-  }, [isAdmin, safeFiles, safeFolders, currentUser])
-
-  // Subfolders visible to user (only those with their files)
-  const visibleChildOf = (id) => safeFolders.filter(f =>
-    f.parent === id && (isAdmin || myFolderIds.has(f.id))
-  )
-  const visibleRoots = safeFolders.filter(f =>
-    !f.parent && (isAdmin || myFolderIds.has(f.id))
-  )
-
   const [currentFolder, setCF]     = useState(null)
   const [folderPath, setFolderPath] = useState([])
   const [expanded, setExpanded]    = useState(new Set())
@@ -341,8 +311,29 @@ export default function LibraryPage() {
   const safeFolders = Array.isArray(folders) ? folders : []
   const safeFiles   = Array.isArray(files) ? files : []
 
-  const roots   = visibleRoots || safeFolders.filter(f => !f.parent)
-  const childOf = (id) => safeFolders.filter(f => f.parent === id)  // all children (for counts)
+  const isAdmin = (user?.permissions||[]).some(p => p === 'admin.*' || p === 'admin.library')
+  const currentUser = user?.fullNameAr || user?.username || 'أنت'
+
+  // Files belonging to current user
+  const myFiles = isAdmin
+    ? safeFiles
+    : safeFiles.filter(f => f.owner === currentUser || f.owner === 'أنت' || !f.owner)
+
+  // Collect folder IDs that have the user's files (including ancestors)
+  const myFolderIds = React.useMemo(() => {
+    if (isAdmin) return new Set(safeFolders.map(f => f.id))
+    const directIds = new Set(myFiles.map(f => f.folder).filter(Boolean))
+    const allIds = new Set(directIds)
+    directIds.forEach(folderId => {
+      let cur = safeFolders.find(f => f.id === folderId)
+      while (cur?.parent) { allIds.add(cur.parent); cur = safeFolders.find(f => f.id === cur.parent) }
+    })
+    return allIds
+  }, [isAdmin, JSON.stringify(myFiles.map(f=>f.folder)), JSON.stringify(safeFolders.map(f=>f.id))])
+
+  const visibleRoots = safeFolders.filter(f => !f.parent && (isAdmin || myFolderIds.has(f.id)))
+  const visibleChildOf = (id) => safeFolders.filter(f => f.parent === id && (isAdmin || myFolderIds.has(f.id)))
+  const childOf = (id) => safeFolders.filter(f => f.parent === id)
 
   const navigate = (folderId) => {
     setCF(folderId)
@@ -360,11 +351,6 @@ export default function LibraryPage() {
     const childCount = childOf(folderId).reduce((s,c)=>s+countInFolder(c.id),0)
     return direct + childCount
   }
-
-  // Files visible to current user
-  const myFiles = isAdmin
-    ? safeFiles
-    : safeFiles.filter(f => f.owner === currentUser || f.owner === 'أنت' || !f.owner)
 
   // Files to display
   const displayed = myFiles

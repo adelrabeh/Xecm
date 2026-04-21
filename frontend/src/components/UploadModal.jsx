@@ -1,3 +1,4 @@
+import { storeFile } from '../hooks/useFileStore'
 import React, { useState, useRef } from 'react'
 import { useLibraryFilesV2 } from '../hooks/useFolderStore'
 import { useFolderStore }    from '../hooks/useFolderStore'
@@ -94,6 +95,10 @@ export function UploadModal({ onClose, onSuccess, defaultFolderId = null }) {
       attachments:  [],
       history:      [{ version:'1.0', date: new Date().toISOString().split('T')[0], by:'أنت', action:'رفع جديد' }],
     }
+
+    // Store real file blob for preview/download/print
+    const blobUrl = storeFile(newDoc.id, file)
+    if (blobUrl) newDoc.blobUrl = blobUrl
 
     // Save to shared library store
     addToLibraryV2(newDoc)

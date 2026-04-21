@@ -1,3 +1,4 @@
+import { storeFile } from '../../hooks/useFileStore'
 import React, { useState, useRef } from 'react'
 import { useFolderStore, useLibraryFilesV2 } from '../../hooks/useFolderStore'
 import { useAuthStore }   from '../../store/authStore'
@@ -188,6 +189,10 @@ function UploadModal({ folders, onClose, defaultFolder, onSuccess }) {
       isCheckedOut: false,
       likes:        0,
     }
+    // Store real file blob
+    const blobUrl = storeFile(newFile.id, file)
+    if (blobUrl) newFile.blobUrl = blobUrl
+
     setLoading(false)
     onSuccess(newFile)
     onClose()

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import client from '../../api/client'
 import { useToast } from '../../components/Toast'
 
 // ─── Records Page ──────────────────────────────────────────────────────────────
 export function RecordsPage() {
   const { show, ToastContainer } = useToast()
-  const [records, setRecords] = useState([
+  const [records, setRecords] = useLocalStorage('ecm_records_admin', [
     { id:1, title:'سجل العقود الحكومية 2025', retention:'10 سنوات', status:'Active',     count:342,  class:'حكومي' },
     { id:2, title:'سجل الموارد البشرية',       retention:'7 سنوات',  status:'Active',     count:1205, class:'HR' },
     { id:3, title:'سجل المراسلات الرسمية',     retention:'5 سنوات',  status:'Active',     count:8732, class:'إداري' },
@@ -130,7 +131,7 @@ const DEPTS = ['الشؤون المالية','الشؤون الإدارية','ت
 
 export function AdminPage() {
   const { show, ToastContainer } = useToast()
-  const [users, setUsers] = useState([
+  const [users, setUsers] = useLocalStorage('ecm_users', [
     { id:1, name:'أحمد الزهراني',  email:'a.zahrani@darah.gov.sa',  role:'مدير',   dept:'الشؤون المالية',    status:'active', username:'a.zahrani' },
     { id:2, name:'مريم العنزي',   email:'m.anzi@darah.gov.sa',     role:'محرر',   dept:'الشؤون الإدارية',  status:'active', username:'m.anzi' },
     { id:3, name:'خالد القحطاني', email:'k.qahtani@darah.gov.sa',  role:'محرر',   dept:'تقنية المعلومات',  status:'active', username:'k.qahtani' },

@@ -47,7 +47,7 @@ function TaskCard({ task, onClick, selected }) {
   const p = PRIO_MAP[task.priority] || PRIO_MAP.medium
   const isOverdue = task.due && new Date(task.due) < new Date() && !['completed','cancelled'].includes(task.status)
   return (
-    <div onClick={onClick} className={`bg-white rounded-2xl border-2 p-4 cursor-pointer transition-all hover:shadow-md ${selected?'border-blue-500 shadow-md':'border-gray-100 hover:border-gray-200'}`}>
+    <div onClick={onClick} className={`bg-white rounded-2xl border-2 p-4 cursor-pointer transition-all active:scale-[0.98] ${selected?'border-blue-500 shadow-md':'border-gray-100 hover:border-gray-200'}`}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full`} style={{background:s.bg,color:s.color}}>
@@ -221,7 +221,8 @@ function TaskDetail({ task, onClose, onUpdate, isAdmin }) {
   }
 
   return (
-    <div className="bg-white border-r border-gray-100 flex flex-col" style={{width:420,minWidth:420,height:'100%'}}>
+    <div className="fixed inset-0 z-40 md:relative md:inset-auto bg-white border-r border-gray-100 flex flex-col" style={{width:'100%',maxWidth:'none',height:'100%'}}>
+          <style>{`.md-detail-panel { position: relative !important; width: 420px !important; }`}</style>
       {/* Header */}
       <div className="p-4 border-b border-gray-100 flex-shrink-0" style={{background: s.bg}}>
         <div className="flex items-start justify-between mb-2">
@@ -230,7 +231,7 @@ function TaskDetail({ task, onClose, onUpdate, isAdmin }) {
             <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:p.bg,color:p.color}}>{p.label}</span>
             {task.escalated && <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">🔺 مُصعَّدة</span>}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          <button onClick={onClose} className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 text-lg flex-shrink-0">✕</button>
         </div>
         <h2 className="font-black text-gray-900 leading-snug">{task.title}</h2>
         <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
@@ -376,6 +377,7 @@ export default function TasksPage() {
   const [search, setSearch]          = useState('')
   const [view, setView]              = useState('board')  // board | list
   const [showReports, setShowReports]= useState(false)
+  const [showFilters, setShowFilters]  = useState(false)
 
   const isAdmin = (user?.permissions||[]).some(p=>p==='admin.*')
   const safeTasks = Array.isArray(tasks) ? tasks : MOCK_TASKS
@@ -466,7 +468,7 @@ export default function TasksPage() {
         </div>
 
         {/* KPI */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
           {[
             {l:'إجمالي المهام',   v:stats.total,     icon:'📋', cls:'bg-indigo-50 text-indigo-700 border-indigo-100'},
             {l:'قيد التنفيذ',    v:stats.inprogress, icon:'🔄', cls:'bg-amber-50 text-amber-700 border-amber-100'},
@@ -515,8 +517,13 @@ export default function TasksPage() {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-3 flex gap-2 flex-wrap">
+        {/* Filters - mobile toggle */}
+        <div>
+          <button onClick={()=>setShowFilters(p=>!p)} className="md:hidden w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 mb-2">
+            <span>🔍 البحث والتصفية</span>
+            <span>{showFilters?'▲':'▼'}</span>
+          </button>
+        <div className={`bg-white rounded-2xl border border-gray-100 p-3 flex gap-2 flex-wrap ${showFilters?'flex':'hidden md:flex'}`}>
           <div className="relative flex-1 min-w-36">
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">🔍</span>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="بحث..."
@@ -538,6 +545,7 @@ export default function TasksPage() {
             <button onClick={()=>setView('board')} className={`px-3 py-2 text-sm ${view==='board'?'bg-gray-900 text-white':'text-gray-500 hover:bg-gray-50'}`}>⊟ لوحة</button>
             <button onClick={()=>setView('list')}  className={`px-3 py-2 text-sm ${view==='list'?'bg-gray-900 text-white':'text-gray-500 hover:bg-gray-50'}`}>☰ قائمة</button>
           </div>
+        </div>
         </div>
       </div>
 

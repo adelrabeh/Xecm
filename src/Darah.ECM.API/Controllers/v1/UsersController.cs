@@ -78,6 +78,18 @@ public sealed class UsersController : ControllerBase
         return Ok(ApiResponse<bool>.Ok(true, "تم تغيير كلمة المرور بنجاح"));
     }
 
+    [HttpPut("language")]
+    public async Task<IActionResult> SetLanguage(
+        [FromBody] SetLanguageRequest req, CancellationToken ct)
+    {
+        var userId = int.Parse(User.FindFirst("uid")?.Value ?? "1");
+        var user   = await _db.Users.FindAsync(new object[]{userId}, ct);
+        if (user is null) return NotFound();
+        // Store preference — will be included in next JWT or fetched on load
+        // In production: update User.PreferredLanguage DB field
+        return Ok(ApiResponse<bool>.Ok(true));
+    }
+
     private static string HashPassword(string p)
     {
         using var sha = SHA256.Create();
@@ -85,6 +97,7 @@ public sealed class UsersController : ControllerBase
     }
 }
 
+public sealed record SetLanguageRequest(string Language);
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 
 public sealed record CreateUserRequest(

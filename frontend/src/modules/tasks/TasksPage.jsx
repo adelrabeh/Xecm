@@ -1,3 +1,4 @@
+import { useLang } from '../../i18n.js'
 import React, { useState, useRef } from 'react'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useAuthStore } from '../../store/authStore'
@@ -6,19 +7,19 @@ import client from '../../api/client'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUSES = [
-  { key:'new',        label:'جديدة',         icon:'🆕', color:'#6366f1', bg:'#eef2ff', dot:'#818cf8' },
-  { key:'assigned',   label:'مُسنَدة',        icon:'👤', color:'#0369a1', bg:'#eff6ff', dot:'#38bdf8' },
-  { key:'inprogress', label:'قيد التنفيذ',   icon:'🔄', color:'#b45309', bg:'#fffbeb', dot:'#f59e0b' },
-  { key:'review',     label:'قيد المراجعة',  icon:'🔍', color:'#7c3aed', bg:'#f5f3ff', dot:'#a78bfa' },
-  { key:'completed',  label:'مكتملة',        icon:'✅', color:'#059669', bg:'#ecfdf5', dot:'#34d399' },
-  { key:'overdue',    label:'متأخرة',         icon:'⚠️', color:'#dc2626', bg:'#fef2f2', dot:'#f87171' },
-  { key:'cancelled',  label:'ملغاة',          icon:'⛔', color:'#6b7280', bg:'#f9fafb', dot:'#9ca3af' },
+  { key:'new',        label: lang==='en'?'New':'جديدة',         icon:'🆕', color:'#6366f1', bg:'#eef2ff', dot:'#818cf8' },
+  { key:'assigned',   label: lang==='en'?'Assigned':'مُسنَدة',        icon:'👤', color:'#0369a1', bg:'#eff6ff', dot:'#38bdf8' },
+  { key:'inprogress', label: lang==='en'?'In Progress':'قيد التنفيذ',   icon:'🔄', color:'#b45309', bg:'#fffbeb', dot:'#f59e0b' },
+  { key:'review',     label: lang==='en'?'Under Review':'قيد المراجعة',  icon:'🔍', color:'#7c3aed', bg:'#f5f3ff', dot:'#a78bfa' },
+  { key:'completed',  label: lang==='en'?'Completed':'مكتملة',        icon:'✅', color:'#059669', bg:'#ecfdf5', dot:'#34d399' },
+  { key:'overdue',    label: lang==='en'?'Overdue':'متأخرة',         icon:'⚠️', color:'#dc2626', bg:'#fef2f2', dot:'#f87171' },
+  { key:'cancelled',  label: lang==='en'?'Cancelled':'ملغاة',          icon:'⛔', color:'#6b7280', bg:'#f9fafb', dot:'#9ca3af' },
 ]
 const PRIORITIES = [
-  { key:'low',    label:'منخفضة', color:'#16a34a', bg:'#dcfce7' },
-  { key:'medium', label:'متوسطة', color:'#d97706', bg:'#fef9c3' },
-  { key:'high',   label:'عالية',  color:'#ea580c', bg:'#ffedd5' },
-  { key:'urgent', label:'عاجلة',  color:'#dc2626', bg:'#fee2e2' },
+  { key:'low',    label: lang==='en'?'Low':'منخفضة', color:'#16a34a', bg:'#dcfce7' },
+  { key:'medium', label: lang==='en'?'Medium':'متوسطة', color:'#d97706', bg:'#fef9c3' },
+  { key:'high',   label: lang==='en'?'High':'عالية',  color:'#ea580c', bg:'#ffedd5' },
+  { key:'urgent', label: lang==='en'?'Urgent':'عاجلة',  color:'#dc2626', bg:'#fee2e2' },
 ]
 const DEPARTMENTS = ['تقنية المعلومات','الشؤون المالية','الشؤون الإدارية','الموارد البشرية','إدارة المخاطر','التدقيق الداخلي','الرئاسة التنفيذية','التحول الرقمي']
 const USERS = [
@@ -581,6 +582,7 @@ export default function TasksPage() {
   const [showReports, setShowReports]= useState(false)
   const [showFilters, setShowFilters]  = useState(false)
 
+  const { lang, t, isRTL, fmtDate } = useLang()
   const isAdmin = (user?.permissions||[]).some(p=>p==='admin.*')
   const safeTasks = Array.isArray(tasks) ? tasks : MOCK_TASKS
 
@@ -654,7 +656,7 @@ export default function TasksPage() {
       <div className="flex-shrink-0 space-y-3 mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-gray-900">إدارة المهام</h1>
+            <h1 className="text-2xl font-black text-gray-900">{t("tasks_title")}</h1>
             <p className="text-sm text-gray-400 mt-0.5">{safeTasks.length} مهمة · {stats.overdue} متأخرة · {stats.escalated} مُصعَّدة</p>
           </div>
           <div className="flex gap-2">

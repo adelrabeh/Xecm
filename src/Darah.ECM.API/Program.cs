@@ -60,7 +60,8 @@ try
     });
 
     app.UseSerilogRequestLogging();
-    app.UseAuthentication();
+    app.UseEcmLocalization();
+app.UseAuthentication();
     app.UseAuthorization();
 
     try { app.UseHangfireDashboard("/hangfire"); }

@@ -1,0 +1,96 @@
+{
+  "Common": {
+    "NotFound": "Item not found",
+    "Unauthorized": "Unauthorized access",
+    "Forbidden": "You do not have permission to perform this action",
+    "ValidationFailed": "Validation failed",
+    "SavedSuccessfully": "Saved successfully",
+    "DeletedSuccessfully": "Deleted successfully",
+    "OperationFailed": "Operation failed",
+    "InternalError": "Internal system error"
+  },
+  "Auth": {
+    "InvalidCredentials": "Invalid username or password",
+    "SessionExpired": "Session expired, please sign in again",
+    "AccountDisabled": "Account disabled, contact your administrator",
+    "LoginSuccess": "Signed in successfully",
+    "PasswordChanged": "Password changed successfully",
+    "PasswordTooWeak": "Password too weak — must contain 8+ characters, numbers and symbols"
+  },
+  "Documents": {
+    "Created": "Document created successfully",
+    "Updated": "Document updated",
+    "Deleted": "Document deleted",
+    "CheckedOut": "Document checked out",
+    "CheckedIn": "Document checked in",
+    "DownloadReady": "Document ready for download",
+    "FileTooLarge": "File size exceeds the limit (50MB)",
+    "UnsupportedType": "Unsupported file type",
+    "AlreadyCheckedOut": "Document is checked out by {0}"
+  },
+  "Records": {
+    "Created": "Record {0} created successfully",
+    "Submitted": "Record submitted for review",
+    "Approved": "Record approved",
+    "Archived": "Record archived",
+    "Rejected": "Record rejected",
+    "StatusChanged": "Record status changed to {0}"
+  },
+  "Statuses": {
+    "Draft": "Draft",
+    "UnderReview": "Under Review",
+    "Approved": "Approved",
+    "Published": "Published",
+    "Archived": "Archived",
+    "Rejected": "Rejected",
+    "Cancelled": "Cancelled"
+  },
+  "Priorities": {
+    "Low": "Low",
+    "Medium": "Medium",
+    "High": "High",
+    "Urgent": "Urgent"
+  },
+  "Workflow": {
+    "Started": "Workflow started",
+    "TaskAssigned": "You have been assigned a task: {0}",
+    "TaskApproved": "Task approved",
+    "TaskRejected": "Task rejected",
+    "TaskEscalated": "Task escalated to {0}",
+    "WorkflowCompleted": "Workflow completed successfully",
+    "WorkflowCancelled": "Workflow cancelled"
+  },
+  "Escalation": {
+    "NotAllowed": "You do not have permission to perform this escalation",
+    "HierarchyViolation": "Employee cannot escalate directly to Department Manager",
+    "AdminNotTarget": "System Admin is not an operational escalation target",
+    "Created": "Escalated to {0} — Level {1}",
+    "ReasonRequired": "Escalation reason is required"
+  },
+  "Retention": {
+    "ScheduleCreated": "Retention schedule registered",
+    "DisposalApproved": "Disposal approved",
+    "ExtendedSuccessfully": "Retention extended by {0} years",
+    "LegalHoldPlaced": "Legal hold placed",
+    "LegalHoldRemoved": "Legal hold removed",
+    "NotExpiredYet": "Record has not reached its review date yet"
+  },
+  "Notifications": {
+    "NewTaskAssigned": "New task: {0}",
+    "TaskOverdue": "Task '{0}' is overdue",
+    "DocumentShared": "A document has been shared with you: {0}",
+    "CommentAdded": "New comment on: {0}",
+    "EscalationReceived": "New escalation from {0}: {1}",
+    "WorkflowCompleted": "Workflow completed: {0}"
+  },
+  "Validation": {
+    "TitleRequired": "Title is required",
+    "DepartmentRequired": "Department is required",
+    "DueDateRequired": "Due date is required",
+    "AssigneeRequired": "Assignee is required",
+    "FolderRequired": "Folder is required",
+    "ReasonRequired": "Reason is required",
+    "MaxLength": "Maximum {0} characters",
+    "InvalidDate": "Invalid date"
+  }
+}

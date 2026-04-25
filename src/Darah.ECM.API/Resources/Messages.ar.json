@@ -1,0 +1,96 @@
+{
+  "Common": {
+    "NotFound": "العنصر غير موجود",
+    "Unauthorized": "غير مصرح بالوصول",
+    "Forbidden": "ليس لديك صلاحية تنفيذ هذا الإجراء",
+    "ValidationFailed": "فشل التحقق من البيانات",
+    "SavedSuccessfully": "تم الحفظ بنجاح",
+    "DeletedSuccessfully": "تم الحذف بنجاح",
+    "OperationFailed": "فشل تنفيذ العملية",
+    "InternalError": "خطأ داخلي في النظام"
+  },
+  "Auth": {
+    "InvalidCredentials": "اسم المستخدم أو كلمة المرور غير صحيحة",
+    "SessionExpired": "انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً",
+    "AccountDisabled": "الحساب معطل، تواصل مع المدير",
+    "LoginSuccess": "تم تسجيل الدخول بنجاح",
+    "PasswordChanged": "تم تغيير كلمة المرور بنجاح",
+    "PasswordTooWeak": "كلمة المرور ضعيفة — يجب أن تحتوي على 8 أحرف وأرقام ورموز"
+  },
+  "Documents": {
+    "Created": "تم إنشاء الوثيقة بنجاح",
+    "Updated": "تم تحديث الوثيقة",
+    "Deleted": "تم حذف الوثيقة",
+    "CheckedOut": "تم استعارة الوثيقة",
+    "CheckedIn": "تم إعادة الوثيقة",
+    "DownloadReady": "الوثيقة جاهزة للتنزيل",
+    "FileTooLarge": "حجم الملف يتجاوز الحد المسموح (50MB)",
+    "UnsupportedType": "نوع الملف غير مدعوم",
+    "AlreadyCheckedOut": "الوثيقة محجوزة من قِبَل {0}"
+  },
+  "Records": {
+    "Created": "تم إنشاء السجل {0} بنجاح",
+    "Submitted": "تم إرسال السجل للمراجعة",
+    "Approved": "تم اعتماد السجل",
+    "Archived": "تم أرشفة السجل",
+    "Rejected": "تم رفض السجل",
+    "StatusChanged": "تم تغيير حالة السجل إلى {0}"
+  },
+  "Statuses": {
+    "Draft": "مسودة",
+    "UnderReview": "قيد المراجعة",
+    "Approved": "معتمد",
+    "Published": "منشور",
+    "Archived": "مؤرشف",
+    "Rejected": "مرفوض",
+    "Cancelled": "ملغى"
+  },
+  "Priorities": {
+    "Low": "منخفضة",
+    "Medium": "متوسطة",
+    "High": "عالية",
+    "Urgent": "عاجلة"
+  },
+  "Workflow": {
+    "Started": "تم بدء سير العمل",
+    "TaskAssigned": "تم تكليفك بمهمة: {0}",
+    "TaskApproved": "تمت الموافقة على المهمة",
+    "TaskRejected": "تم رفض المهمة",
+    "TaskEscalated": "تم تصعيد المهمة إلى {0}",
+    "WorkflowCompleted": "اكتمل سير العمل بنجاح",
+    "WorkflowCancelled": "تم إلغاء سير العمل"
+  },
+  "Escalation": {
+    "NotAllowed": "ليس لديك صلاحية هذا التصعيد",
+    "HierarchyViolation": "الموظف لا يستطيع التصعيد مباشرة لمدير القسم",
+    "AdminNotTarget": "مدير النظام ليس هدفاً للتصعيد التشغيلي",
+    "Created": "تم التصعيد إلى {0} — المستوى {1}",
+    "ReasonRequired": "يجب ذكر سبب التصعيد"
+  },
+  "Retention": {
+    "ScheduleCreated": "تم تسجيل جدول الاحتفاظ",
+    "DisposalApproved": "تم اعتماد الإتلاف",
+    "ExtendedSuccessfully": "تم تمديد الاحتفاظ {0} سنوات",
+    "LegalHoldPlaced": "تم وضع حجز قانوني",
+    "LegalHoldRemoved": "تم رفع الحجز القانوني",
+    "NotExpiredYet": "السجل لم يبلغ موعد المراجعة بعد"
+  },
+  "Notifications": {
+    "NewTaskAssigned": "مهمة جديدة: {0}",
+    "TaskOverdue": "المهمة '{0}' تجاوزت تاريخ الاستحقاق",
+    "DocumentShared": "تمت مشاركة وثيقة معك: {0}",
+    "CommentAdded": "تعليق جديد على: {0}",
+    "EscalationReceived": "تصعيد جديد من {0}: {1}",
+    "WorkflowCompleted": "اكتمل سير العمل: {0}"
+  },
+  "Validation": {
+    "TitleRequired": "العنوان مطلوب",
+    "DepartmentRequired": "القسم مطلوب",
+    "DueDateRequired": "تاريخ الاستحقاق مطلوب",
+    "AssigneeRequired": "يجب تحديد موظف",
+    "FolderRequired": "يجب تحديد المجلد",
+    "ReasonRequired": "السبب مطلوب",
+    "MaxLength": "الحد الأقصى {0} حرف",
+    "InvalidDate": "تاريخ غير صحيح"
+  }
+}

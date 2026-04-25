@@ -1,5 +1,6 @@
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import React, { useState, useEffect, useRef } from 'react'
+import { useLang } from '../../i18n.js'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import client from '../../api/client'
@@ -56,6 +57,7 @@ const PRIO_BAR   = { 'عاجل':'bg-red-400', 'مهم':'bg-yellow-400', 'عاد�
 const NOTIF_ICON = { task:'📋', approve:'✅', warning:'⚠️', share:'🔗' }
 
 export default function DashboardPage() {
+  const { lang, setLang, t, isRTL, fmtDate, fmtNum } = useLang()
   const { user }   = useAuthStore()
   const navigate   = useNavigate()
   const { show, ToastContainer } = useToast()

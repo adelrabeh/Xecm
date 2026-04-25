@@ -2,6 +2,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useLibraryFilesV2 } from '../../hooks/useFolderStore'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import React, { useState, useEffect } from 'react'
+import { useLang } from '../../i18n.js'
 import client from '../../api/client'
 import { UploadModal } from '../../components/UploadModal'
 import { PreviewModal } from '../../components/PreviewModal'
@@ -58,6 +59,7 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 }
 
 export default function DocumentsPage() {
+  const { lang, setLang, t, isRTL, fmtDate, fmtNum } = useLang()
   const { user }              = useAuthStore()
   const isAdmin               = (user?.permissions||[]).some(p => p==='admin.*'||p==='documents.all')
   const currentUser           = user?.fullNameAr || user?.username || 'أنت'
@@ -215,7 +217,7 @@ export default function DocumentsPage() {
       <div className={`flex flex-col gap-3 transition-all ${sel?'w-[52%]':'w-full'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">إدارة الوثائق</h1>
+            <h1 className="text-lg font-bold text-gray-900">t('docs_title')</h1>
             <p className="text-gray-400 text-xs">{filtered.length} {isAdmin ? "وثيقة (عرض المدير)" : "ملف خاص بك"}</p>
           </div>
           <div className="flex gap-2">
@@ -225,7 +227,7 @@ export default function DocumentsPage() {
             </button>
             <button onClick={()=>setShowUpload(true)}
               className="bg-blue-700 text-white text-xs px-4 py-1.5 rounded-lg hover:bg-blue-800 transition-colors flex items-center gap-1.5 shadow-sm">
-              ＋ رفع وثيقة
+              ＋ t('upload_doc')
             </button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useLang } from '../../i18n.js'
 import client from '../../api/client'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useToast } from '../../components/Toast'
@@ -180,8 +181,8 @@ function CreateRecordModal({onClose, onSuccess}) {
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="font-black text-gray-900 text-lg">إنشاء سجل جديد</h2>
-              <p className="text-xs text-gray-400">منصة السجلات المؤسسية — دارة الملك عبدالعزيز</p>
+              <h2 className="font-black text-gray-900 text-lg">t('new_record')</h2>
+              <p className="text-xs text-gray-400">منصة t('records_title') — دارة الملك عبدالعزيز</p>
             </div>
             <button onClick={onClose} className="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 text-xl">✕</button>
           </div>
@@ -484,6 +485,7 @@ function RecordDetail({record, onClose, onStatusChange}) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function RecordsPage() {
+  const { lang, setLang, t, isRTL, fmtDate, fmtNum } = useLang()
   const {show,ToastContainer} = useToast()
   const [records,setRecords]       = useLocalStorage('ecm_records', MOCK_RECORDS)
   const [selected,setSelected]     = useState(null)
@@ -548,7 +550,7 @@ export default function RecordsPage() {
       <div className="flex-shrink-0 space-y-4 mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-gray-900">السجلات المؤسسية</h1>
+            <h1 className="text-2xl font-black text-gray-900">t('records_title')</h1>
             <p className="text-sm text-gray-400 mt-0.5">نظام السجلات المبني على البيانات الوصفية</p>
           </div>
           <button onClick={()=>setShowCreate(true)}

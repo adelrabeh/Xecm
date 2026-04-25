@@ -216,7 +216,7 @@ export default function AppLayout() {
             {/* Language toggle */}
             <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
               className="flex items-center gap-1 text-xs font-bold border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-100 transition-colors">
-              {lang === 'ar' ? '🇺🇸 EN' : '🇸🇦 AR'}
+              {lang === 'ar' ? 'EN 🇺🇸' : 'AR 🇸🇦'}
             </button>
             {/* Notifications */}
             <button onClick={()=>setNotifOpen(p=>!p)}

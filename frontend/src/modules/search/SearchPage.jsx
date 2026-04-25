@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useLang } from '../../i18n.js'
 import { useNavigate } from 'react-router-dom'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useToast } from '../../components/Toast'
@@ -143,6 +144,7 @@ function ResultCard({ item, query, onClick }) {
 
 // ─── Main Search Page ────────────────────────────────────────────────────────
 export default function SearchPage() {
+  const { lang, setLang, t, isRTL, fmtDate, fmtNum } = useLang()
   const navigate = useNavigate()
   const { show, ToastContainer } = useToast()
   const [query, setQuery]         = useState('')
@@ -248,7 +250,7 @@ export default function SearchPage() {
 
       {/* ── Search bar ── */}
       <div className="mb-6">
-        <h1 className="text-xl font-black text-gray-900 mb-4">🔍 البحث المتقدم</h1>
+        <h1 className="text-xl font-black text-gray-900 mb-4">t('search_title')</h1>
         <div className="relative">
           <div className="flex gap-2">
             <div className="flex-1 relative">
@@ -307,8 +309,8 @@ export default function SearchPage() {
       {!searched && Array.isArray(history) && history.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-black text-gray-400 uppercase">آخر عمليات البحث</p>
-            <button onClick={() => setHistory([])} className="text-xs text-red-400 hover:text-red-600">مسح</button>
+            <p className="text-xs font-black text-gray-400 uppercase">t('search_history')</p>
+            <button onClick={() => setHistory([])} className="text-xs text-red-400 hover:text-red-600">t('clear_history')</button>
           </div>
           <div className="flex flex-wrap gap-2">
             {history.map(h => (
@@ -356,7 +358,7 @@ export default function SearchPage() {
           {filtered.length === 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
               <div className="text-5xl mb-3">🔍</div>
-              <p className="font-semibold text-gray-700">لا توجد نتائج لـ "{query}"</p>
+              <p className="font-semibold text-gray-700">t('no_results') لـ "{query}"</p>
               <p className="text-sm text-gray-400 mt-1">جرّب كلمات أخرى أو تحقق من الإملاء</p>
               <div className="flex flex-wrap justify-center gap-2 mt-4">
                 {QUICK_SEARCHES.map(q => (

@@ -1,5 +1,6 @@
 import { storeFile } from '../../hooks/useFileStore'
 import React, { useState, useRef } from 'react'
+import { useLang } from '../../i18n.js'
 import { useFolderStore, useLibraryFilesV2 } from '../../hooks/useFolderStore'
 import { useAuthStore }   from '../../store/authStore'
 import { PreviewModal }   from '../../components/PreviewModal'
@@ -207,7 +208,7 @@ function UploadModal({ folders, onClose, defaultFolder, onSuccess }) {
         {/* Header */}
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-gray-900">رفع ملف جديد</h2>
+            <h2 className="font-bold text-gray-900">t('upload_file') جديد</h2>
             {selectedFolderObj && (
               <p className="text-xs text-blue-600 mt-0.5">📁 {selectedFolderObj.name}</p>
             )}
@@ -291,6 +292,7 @@ function UploadModal({ folders, onClose, defaultFolder, onSuccess }) {
 
 // ─── Main Library Page ────────────────────────────────────────────────────────
 export default function LibraryPage() {
+  const { lang, setLang, t, isRTL, fmtDate, fmtNum } = useLang()
   const { show, ToastContainer }   = useToast()
   const { user }                   = useAuthStore()
   const [folders, setFolders]      = useFolderStore()
@@ -478,13 +480,13 @@ export default function LibraryPage() {
           <div className="p-2 border-t border-gray-100 flex-shrink-0">
             <button onClick={()=>setShowFolderMgr(true)}
               className="w-full text-xs text-blue-600 hover:text-blue-800 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium">
-              + إنشاء مجلد جديد
+              + t('new_folder')
             </button>
           </div>
         )}
         {!isAdmin && (
           <div className="p-2 border-t border-gray-50 flex-shrink-0">
-            <p className="text-[10px] text-gray-400 text-center">🔐 المجلدات تُدار من قِبَل الإدارة</p>
+            <p className="text-[10px] text-gray-400 text-center">🔐 t('admin_only_folders')</p>
           </div>
         )}
       </div>
@@ -495,7 +497,7 @@ export default function LibraryPage() {
         <div className="bg-white border-b border-gray-100 px-5 py-3 flex items-center gap-3 flex-shrink-0">
           {/* Breadcrumb */}
           <div className="flex items-center gap-1 text-sm text-gray-500 flex-1 min-w-0">
-            <button onClick={()=>navigate(null)} className="hover:text-blue-600 font-medium flex-shrink-0">📚 المكتبة</button>
+            <button onClick={()=>navigate(null)} className="hover:text-blue-600 font-medium flex-shrink-0">📚 t('library_title')</button>
             {folderPath.map((p,i)=>(
               <React.Fragment key={p.id}>
                 <span className="text-gray-300">›</span>

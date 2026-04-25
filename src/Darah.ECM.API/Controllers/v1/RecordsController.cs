@@ -111,6 +111,11 @@ public sealed class RecordsController : ControllerBase
         var userId = int.Parse(User.FindFirst("uid")?.Value ?? "1");
         var record = await _db.Records.FindAsync(new object[]{id}, ct);
         if (record is null) return NotFound();
+        // ── Immutability guard ────────────────────────────────────────────────
+        if (record.IsLocked)
+            return Conflict(ApiResponse<bool>.Fail(
+                $"السجل {record.RecordNumber} مقفل نهائياً ولا يمكن تعديله بعد الاعتماد. " +
+                $"تاريخ القفل: {record.LockedAt:d}"));
         if (!string.IsNullOrWhiteSpace(req.MetadataJson))
             record.SetMetadata(req.MetadataJson, userId);
         await _db.SaveChangesAsync(ct);
@@ -126,6 +131,29 @@ public sealed class RecordsController : ControllerBase
         record.UpdateStatus(RecordStatus.UnderReview, userId);
         await _db.SaveChangesAsync(ct);
         return Ok(ApiResponse<bool>.Ok(true));
+    }
+
+    [HttpPost("{id:long}/approve")]
+    public async Task<IActionResult> Approve(long id, CancellationToken ct)
+    {
+        var userId = int.Parse(User.FindFirst("uid")?.Value ?? "1");
+        var record = await _db.Records.FindAsync(new object[]{id}, ct);
+        if (record is null) return NotFound();
+        record.UpdateStatus(RecordStatus.Approved, userId);
+        // Auto-lock after approval — IMMUTABLE from this point
+        var lockResult = record.Lock(userId);
+        if (!lockResult.Success)
+            return BadRequest(ApiResponse<bool>.Fail(lockResult.Error!));
+        _db.AuditLogs.Add(new AuditLog {
+            EntityName="Record", EntityId=id.ToString(), Action="Approved+Locked",
+            PerformedBy=userId, PerformedAt=DateTime.UtcNow,
+            NewValues=$"Record {record.RecordNumber} approved and permanently locked.",
+        });
+        await _db.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(new {
+            record.RecordNumber, record.IsLocked, record.LockedAt,
+            message = $"تم اعتماد السجل {record.RecordNumber} وقفله نهائياً"
+        }));
     }
 
     [HttpGet("stats")]

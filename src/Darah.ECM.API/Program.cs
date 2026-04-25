@@ -1,3 +1,4 @@
+using Darah.ECM.API.Hubs;
 using Darah.ECM.API.Extensions;
 using Darah.ECM.API.Middleware;
 using Hangfire;
@@ -47,7 +48,12 @@ try
 
     builder.Services.AddEcmServices(builder.Configuration);
 
-    var app = builder.Build();
+    // SignalR
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<Darah.ECM.API.Hubs.INotificationSender,
+                               Darah.ECM.API.Hubs.NotificationSender>();
+
+var app = builder.Build();
 
     // ─── CORS must be first in pipeline ──────────────────────────────────────
     app.UseCors("AllowAll");
@@ -69,6 +75,7 @@ app.UseAuthentication();
 
     app.UseMiddleware<CorrelationIdMiddleware>();
     app.MapControllers();
+app.MapHub<Darah.ECM.API.Hubs.NotificationHub>("/hubs/notifications");
     app.MapHealthChecks("/health");
     app.MapGet("/health/live", () => Results.Ok(new { status = "alive", time = DateTime.UtcNow }));
     app.MapGet("/", () => Results.Redirect("/swagger"));

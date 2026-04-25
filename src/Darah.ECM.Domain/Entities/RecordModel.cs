@@ -162,6 +162,30 @@ public sealed class Record : Common.BaseEntity
     }
 
     public void LinkDocument(Guid documentId) => DocumentId = documentId;
+
+    // ── Immutability enforcement ─────────────────────────────────────────────
+    public bool     IsLocked       { get; private set; }
+    public DateTime? LockedAt      { get; private set; }
+    public int?      LockedByUserId{ get; private set; }
+
+    /// <summary>Lock record permanently after Approved. Cannot be undone.</summary>
+    public Result Lock(int userId)
+    {
+        if (Status != RecordStatus.Approved)
+            return Result.Fail("يمكن قفل السجل فقط بعد الاعتماد");
+        IsLocked = true;
+        LockedAt = DateTime.UtcNow;
+        LockedByUserId = userId;
+        return Result.Ok();
+    }
+
+    /// <summary>Throws if record is immutable.</summary>
+    public void GuardImmutable()
+    {
+        if (IsLocked)
+            throw new InvalidOperationException(
+                $"السجل {RecordNumber} مقفل ولا يمكن تعديله بعد الاعتماد النهائي.");
+    }
 }
 
 // ─── 5. RECORD ATTACHMENT ─────────────────────────────────────────────────────
@@ -272,4 +296,14 @@ public sealed class RetentionScheduleEntry
 
     public void PlaceLegalHold()  => IsLegalHold = true;
     public void RemoveLegalHold() => IsLegalHold = false;
+}
+
+/// <summary>Simple result type to avoid throwing for business errors.</summary>
+public sealed class Result
+{
+    public bool    Success { get; }
+    public string? Error   { get; }
+    private Result(bool ok, string? err) { Success=ok; Error=err; }
+    public static Result Ok()           => new(true,  null);
+    public static Result Fail(string e) => new(false, e);
 }

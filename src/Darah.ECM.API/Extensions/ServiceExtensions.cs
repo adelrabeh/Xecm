@@ -29,9 +29,26 @@ public static class ServiceExtensions
         services.AddDbContext<EcmDbContext>(opt =>
         {
             if (!string.IsNullOrEmpty(connStr))
-                opt.UseNpgsql(connStr, sql => sql.EnableRetryOnFailure(3));
+            {
+                // Railway uses postgres:// URIs — convert to Npgsql format
+                var cs = connStr;
+                if (cs.StartsWith("postgres://") || cs.StartsWith("postgresql://"))
+                {
+                    var uri  = new Uri(cs.Replace("postgres://","postgresql://"));
+                    var user = uri.UserInfo.Split(':');
+                    cs = $"Host={uri.Host};Port={Math.Max(uri.Port,5432)};" +
+                         $"Database={uri.AbsolutePath.TrimStart('/')};" +
+                         $"Username={user[0]};Password={user.Length>1?user[1]:""};" +
+                         $"SSL Mode=Require;Trust Server Certificate=true;";
+                }
+                opt.UseNpgsql(cs, sql => sql.EnableRetryOnFailure(3));
+                Console.WriteLine("[DB] PostgreSQL connected");
+            }
             else
+            {
                 opt.UseInMemoryDatabase("DarahECM_Dev");
+                Console.WriteLine("[DB] InMemory (set DATABASE_URL for PostgreSQL)");
+            }
         });
 
         // JWT

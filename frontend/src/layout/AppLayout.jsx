@@ -1,3 +1,4 @@
+import { useNotifications } from '../hooks/useNotifications'
 import { useLang } from '../i18n.js'
 import { ChangePasswordModal } from '../components/ChangePasswordModal'
 import React, { useState, useEffect } from 'react'
@@ -22,6 +23,7 @@ const FULL_NAV_KEYS = [
   { to: '/records',       icon: '🗂',  key: 'nav_records' },
   { to: '/content-model', icon: '🏛️', key: 'nav_content_model' },
   { to: '/search',        icon: '🔍', key: 'nav_search' },
+  { to: '/audit',         icon: '📋', key: 'nav_audit' },
   { to: '/admin',         icon: '⚙️', key: 'nav_admin' },
 ]
 
@@ -42,12 +44,7 @@ export default function AppLayout() {
 
   const handleLogout = () => { logout(); navigate('/login') }
 
-  const NOTIFS = [
-    { id:1, icon:'📋', text:'تم تكليفك بمهمة جديدة: مراجعة عقود الربع الثاني', time:'منذ 5 دقائق', read:false, to:'/tasks' },
-    { id:2, icon:'⚠️', text:'المهمة "تدقيق المشتريات" تجاوزت تاريخ الاستحقاق', time:'منذ ساعة',    read:false, to:'/tasks' },
-    { id:3, icon:'💬', text:'تعليق جديد على: إعداد تقرير الأداء الشهري',          time:'منذ 2 ساعة', read:true,  to:'/tasks' },
-  ]
-  const unreadCount = NOTIFS.filter(n=>!n.read).length
+  const { notifications: NOTIFS_RAW, unread: unreadCount, markRead, markAllRead, TYPE_ICON } = useNotifications()
 
   return (
     <>
@@ -116,18 +113,18 @@ export default function AppLayout() {
               <p className="font-bold text-gray-900">الإشعارات</p>
               <span className="text-xs text-blue-600 cursor-pointer hover:underline">تحديد الكل كمقروء</span>
             </div>
-            {NOTIFS.map(n=>(
+            {NOTIFS_RAW.slice(0,8).map(n=>(
               <div key={n.id} onClick={()=>{navigate(n.to);setNotifOpen(false)}}
                 className={`flex items-start gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 border-b border-gray-50 transition-colors ${!n.read?'bg-blue-50/60':''}`}>
-                <span className="text-xl flex-shrink-0 mt-0.5">{n.icon}</span>
+                <span className="text-xl flex-shrink-0 mt-0.5">{TYPE_ICON[n.type]||'🔔'}</span>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm leading-snug ${!n.read?'font-semibold text-gray-900':'text-gray-600'}`}>{n.text}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">{n.time}</p>
+                  <p className={`text-sm leading-snug ${!n.isRead?'font-semibold text-gray-900':'text-gray-600'}`}>{lang==='en'?(n.bodyEn||n.bodyAr):(n.bodyAr||n.bodyEn)}</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{n.createdAt?new Date(n.createdAt).toLocaleString(lang==='en'?'en-US':'ar-SA',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}</p>
                 </div>
-                {!n.read && <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"/>}
+                {!n.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"/>}
               </div>
             ))}
-            {NOTIFS.length===0 && <div className="py-10 text-center text-gray-400 text-sm">لا توجد إشعارات</div>}
+            {NOTIFS_RAW.length===0 && <div className="py-10 text-center text-gray-400 text-sm">{t('no_notifs')}</div>}
           </div>
         </div>
       )}

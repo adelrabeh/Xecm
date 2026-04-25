@@ -13,18 +13,19 @@ const BOTTOM_NAV_KEYS = [
   { to: '/workflows', icon: '✅', key: 'nav_workflows' },
 ]
 
-// Full sidebar nav (desktop + mobile drawer)
-const FULL_NAV = [
-  { to: '/dashboard',     icon: '⊞',  label: 'لوحة التحكم' },
-  { to: '/tasks',         icon: '📋', label: 'المهام' },
-  { to: '/documents',     icon: '📄', label: 'ملفاتي' },
-  { to: '/workflows',     icon: '✅', label: 'سير العمل' },
-  { to: '/library',       icon: '📚', label: 'المكتبة' },
-  { to: '/records',       icon: '🗂',  label: 'السجلات' },
-  { to: '/content-model', icon: '🏛️', label: 'نموذج المحتوى' },
-    { to: '/search',        icon: '🔍', label: 'search' },
-  { to: '/admin',         icon: '⚙️', label: 'الإدارة' },
+const FULL_NAV_KEYS = [
+  { to: '/dashboard',     icon: '⊞',  key: 'nav_dashboard' },
+  { to: '/tasks',         icon: '📋', key: 'nav_tasks' },
+  { to: '/documents',     icon: '📄', key: 'nav_myfiles' },
+  { to: '/workflows',     icon: '✅', key: 'nav_workflows' },
+  { to: '/library',       icon: '📚', key: 'nav_library' },
+  { to: '/records',       icon: '🗂',  key: 'nav_records' },
+  { to: '/content-model', icon: '🏛️', key: 'nav_content_model' },
+  { to: '/search',        icon: '🔍', key: 'nav_search' },
+  { to: '/admin',         icon: '⚙️', key: 'nav_admin' },
 ]
+
+// Full sidebar nav (desktop + mobile drawer)
 
 export default function AppLayout() {
   const { lang, setLang, t, isRTL } = useLang()

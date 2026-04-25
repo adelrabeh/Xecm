@@ -108,15 +108,6 @@ function TaskFormModal({ task, onClose, onSave }) {
     onClose()
   }
 
-  const F = ({label,req,error,children}) => (
-    <div>
-      <label className="block text-xs font-bold text-gray-700 mb-1">{label}{req&&<span className="text-red-400 mr-1">*</span>}</label>
-      {children}
-      {error&&<p className="text-red-500 text-[10px] mt-0.5">{error}</p>}
-    </div>
-  )
-  const INPUT_CLS = (err) => `w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right ${err?'border-red-300':'border-gray-200'}`
-
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl my-4" onClick={e=>e.stopPropagation()}>
@@ -125,37 +116,58 @@ function TaskFormModal({ task, onClose, onSave }) {
           <button onClick={onClose} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 text-xl">✕</button>
         </div>
         <div className="p-5 space-y-4">
-          <F label="عنوان المهمة" req error={errors.title}>
-            <input value={form.title} onChange={e=>set('title',e.target.value)} className={INPUT_CLS(errors.title)} placeholder="عنوان واضح وموجز..."/>
-          </F>
-          <F label="الوصف التفصيلي">
-            <textarea value={form.desc} onChange={e=>set('desc',e.target.value)} rows={3} className={`${INPUT_CLS()} resize-none`} placeholder="وصف تفصيلي للمهمة والنتائج المطلوبة..."/>
-          </F>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">عنوان المهمة <span className="text-red-400">*</span></label>
+            <input value={form.title} onChange={e=>set('title',e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right ${errors.title?'border-red-300':'border-gray-200'}`}
+              placeholder="عنوان واضح وموجز..."/>
+            {errors.title&&<p className="text-red-500 text-[10px] mt-0.5">{errors.title}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">الوصف التفصيلي</label>
+            <textarea value={form.desc} onChange={e=>set('desc',e.target.value)} rows={3}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right resize-none"
+              placeholder="وصف تفصيلي للمهمة والنتائج المطلوبة..."/>
+          </div>
           <div className="grid grid-cols-2 gap-3">
-            <F label="القسم المعني" req error={errors.dept}>
-              <select value={form.dept} onChange={e=>set('dept',e.target.value)} className={INPUT_CLS(errors.dept)}>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">القسم المعني <span className="text-red-400">*</span></label>
+              <select value={form.dept} onChange={e=>set('dept',e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.dept?'border-red-300':'border-gray-200'}`}>
                 <option value="">— اختر القسم —</option>
                 {DEPARTMENTS.map(d=><option key={d}>{d}</option>)}
               </select>
-            </F>
-            <F label="تكليف إلى">
-              <select value={form.assignedTo} onChange={e=>set('assignedTo',e.target.value)} className={INPUT_CLS()}>
+              {errors.dept&&<p className="text-red-500 text-[10px] mt-0.5">{errors.dept}</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">تكليف إلى</label>
+              <select value={form.assignedTo} onChange={e=>set('assignedTo',e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                 <option value="">— اختر الموظف —</option>
                 {USERS.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
-            </F>
-            <F label="الأولوية">
-              <select value={form.priority} onChange={e=>set('priority',e.target.value)} className={INPUT_CLS()}>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">الأولوية</label>
+              <select value={form.priority} onChange={e=>set('priority',e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                 {PRIORITIES.map(p=><option key={p.key} value={p.key}>{p.label}</option>)}
               </select>
-            </F>
-            <F label="تاريخ الاستحقاق" req error={errors.due}>
-              <input type="date" value={form.due} onChange={e=>set('due',e.target.value)} className={INPUT_CLS(errors.due)} min={new Date().toISOString().split('T')[0]}/>
-            </F>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">تاريخ الاستحقاق <span className="text-red-400">*</span></label>
+              <input type="date" value={form.due} onChange={e=>set('due',e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.due?'border-red-300':'border-gray-200'}`}
+                min={new Date().toISOString().split('T')[0]}/>
+              {errors.due&&<p className="text-red-500 text-[10px] mt-0.5">{errors.due}</p>}
+            </div>
           </div>
-          <F label="الوسوم (مفصولة بفاصلة)">
-            <input value={form.tags} onChange={e=>set('tags',e.target.value)} className={INPUT_CLS()} placeholder="تدريب، مالي، عاجل، ..."/>
-          </F>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">الوسوم (مفصولة بفاصلة)</label>
+            <input value={form.tags} onChange={e=>set('tags',e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
+              placeholder="تدريب، مالي، عاجل، ..."/>
+          </div>
         </div>
         <div className="p-5 border-t border-gray-100 flex gap-3">
           <button onClick={onClose} className="border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>

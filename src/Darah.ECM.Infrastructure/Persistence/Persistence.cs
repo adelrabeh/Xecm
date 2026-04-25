@@ -43,7 +43,8 @@ public sealed class EcmDbContext : DbContext
     public DbSet<Record>            Records            => Set<Record>();
     public DbSet<RecordAttachment>  RecordAttachments  => Set<RecordAttachment>();
     // Escalation
-    public DbSet<TaskEscalation>    TaskEscalations    => Set<TaskEscalation>();
+    public DbSet<TaskEscalation>         TaskEscalations        => Set<TaskEscalation>();
+    public DbSet<RetentionScheduleEntry> RetentionSchedules     => Set<RetentionScheduleEntry>();
     public DbSet<TaxonomyCategory>  TaxonomyCategories => Set<TaxonomyCategory>();
     public DbSet<DocumentCategory>  DocumentCategories => Set<DocumentCategory>();
     public DbSet<AuditLog>        AuditLogs        => Set<AuditLog>();
@@ -101,6 +102,9 @@ public sealed class EcmDbContext : DbContext
         mb.Entity<Record>().Property(e => e.SecurityLevel).HasConversion<int>();
         mb.Entity<RecordAttachment>().HasKey(e => e.AttachmentId);
         mb.Entity<TaskEscalation>().HasKey(e => e.EscalationId);
+        mb.Entity<RetentionScheduleEntry>().HasKey(e => e.EntryId);
+        mb.Entity<RetentionScheduleEntry>().Property(e => e.DisposalAction).HasConversion<int>();
+        mb.Entity<RetentionScheduleEntry>().Property(e => e.Status).HasConversion<int>();
         mb.Entity<TaskEscalation>().Property(e => e.Status).HasConversion<int>();
         mb.Entity<TaskEscalation>().Property(e => e.EscalationLevel).HasConversion<int>();
         mb.Entity<TaskEscalation>().Property(e => e.EscalatedToRole).HasConversion<int>();

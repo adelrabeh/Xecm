@@ -190,3 +190,86 @@ public sealed class RecordAttachment : Common.BaseEntity
         return a;
     }
 }
+
+// ─── Retention Policy Enforcement ─────────────────────────────────────────────
+
+public enum DisposalAction
+{
+    Delete          = 0,
+    TransferToNationalArchive = 1,
+    ReviewByCommittee = 2,
+    ExtendRetention = 3,
+}
+
+public enum RetentionReviewStatus
+{
+    PendingReview   = 0,
+    ApprovedDisposal= 1,
+    RetentionExtended=2,
+    Transferred     = 3,
+    Completed       = 4,
+}
+
+/// <summary>
+/// Tracks when a record's retention period expires and what action to take.
+/// Enforces NCA / DGA compliance.
+/// </summary>
+public sealed class RetentionScheduleEntry
+{
+    public long   EntryId           { get; private set; }
+    public long   RecordId          { get; private set; }
+    public string RecordTitle       { get; private set; } = "";
+    public string RetentionLabel    { get; private set; } = ""; // "7 سنوات"
+    public int    RetentionYears    { get; private set; }
+    public DateTime CreatedAt       { get; private set; }
+    public DateTime ExpiresAt       { get; private set; }  // CreatedAt + RetentionYears
+    public bool   IsLegalHold       { get; private set; }
+    public DisposalAction  DisposalAction  { get; private set; } = DisposalAction.ReviewByCommittee;
+    public RetentionReviewStatus Status    { get; private set; } = RetentionReviewStatus.PendingReview;
+    public string? ReviewNote       { get; private set; }
+    public int?   ReviewedBy        { get; private set; }
+    public DateTime? ReviewedAt     { get; private set; }
+    public string? Department       { get; private set; }
+    public string? RecordType       { get; private set; }
+
+    private RetentionScheduleEntry() {}
+
+    public static RetentionScheduleEntry Create(
+        long recordId, string title, string retentionLabel,
+        int years, string? department, string? recordType, bool isLegalHold = false)
+    {
+        var now = DateTime.UtcNow;
+        return new RetentionScheduleEntry
+        {
+            RecordId       = recordId,
+            RecordTitle    = title,
+            RetentionLabel = retentionLabel,
+            RetentionYears = years,
+            CreatedAt      = now,
+            ExpiresAt      = now.AddYears(years),
+            Department     = department,
+            RecordType     = recordType,
+            IsLegalHold    = isLegalHold,
+            Status         = RetentionReviewStatus.PendingReview,
+        };
+    }
+
+    public bool IsExpired()      => !IsLegalHold && DateTime.UtcNow >= ExpiresAt;
+    public bool IsDueSoon(int days = 90) => !IsLegalHold && DateTime.UtcNow >= ExpiresAt.AddDays(-days);
+
+    public void ApproveDisposal(int userId, string note)
+    {
+        Status = RetentionReviewStatus.ApprovedDisposal;
+        ReviewedBy = userId; ReviewedAt = DateTime.UtcNow; ReviewNote = note;
+    }
+
+    public void ExtendRetention(int years, int userId, string note)
+    {
+        ExpiresAt = ExpiresAt.AddYears(years);
+        Status = RetentionReviewStatus.RetentionExtended;
+        ReviewedBy = userId; ReviewedAt = DateTime.UtcNow; ReviewNote = note;
+    }
+
+    public void PlaceLegalHold()  => IsLegalHold = true;
+    public void RemoveLegalHold() => IsLegalHold = false;
+}

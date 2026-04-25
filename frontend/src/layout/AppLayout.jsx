@@ -21,6 +21,7 @@ const FULL_NAV = [
   { to: '/library',       icon: '📚', label: 'المكتبة' },
   { to: '/records',       icon: '🗂',  label: 'السجلات' },
   { to: '/content-model', icon: '🏛️', label: 'نموذج المحتوى' },
+  { to: '/search',        icon: '🔍', label: 'البحث' },
   { to: '/admin',         icon: '⚙️', label: 'الإدارة' },
 ]
 
@@ -202,6 +203,13 @@ export default function AppLayout() {
             </div>
             <div className="hidden md:flex flex-1"/>
 
+            {/* Search shortcut */}
+            <button onClick={()=>navigate('/search')}
+              className="hidden sm:flex text-gray-500 hover:text-gray-800 w-9 h-9 items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </button>
             {/* Notifications */}
             <button onClick={()=>setNotifOpen(p=>!p)}
               className="relative text-gray-500 hover:text-gray-800 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">

@@ -6,9 +6,12 @@ import { useToast } from '../../components/Toast'
 import client from '../../api/client'
 
 const TYPE_CFG = {
-  'وثيقة':       { icon:'📄', color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe' },
-  'سجل':          { icon:'🗂', color:'#7c3aed', bg:'#f5f3ff', border:'#ddd6fe' },
-  'أصل معرفي':   { icon:'📦', color:'#059669', bg:'#ecfdf5', border:'#a7f3d0' },
+  'وثيقة':{'icon':'📄','color':'#2563eb','bg':'#eff6ff','border':'#bfdbfe'},
+  'سجل':{'icon':'🗂','color':'#7c3aed','bg':'#f5f3ff','border':'#ddd6fe'},
+  'أصل معرفي':{'icon':'📦','color':'#059669','bg':'#ecfdf5','border':'#a7f3d0'},
+  'Document':{'icon':'📄','color':'#2563eb','bg':'#eff6ff','border':'#bfdbfe'},
+  'Record':{'icon':'🗂','color':'#7c3aed','bg':'#f5f3ff','border':'#ddd6fe'},
+  'Knowledge Asset':{'icon':'📦','color':'#059669','bg':'#ecfdf5','border':'#a7f3d0'},
 }
 
 // ─── Build mock search index from localStorage ─────────────────────────────
@@ -261,7 +264,7 @@ export default function SearchPage() {
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 onFocus={() => query.length >= 2 && setShowSugg(true)}
                 onBlur={() => setTimeout(() => setShowSugg(false), 150)}
-                placeholder="ابحث في الوثائق والسجلات والأصول المعرفية..."
+                placeholder={t("search_ph")}
                 className="w-full border-2 border-gray-200 focus:border-blue-500 rounded-2xl px-5 py-4 text-base focus:outline-none text-right shadow-sm transition-colors"
                 style={{fontSize:15}}
               />
@@ -349,8 +352,8 @@ export default function SearchPage() {
           {/* Sort */}
           {filtered.length > 0 && (
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs text-gray-400">الترتيب حسب:</span>
-              <span className="text-xs font-semibold text-blue-600">الصلة ↓</span>
+              <span className="text-xs text-gray-400">{t("sort_by")}</span>
+              <span className="text-xs font-semibold text-blue-600">{t("sort_relevance")}</span>
             </div>
           )}
 
@@ -359,7 +362,7 @@ export default function SearchPage() {
             <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
               <div className="text-5xl mb-3">🔍</div>
               <p className="font-semibold text-gray-700">t('no_results') لـ "{query}"</p>
-              <p className="text-sm text-gray-400 mt-1">جرّب كلمات أخرى أو تحقق من الإملاء</p>
+              <p className="text-sm text-gray-400 mt-1">{t("try_other")}</p>
               <div className="flex flex-wrap justify-center gap-2 mt-4">
                 {QUICK_SEARCHES.map(q => (
                   <button key={q} onClick={() => { setQuery(q); doSearch(q) }}

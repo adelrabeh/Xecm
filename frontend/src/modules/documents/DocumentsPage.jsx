@@ -20,11 +20,11 @@ const MOCK_DOCS = [
 ]
 
 const STATUS_MAP = {
-  Active:      { label:'نشط',          cls:'bg-green-100 text-green-700',   dot:'bg-green-500' },
-  UnderReview: { label:'قيد المراجعة', cls:'bg-yellow-100 text-yellow-700', dot:'bg-yellow-500' },
-  Approved:    { label:'معتمد',         cls:'bg-blue-100 text-blue-700',     dot:'bg-blue-500' },
-  Archived:    { label:'مؤرشف',         cls:'bg-gray-100 text-gray-500',     dot:'bg-gray-400' },
-  Draft:       { label:'مسودة',         cls:'bg-purple-100 text-purple-700', dot:'bg-purple-500' },
+  Active:      { labelAr:'نشط',          labelEn:'Active',       cls:'bg-green-100 text-green-700',   dot:'bg-green-500' },
+  UnderReview: { labelAr:'قيد المراجعة', labelEn:'Under Review', cls:'bg-yellow-100 text-yellow-700', dot:'bg-yellow-500' },
+  Approved:    { labelAr:'معتمد',         labelEn:'Approved',     cls:'bg-blue-100 text-blue-700',     dot:'bg-blue-500' },
+  Archived:    { labelAr:'مؤرشف',         labelEn:'Archived',     cls:'bg-gray-100 text-gray-500',     dot:'bg-gray-400' },
+  Draft:       { labelAr:'مسودة',         labelEn:'Draft',        cls:'bg-purple-100 text-purple-700', dot:'bg-purple-500' },
 }
 const CLASS_MAP = {
   'عام':         { cls:'bg-green-50 text-green-600 border border-green-200' },
@@ -50,8 +50,8 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
       <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4" onClick={e=>e.stopPropagation()}>
         <p className="text-gray-800 text-sm text-center mb-5">{message}</p>
         <div className="flex gap-3">
-          <button onClick={onConfirm} className="flex-1 bg-red-600 text-white py-2 rounded-xl text-sm hover:bg-red-700">تأكيد</button>
-          <button onClick={onCancel} className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+          <button onClick={onConfirm} className="flex-1 bg-red-600 text-white py-2 rounded-xl text-sm hover:bg-red-700">{t('confirm')}</button>
+          <button onClick={onCancel} className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
         </div>
       </div>
     </div>
@@ -59,7 +59,8 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 }
 
 export default function DocumentsPage() {
-  const { lang, setLang, t, isRTL, fmtDate, fmtNum } = useLang()
+  const { lang, t, isRTL, fmtDate } = useLang()
+  const sl = (s) => lang==='en'?(s.labelEn||s.labelAr):s.labelAr
   const { user }              = useAuthStore()
   const isAdmin               = (user?.permissions||[]).some(p => p==='admin.*'||p==='documents.all')
   const currentUser           = user?.fullNameAr || user?.username || 'أنت'
@@ -197,12 +198,12 @@ export default function DocumentsPage() {
   }
 
   const ACTIONS = [
-    { label:'🔗 مشاركة',           fn: (doc)=>setShareDoc(doc), cls:'text-purple-600 border-purple-200 hover:bg-purple-50' },
-    { label:'🔒 استعارة',          fn: handleCheckout,     cls:'text-gray-600 border-gray-200 hover:bg-gray-50' },
-    { label:'📤 إرسال للاعتماد',  fn: handleSendApproval, cls:'text-blue-600 border-blue-200 hover:bg-blue-50' },
-    { label:'👁️ معاينة',          fn: (doc)=>setPreviewDoc(doc), cls:'text-blue-600 border-blue-200 hover:bg-blue-50' },
-    { label:'🖨️ طباعة',           fn: handlePrint,        cls:'text-gray-600 border-gray-200 hover:bg-gray-50' },
-    { label:'🗃️ أرشفة',           fn: handleArchive,      cls:'text-red-500 border-red-100 hover:bg-red-50' },
+    { label:'🔗 '+(lang==='en'?'Share':'مشاركة'),           fn: (doc)=>setShareDoc(doc), cls:'text-purple-600 border-purple-200 hover:bg-purple-50' },
+    { label:'🔒 '+(lang==='en'?'Check Out':'استعارة'),          fn: handleCheckout,     cls:'text-gray-600 border-gray-200 hover:bg-gray-50' },
+    { label:'📤 '+(lang==='en'?'Send Approval':'إرسال للاعتماد'),  fn: handleSendApproval, cls:'text-blue-600 border-blue-200 hover:bg-blue-50' },
+    { label:'👁️ '+(lang==='en'?'Preview':'معاينة'),          fn: (doc)=>setPreviewDoc(doc), cls:'text-blue-600 border-blue-200 hover:bg-blue-50' },
+    { label:'🖨️ '+(lang==='en'?'Print':'طباعة'),           fn: handlePrint,        cls:'text-gray-600 border-gray-200 hover:bg-gray-50' },
+    { label:'🗃️ '+(lang==='en'?'Archive':'أرشفة'),           fn: handleArchive,      cls:'text-red-500 border-red-100 hover:bg-red-50' },
   ]
 
   return (
@@ -217,17 +218,17 @@ export default function DocumentsPage() {
       <div className={`flex flex-col gap-3 transition-all ${sel?'w-[52%]':'w-full'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">t('docs_title')</h1>
-            <p className="text-gray-400 text-xs">{filtered.length} {isAdmin ? "وثيقة (عرض المدير)" : "ملف خاص بك"}</p>
+            <h1 className="text-lg font-bold text-gray-900">{t('docs_title')}</h1>
+            <p className="text-gray-400 text-xs">{filtered.length} {isAdmin ? (lang==='en'?'document(s) (Admin View)':'وثيقة (عرض المدير)') : (lang==='en'?'file(s)':'ملف خاص بك')}</p>
           </div>
           <div className="flex gap-2">
             <button onClick={handleImport}
               className="border border-gray-200 text-gray-500 text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1.5">
-              📥 استيراد
+              {t('import')} 📥
             </button>
             <button onClick={()=>setShowUpload(true)}
               className="bg-blue-700 text-white text-xs px-4 py-1.5 rounded-lg hover:bg-blue-800 transition-colors flex items-center gap-1.5 shadow-sm">
-              ＋ t('upload_doc')
+              + {t('upload_doc')}
             </button>
           </div>
         </div>
@@ -235,13 +236,13 @@ export default function DocumentsPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex gap-2">
           <div className="relative flex-1">
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">🔍</span>
-            <input type="text" placeholder="البحث..." value={search} onChange={e=>setSearch(e.target.value)}
+            <input type="text" placeholder={t("search")+"..."} value={search} onChange={e=>setSearch(e.target.value)}
               className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 text-right" />
           </div>
           <select value={filter} onChange={e=>setFilter(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 text-xs text-gray-600 focus:outline-none">
-            <option value="all">كل الحالات</option>
-            {Object.entries(STATUS_MAP).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+            <option value="all">{t('filter_all_status')}</option>
+            {Object.entries(STATUS_MAP).map(([k,v])=><option key={k} value={k}>{sl(v)}</option>)}
           </select>
         </div>
 
@@ -251,17 +252,17 @@ export default function DocumentsPage() {
               <thead className="sticky top-0 bg-gray-50 border-b border-gray-100 z-10">
                 <tr>
                   <th className="px-3 py-2.5 text-right font-semibold text-gray-400">الوثيقة</th>
-                  <th className="px-3 py-2.5 text-right font-semibold text-gray-400">الحالة</th>
-                  <th className="px-3 py-2.5 text-right font-semibold text-gray-400 hidden md:table-cell">التصنيف</th>
-                  <th className="px-3 py-2.5 text-right font-semibold text-gray-400">الإصدار</th>
-                  <th className="px-3 py-2.5 text-right font-semibold text-gray-400 hidden lg:table-cell">آخر تعديل</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-gray-400">{t('status')}</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-gray-400 hidden md:table-cell">{t('classification')}</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-gray-400">{t('version')}</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-gray-400 hidden lg:table-cell">{t('updated_at')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading
                   ? Array.from({length:5}).map((_,i)=><tr key={i}>{Array.from({length:5}).map((_,j)=><td key={j} className="px-3 py-3"><div className="h-3 bg-gray-100 rounded animate-pulse"/></td>)}</tr>)
                   : filtered.length===0
-                    ? <tr><td colSpan={5} className="text-center py-16 text-gray-300"><div className="text-3xl mb-2">📭</div><p>لا توجد وثائق</p></td></tr>
+                    ? <tr><td colSpan={5} className="text-center py-16 text-gray-300"><div className="text-3xl mb-2">📭</div><p>{t('no_docs')}</p></td></tr>
                     : filtered.map(doc=>{
                         const s=STATUS_MAP[doc.status]||{label:doc.status,cls:'bg-gray-100 text-gray-500',dot:'bg-gray-400'}
                         const c=CLASS_MAP[doc.classification]||{cls:'bg-gray-50 text-gray-500 border border-gray-200'}
@@ -280,7 +281,7 @@ export default function DocumentsPage() {
                             <td className="px-3 py-2.5">
                               <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${s.cls}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.dot}`}/>
-                                {s.label}
+                                {sl(s)}
                               </span>
                             </td>
                             <td className="px-3 py-2.5 hidden md:table-cell">
@@ -288,7 +289,7 @@ export default function DocumentsPage() {
                             </td>
                             <td className="px-3 py-2.5 text-gray-500 font-mono">{doc.version||'1.0'}</td>
                             <td className="px-3 py-2.5 text-gray-400 hidden lg:table-cell">
-                              {doc.updatedAt?new Date(doc.updatedAt).toLocaleDateString('ar-SA'):'—'}
+                              {doc.updatedAt?fmtDate(doc.updatedAt):'—'}
                             </td>
                           </tr>
                         )
@@ -321,13 +322,13 @@ export default function DocumentsPage() {
             <div className="flex items-center gap-2">
               {(()=>{const s=STATUS_MAP[sel.status]||{};return(
                 <span className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-medium ${s.cls}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}/>{s.label}
+                  <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}/>{sl(s)}
                 </span>
               )})()}
               {sel.classification&&<span className={`text-[11px] px-2 py-0.5 rounded font-medium ${(CLASS_MAP[sel.classification]||{}).cls}`}>{sel.classification}</span>}
             </div>
             <div className="flex gap-1">
-              <button onClick={()=>setPreviewDoc(sel)} className="bg-blue-700 text-white text-[11px] px-3 py-1.5 rounded-lg hover:bg-blue-800 transition-colors">👁 معاينة</button>
+              <button onClick={()=>setPreviewDoc(sel)} className="bg-blue-700 text-white text-[11px] px-3 py-1.5 rounded-lg hover:bg-blue-800 transition-colors">{t('preview')}</button>
               <button onClick={()=>setShareDoc(sel)} className="border border-gray-200 text-gray-500 text-[11px] px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors" title="مشاركة">🔗</button>
               <button onClick={()=>handleEdit(sel)} className="border border-gray-200 text-gray-500 text-[11px] px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors" title="تعديل">✏️</button>
             </div>
@@ -335,7 +336,7 @@ export default function DocumentsPage() {
 
           {/* Tabs */}
           <div className="flex border-b border-gray-100">
-            {[{key:'details',label:'التفاصيل'},{key:'attachments',label:`المرفقات${sel.attachments?.length?` (${sel.attachments.length})`:''}`},{key:'history',label:'السجل'}].map(t=>(
+            {[{key:'details',label:lang==='en'?'Details':'التفاصيل'},{key:'attachments',label:`${lang==='en'?'Attachments':'المرفقات'}${sel.attachments?.length?` (${sel.attachments.length})`:''}`},{key:'history',label:lang==='en'?'History':'السجل'}].map(t=>(
               <button key={t.key} onClick={()=>setTab(t.key)}
                 className={`px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab===t.key?'border-blue-600 text-blue-700':'border-transparent text-gray-400 hover:text-gray-600'}`}>
                 {t.label}
@@ -349,25 +350,25 @@ export default function DocumentsPage() {
               {sel.summary&&<div className="bg-blue-50 rounded-xl p-3.5"><p className="text-[11px] font-semibold text-blue-600 mb-1.5">📝 الملخص</p><p className="text-xs text-gray-700 leading-relaxed">{sel.summary}</p></div>}
               {sel.tags?.length>0&&<div className="flex flex-wrap gap-1.5">{sel.tags.map(tag=><span key={tag} className="bg-gray-100 text-gray-500 text-[11px] px-2.5 py-0.5 rounded-full">#{tag}</span>)}</div>}
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase mb-3">معلومات الوثيقة</p>
-                <Row label="رقم الوثيقة"   value={sel.id} mono/>
-                <Row label="نوع الوثيقة"   value={sel.type}/>
-                <Row label="رقم الإصدار"   value={sel.version} mono/>
-                <Row label="المالك"         value={sel.owner}/>
-                <Row label="الإدارة"        value={sel.department}/>
-                <Row label="اللغة"          value={sel.language}/>
-                <Row label="عدد الصفحات"   value={sel.pages?`${sel.pages} صفحة`:undefined}/>
-                <Row label="حجم الملف"     value={sel.fileSize}/>
-                <Row label="نوع الملف"     value={sel.fileType}/>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase mb-3">{lang==='en'?'Document Info':'معلومات الوثيقة'}</p>
+                <Row label={lang==='en'?'Doc No.':'رقم الوثيقة'}   value={sel.id} mono/>
+                <Row label={lang==='en'?'Type':'نوع الوثيقة'}   value={sel.type}/>
+                <Row label={t('version')}   value={sel.version} mono/>
+                <Row label={t('owner')}         value={sel.owner}/>
+                <Row label={t('department')}        value={sel.department}/>
+                <Row label={lang==='en'?'Language':'اللغة'}          value={sel.language}/>
+                <Row label={lang==='en'?'Pages':'عدد الصفحات'}   value={sel.pages?`${sel.pages} صفحة`:undefined}/>
+                <Row label={t('file_size')}     value={sel.fileSize}/>
+                <Row label={lang==='en'?'File Type':'نوع الملف'}     value={sel.fileType}/>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase mb-3">التواريخ</p>
-                <Row label="تاريخ الإنشاء"  value={sel.createdAt?new Date(sel.createdAt).toLocaleDateString('ar-SA'):undefined}/>
-                <Row label="آخر تعديل"      value={sel.updatedAt?new Date(sel.updatedAt).toLocaleDateString('ar-SA'):undefined}/>
-                <Row label="تاريخ الانتهاء" value={sel.expiryDate?new Date(sel.expiryDate).toLocaleDateString('ar-SA'):'غير محدد'}/>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase mb-3">{lang==='en'?'Dates':'التواريخ'}</p>
+                <Row label={t('created_at')}  value={sel.createdAt?fmtDate(sel.createdAt):undefined}/>
+                <Row label={t('updated_at')}      value={sel.updatedAt?fmtDate(sel.updatedAt):undefined}/>
+                <Row label={lang==='en'?'Expiry':'تاريخ الانتهاء'} value={sel.expiryDate?fmtDate(sel.expiryDate):'غير محدد'}/>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase mb-3">إجراءات سير العمل</p>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase mb-3">{lang==='en'?'Workflow Actions':'إجراءات سير العمل'}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {ACTIONS.map(a=>(
                     <button key={a.label} onClick={()=>a.fn(sel)}
@@ -382,7 +383,7 @@ export default function DocumentsPage() {
             {tab==='attachments'&&(
               <div className="space-y-2">
                 {!sel.attachments?.length
-                  ? <div className="text-center py-12"><div className="text-3xl mb-2">📎</div><p className="text-xs text-gray-400">لا توجد مرفقات</p></div>
+                  ? <div className="text-center py-12"><div className="text-3xl mb-2">📎</div><p className="text-xs text-gray-400">{t('no_attachments')}</p></div>
                   : sel.attachments.map((a,i)=>(
                     <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                       <div className="flex items-center gap-3">
@@ -398,7 +399,7 @@ export default function DocumentsPage() {
                 }
                 <button onClick={handleAddAttachment}
                   className="w-full border border-dashed border-gray-300 text-gray-400 text-xs py-3 rounded-xl hover:border-blue-400 hover:text-blue-500 transition-colors mt-2">
-                  + إضافة مرفق
+                  + {t('add_attachment')}
                 </button>
               </div>
             )}
@@ -417,7 +418,7 @@ export default function DocumentsPage() {
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${i===0?'bg-blue-50 text-blue-600':'bg-gray-50 text-gray-400'}`}>v{h.version}</span>
                       </div>
                       <p className="text-[11px] text-gray-500">{h.by}</p>
-                      <p className="text-[10px] text-gray-300">{new Date(h.date).toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'})}</p>
+                      <p className="text-[10px] text-gray-300">{fmtDate(h.date)}</p>
                     </div>
                   </div>
                 ))}

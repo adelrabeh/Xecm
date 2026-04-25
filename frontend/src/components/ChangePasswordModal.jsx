@@ -1,8 +1,10 @@
+import { useLang } from '../i18n.js'
 import React, { useState } from 'react'
 import client from '../api/client'
 import { useToast } from './Toast'
 
 export function ChangePasswordModal({ onClose }) {
+  const { lang, t } = useLang()
   const { show, ToastContainer } = useToast()
   const [form, setForm] = useState({ current: '', newPass: '', confirm: '' })
   const [loading, setLoading] = useState(false)
@@ -20,7 +22,7 @@ export function ChangePasswordModal({ onClose }) {
     setStrength(s)
   }
 
-  const strengthLabel = ['', 'ضعيفة جداً', 'ضعيفة', 'متوسطة', 'قوية', 'قوية جداً']
+  const strengthLabel = ['', t('pw_very_weak'), t('pw_weak'), t('pw_medium'), t('pw_strong'), t('pw_very_strong')]
   const strengthColor = ['', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500']
 
   const validate = () => {
@@ -147,7 +149,7 @@ export function ChangePasswordModal({ onClose }) {
           <button onClick={onClose} className="border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition-colors">إلغاء</button>
           <button onClick={handleSubmit} disabled={loading}
             className="flex-1 bg-blue-700 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-blue-800 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
-            {loading ? '⏳ جارٍ الحفظ...' : '🔑 تغيير كلمة المرور'}
+            {loading ? t('pw_saving') : t('pw_change_btn')}
           </button>
         </div>
       </div>

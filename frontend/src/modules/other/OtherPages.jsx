@@ -77,7 +77,7 @@ export function RecordsPage() {
             </div>
             <div className="flex gap-2 items-end">
               <button onClick={handleAdd} className="flex-1 bg-blue-700 text-white py-2 rounded-xl text-sm hover:bg-blue-800 font-semibold">حفظ</button>
-              <button onClick={()=>setShowNew(false)} className="border border-gray-200 text-gray-500 px-3 py-2 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+              <button onClick={()=>setShowNew(false)} className="border border-gray-200 text-gray-500 px-3 py-2 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
             </div>
           </div>
         </div>
@@ -101,7 +101,7 @@ export function RecordsPage() {
           <thead><tr className="bg-gray-50 border-b border-gray-100">
             <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">السجل</th>
             <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">الاحتفاظ</th>
-            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">الحالة</th>
+            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">{t('status')}</th>
             <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">الوثائق</th>
             <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">إجراءات</th>
           </tr></thead>
@@ -209,7 +209,7 @@ export function AdminPage() {
 
   const handleExport = () => {
     const csv = ['الاسم,البريد,المستخدم,الدور,القسم,الحالة',
-      ...users.map(u=>`${u.name},${u.email},${u.username},${u.role},${u.dept||'—'},${u.status==='active'?'فعال':'معطل'}`)
+      ...users.map(u=>`${u.name},${u.email},${u.username},${u.role},${u.dept||'—'},${u.status==='active'?lang==='en'?'Active':'فعال':'معطل'}`)
     ].join('\n')
     const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'})
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'users.csv'; a.click()
@@ -252,7 +252,7 @@ export function AdminPage() {
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">الاسم الكامل <span className="text-red-400">*</span></label>
               <input value={newUser.name} onChange={e=>setNewUser(p=>({...p,name:e.target.value}))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right" placeholder="الاسم الكامل"/>
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right" placeholder={t("full_name")}/>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">اسم المستخدم <span className="text-red-400">*</span></label>
@@ -270,7 +270,7 @@ export function AdminPage() {
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" dir="ltr"/>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">الدور</label>
+              <label className="block text-xs font-bold text-gray-600 mb-1">{t('role')}</label>
               <select value={newUser.role} onChange={e=>setNewUser(p=>({...p,role:e.target.value}))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                 {ROLES.map(r=><option key={r}>{r}</option>)}
@@ -290,7 +290,7 @@ export function AdminPage() {
               className="bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-800 disabled:opacity-50">
               {loading ? '⏳' : '✅'} حفظ المستخدم
             </button>
-            <button onClick={()=>setShowAdd(false)} className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+            <button onClick={()=>setShowAdd(false)} className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
           </div>
         </div>
       )}
@@ -323,7 +323,7 @@ export function AdminPage() {
           </div>
           <div className="flex gap-2">
             <button onClick={handleSaveEdit} className="bg-orange-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-orange-600">💾 حفظ التعديلات</button>
-            <button onClick={()=>setEditUser(null)} className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+            <button onClick={()=>setEditUser(null)} className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
           </div>
         </div>
       )}
@@ -363,9 +363,9 @@ export function AdminPage() {
         <table className="w-full text-sm">
           <thead><tr className="bg-gray-50 border-b border-gray-100">
             <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">المستخدم</th>
-            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">الدور</th>
-            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400 hidden md:table-cell">القسم</th>
-            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">الحالة</th>
+            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">{t('role')}</th>
+            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400 hidden md:table-cell">{t('department')}</th>
+            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">{t('status')}</th>
             <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">إجراءات</th>
           </tr></thead>
           <tbody className="divide-y divide-gray-50">
@@ -397,7 +397,7 @@ export function AdminPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
-                    <button onClick={()=>handleEdit(u)} className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline">تعديل</button>
+                    <button onClick={()=>handleEdit(u)} className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline">{t('edit')}</button>
                     <button onClick={()=>handleToggle(u.id)} className={`text-xs font-medium hover:underline ${u.status==='active'?'text-red-500 hover:text-red-700':'text-green-600 hover:text-green-800'}`}>
                       {u.status==='active'?'تعطيل':'تفعيل'}
                     </button>

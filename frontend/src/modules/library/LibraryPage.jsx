@@ -513,7 +513,7 @@ export default function LibraryPage() {
           <div className="relative w-48">
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm">🔍</span>
             <input value={search} onChange={e=>setSearch(e.target.value)}
-              placeholder="بحث..."
+              placeholder={t("search")+"..."}
               className="w-full pr-8 pl-3 py-1.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           </div>
 
@@ -602,16 +602,16 @@ export default function LibraryPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
                             <button onClick={e=>{e.stopPropagation();setPreviewFile(f)}}
-                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-600 transition-colors" title="معاينة">👁</button>
+                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-600 transition-colors" title={t("preview")}>👁</button>
                             <button onClick={e=>{e.stopPropagation();toggleFav(f)}}
                               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-yellow-500 transition-colors" title="مفضلة">
                               {f.isFav?'⭐':'☆'}
                             </button>
                             <button onClick={e=>{e.stopPropagation();setShareFile(f)}}
-                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-purple-600 transition-colors" title="مشاركة">🔗</button>
+                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-purple-600 transition-colors" title={t("share")}>🔗</button>
                             {isAdmin && (
                               <button onClick={e=>{e.stopPropagation();handleDeleteFile(f)}}
-                                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="حذف">🗑️</button>
+                                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title={t("delete")}>🗑️</button>
                             )}
                           </div>
                         </td>

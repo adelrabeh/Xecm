@@ -6,11 +6,11 @@ import { useToast } from '../../components/Toast'
 
 // ─── Static schema (mirrors backend built-in) ─────────────────────────────────
 const DOMAINS = [
-  { id:1, code:'LEG', nameAr:'قانوني وتعاقدي',  icon:'⚖️',  color:'#7c3aed', light:'#f5f3ff', border:'#c4b5fd' },
-  { id:2, code:'FIN', nameAr:'مالي',             icon:'💰',  color:'#059669', light:'#ecfdf5', border:'#6ee7b7' },
-  { id:3, code:'ADM', nameAr:'إداري',            icon:'🏛️',  color:'#0369a1', light:'#eff6ff', border:'#93c5fd' },
-  { id:4, code:'HIS', nameAr:'تاريخي وأرشيفي',  icon:'📜',  color:'#b45309', light:'#fffbeb', border:'#fcd34d' },
-  { id:5, code:'RES', nameAr:'بحثي وأكاديمي',   icon:'🔬',  color:'#0891b2', light:'#ecfeff', border:'#67e8f9' },
+  { id:1, code:'LEG', nameAr:'قانوني وتعاقدي', nameEn:'Legal & Contractual',  icon:'⚖️',  color:'#7c3aed', light:'#f5f3ff', border:'#c4b5fd' },
+  { id:2, code:'FIN', nameAr:'مالي', nameEn:'Financial',             icon:'💰',  color:'#059669', light:'#ecfdf5', border:'#6ee7b7' },
+  { id:3, code:'ADM', nameAr:'إداري', nameEn:'Administrative',            icon:'🏛️',  color:'#0369a1', light:'#eff6ff', border:'#93c5fd' },
+  { id:4, code:'HIS', nameAr:'تاريخي وأرشيفي', nameEn:'Historical & Archival',  icon:'📜',  color:'#b45309', light:'#fffbeb', border:'#fcd34d' },
+  { id:5, code:'RES', nameAr:'بحثي وأكاديمي', nameEn:'Research & Academic',   icon:'🔬',  color:'#0891b2', light:'#ecfeff', border:'#67e8f9' },
 ]
 
 const TYPES_BY_DOMAIN = {
@@ -71,11 +71,11 @@ const DOMAIN_FIELDS = {
 }
 
 const STATUS_CFG = {
-  'مسودة':        {cls:'bg-gray-100 text-gray-600',   dot:'bg-gray-400',   label:'Draft'},
-  'قيد المراجعة': {cls:'bg-amber-100 text-amber-700', dot:'bg-amber-500',  label:'Review'},
-  'معتمد':        {cls:'bg-green-100 text-green-700', dot:'bg-green-500',  label:'Approved'},
-  'مؤرشف':        {cls:'bg-blue-100 text-blue-700',   dot:'bg-blue-500',   label:'Archived'},
-  'مرفوض':        {cls:'bg-red-100 text-red-700',     dot:'bg-red-500',    label:'Rejected'},
+  'مسودة':{labelEn:'Draft',cls:'bg-gray-100 text-gray-600',   dot:'bg-gray-400',   label:'Draft'},
+  'قيد المراجعة':{labelEn:'Under Review',cls:'bg-amber-100 text-amber-700', dot:'bg-amber-500',  label:'Review'},
+  'معتمد':{labelEn:'Approved',cls:'bg-green-100 text-green-700', dot:'bg-green-500',  label:'Approved'},
+  'مؤرشف':{labelEn:'Archived',cls:'bg-blue-100 text-blue-700',   dot:'bg-blue-500',   label:'Archived'},
+  'مرفوض':{labelEn:'Rejected',cls:'bg-red-100 text-red-700',     dot:'bg-red-500',    label:'Rejected'},
 }
 
 const SECURITY_CFG = {
@@ -139,7 +139,7 @@ function CreateRecordModal({onClose, onSuccess}) {
   const set = (k,v) => setValues(p=>({...p,[k]:v}))
 
   const domainFields = domain ? (DOMAIN_FIELDS[domain.id]||[]) : []
-  const STEPS = ['النطاق','النوع','البيانات الأساسية','بيانات النطاق','المرفقات']
+  const STEPS = [lang==='en'?['Domain','Type','Core Data','Domain Fields','Files']:['النطاق','النوع','البيانات الأساسية','بيانات النطاق','المرفقات']]
 
   const canNext = [
     !!domain,
@@ -215,7 +215,7 @@ function CreateRecordModal({onClose, onSuccess}) {
                     style={domain?.id===d.id?{borderColor:d.color,background:d.light}:{} }>
                     <span className="text-3xl">{d.icon}</span>
                     <div className="flex-1">
-                      <p className="font-bold text-gray-900">{d.nameAr}</p>
+                      <p className="font-bold text-gray-900">{lang==='en'?(d.nameEn||d.nameAr):d.nameAr}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{TYPES_BY_DOMAIN[d.id]?.map(t=>t.nameAr).join(' · ')}</p>
                     </div>
                     {domain?.id===d.id&&<span className="text-2xl">✓</span>}
@@ -229,7 +229,7 @@ function CreateRecordModal({onClose, onSuccess}) {
           {step===1&&domain&&(
             <div>
               <p className="text-sm font-bold text-gray-700 mb-3">
-                نوع السجل في <span style={{color:domain.color}}>{domain.nameAr}</span>
+                نوع السجل في <span style={{color:domain.color}}>{lang==='en'?(domain.nameEn||domain.nameAr):domain.nameAr}</span>
                 <span className="text-red-400 mr-1">*</span>
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -387,7 +387,7 @@ function RecordDetail({record, onClose, onStatusChange}) {
             {secCfg.icon} {record.security}
           </span>
           <span className="text-[11px] px-2 py-0.5 rounded-full font-medium text-white" style={{background:domain.color}}>
-            {rtype.nameAr}
+            {lang==='en'?(rtype.nameEn||rtype.nameAr):rtype.nameAr}
           </span>
         </div>
       </div>
@@ -412,7 +412,7 @@ function RecordDetail({record, onClose, onStatusChange}) {
         {/* Domain metadata */}
         {fields.length>0&&(
           <div>
-            <p className="text-[11px] font-black text-gray-500 mb-2 uppercase tracking-wider">بيانات {domain.nameAr}</p>
+            <p className="text-[11px] font-black text-gray-500 mb-2 uppercase tracking-wider">بيانات {lang==='en'?(domain.nameEn||domain.nameAr):domain.nameAr}</p>
             <div className="space-y-1.5 text-xs">
               {fields.map(f=>{
                 const v = meta[f.key]
@@ -586,7 +586,7 @@ export default function RecordsPage() {
               <button key={d.id} onClick={()=>setFilter(d.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${String(filterDomain)===String(d.id)?'text-white border-transparent':'bg-white text-gray-600 hover:bg-gray-50'}`}
                 style={String(filterDomain)===String(d.id)?{background:d.color,borderColor:d.color}:{borderColor:d.border}}>
-                {d.icon} {d.nameAr} <span className="opacity-70">({cnt})</span>
+                {d.icon} {lang==='en'?(d.nameEn||d.nameAr):d.nameAr} <span className="opacity-70">({cnt})</span>
               </button>
             )
           })}
@@ -597,7 +597,7 @@ export default function RecordsPage() {
           <div className="relative flex-1 min-w-40">
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">🔍</span>
             <input value={search} onChange={e=>setSearch(e.target.value)}
-              placeholder="البحث في السجلات..."
+              placeholder={t('search')+' ...'}
               className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"/>
           </div>
           <select value={filterStatus} onChange={e=>setFilterS(e.target.value)}
@@ -650,7 +650,7 @@ export default function RecordsPage() {
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
                           <span className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-bold text-white" style={{background:d.color}}>
-                            {d.icon} {d.nameAr}
+                            {d.icon} {lang==='en'?(d.nameEn||d.nameAr):d.nameAr}
                           </span>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell text-xs text-gray-500">{r.dept||'—'}</td>

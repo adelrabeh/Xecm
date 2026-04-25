@@ -22,12 +22,12 @@ const PRIORITIES = [
 ]
 const DEPARTMENTS = ['تقنية المعلومات','الشؤون المالية','الشؤون الإدارية','الموارد البشرية','إدارة المخاطر','التدقيق الداخلي','الرئاسة التنفيذية','التحول الرقمي']
 const USERS = [
-  { id:2, name:'أحمد الزهراني',  dept:'الشؤون المالية' },
-  { id:3, name:'مريم العنزي',    dept:'الشؤون الإدارية' },
-  { id:4, name:'خالد القحطاني', dept:'تقنية المعلومات' },
-  { id:5, name:'فاطمة الشمري',  dept:'الموارد البشرية' },
-  { id:6, name:'عمر الدوسري',   dept:'التدقيق الداخلي' },
-  { id:7, name:'نورة السبيعي',  dept:'الرئاسة التنفيذية' },
+  { id:2, name:'أحمد الزهراني',  dept:'الشؤون المالية',      roleId:1 },
+  { id:3, name:'مريم العنزي',    dept:'الشؤون الإدارية',  roleId:2 },
+  { id:4, name:'خالد القحطاني', dept:'تقنية المعلومات',  roleId:2 },
+  { id:5, name:'فاطمة الشمري',  dept:'الموارد البشرية',  roleId:3 },
+  { id:6, name:'عمر الدوسري',   dept:'التدقيق الداخلي',  roleId:3 },
+  { id:7, name:'نورة السبيعي',  dept:'الرئاسة التنفيذية',roleId:3 },
 ]
 
 const MOCK_TASKS = [
@@ -168,11 +168,165 @@ function TaskFormModal({ task, onClose, onSave }) {
   )
 }
 
+
+// ─── Escalation Modal (hierarchy-aware) ────────────────────────────────────────
+const ROLE_HIERARCHY = [
+  { id:0, nameAr:'مشاهد',      code:'Viewer',            level:0, canEscalate:false },
+  { id:1, nameAr:'موظف',       code:'Employee',          level:1, canEscalate:true,  escalatesTo:[2] },
+  { id:2, nameAr:'مشرف',       code:'Supervisor',        level:2, canEscalate:true,  escalatesTo:[3] },
+  { id:3, nameAr:'مدير القسم', code:'DepartmentManager', level:3, canEscalate:true,  escalatesTo:[3] },
+  { id:4, nameAr:'مدير النظام',code:'SystemAdmin',       level:4, canEscalate:false },
+]
+
+function EscalationModal({ task, userRole, onClose, onEscalate }) {
+  const role = ROLE_HIERARCHY.find(r => r.id === userRole) || ROLE_HIERARCHY[1]
+  const allowedTargetRoles = role.escalatesTo || []
+  const allowedUsers = USERS.filter(u => allowedTargetRoles.includes(u.roleId||2))
+
+  const [targetUser, setTargetUser] = useState('')
+  const [reason, setReason]         = useState('')
+  const [error, setError]           = useState('')
+  const [loading, setLoading]       = useState(false)
+
+  const validate = () => {
+    const target = USERS.find(u=>u.id===Number(targetUser))
+    if (!targetUser || !target) { setError('يجب تحديد الشخص المُصعَّد إليه'); return false }
+    if (!reason.trim())         { setError('يجب ذكر سبب التصعيد'); return false }
+    // Hierarchy check
+    const targetRole = target.roleId || 2
+    if (!allowedTargetRoles.includes(targetRole)) {
+      setError(role.id===1 && targetRole===3
+        ? 'الموظف لا يستطيع التصعيد مباشرة لمدير القسم — يجب المرور عبر المشرف أولاً.'
+        : 'لا يمكنك التصعيد لهذا الدور حسب صلاحياتك.')
+      return false
+    }
+    return true
+  }
+
+  const handleSubmit = async () => {
+    if (!validate()) return
+    setLoading(true)
+    const target = USERS.find(u=>u.id===Number(targetUser))
+    try {
+      await client.post('/api/v1/escalations', {
+        taskId: task.id, toUserId: target.id,
+        fromRole: role.id, toRole: target.roleId||2,
+        reason, fromDepartment: task.dept,
+      })
+    } catch {}
+    // Audit log entry (local)
+    const escalationEntry = {
+      id: Date.now(), taskId: task.id,
+      fromUser: 'أنت', toUser: target.name,
+      fromRole: role.nameAr, toRole: ROLE_HIERARCHY[target.roleId||2]?.nameAr,
+      level: role.id===1 ? 1 : role.id===2 ? 2 : 3,
+      reason, status: 'pending',
+      date: new Date().toISOString().split('T')[0],
+    }
+    setLoading(false)
+    onEscalate(escalationEntry)
+    onClose()
+  }
+
+  const levelLabel = role.id===1 ? 'المستوى الأول: إلى المشرف' :
+                     role.id===2 ? 'المستوى الثاني: إلى مدير القسم' :
+                     'المستوى الثالث: تصعيد متقاطع'
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e=>e.stopPropagation()}>
+        <div className="p-5 border-b border-gray-100">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-2xl">🔺</div>
+            <div>
+              <h2 className="font-black text-gray-900">تصعيد المهمة</h2>
+              <p className="text-xs text-gray-400">دورك: {role.nameAr}</p>
+            </div>
+            <button onClick={onClose} className="mr-auto w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 text-xl">✕</button>
+          </div>
+
+          {/* Hierarchy diagram */}
+          <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2 text-xs">
+            {ROLE_HIERARCHY.filter(r=>r.canEscalate).map((r,i,arr)=>(
+              <React.Fragment key={r.id}>
+                <span className={`px-2 py-1 rounded-lg font-bold ${r.id===role.id?'bg-blue-700 text-white':'bg-gray-200 text-gray-500'}`}>
+                  {r.nameAr}
+                </span>
+                {i<arr.length-1&&<span className="text-gray-300">→</span>}
+              </React.Fragment>
+            ))}
+          </div>
+          <p className="text-xs text-blue-600 font-semibold mt-2">📍 {levelLabel}</p>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Task info */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <p className="text-xs font-bold text-amber-800 mb-1">المهمة المُصعَّدة:</p>
+            <p className="text-sm text-gray-800 font-semibold">{task.title}</p>
+            <p className="text-xs text-gray-500 mt-0.5">القسم: {task.dept}</p>
+          </div>
+
+          {/* Target user */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">
+              التصعيد إلى <span className="text-red-400">*</span>
+            </label>
+            {allowedUsers.length > 0 ? (
+              <select value={targetUser} onChange={e=>{ setTargetUser(e.target.value); setError('') }}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400">
+                <option value="">— اختر الشخص المسؤول —</option>
+                {allowedUsers.map(u=>(
+                  <option key={u.id} value={u.id}>{u.name} ({ROLE_HIERARCHY[u.roleId||2]?.nameAr})</option>
+                ))}
+              </select>
+            ) : (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                <p className="text-sm text-red-700 font-semibold">⚠️ لا يوجد مستهدف مناسب لمستوى تصعيدك</p>
+                <p className="text-xs text-red-500 mt-1">{role.canEscalate ? 'لا توجد جهات في النطاق المسموح' : 'دورك لا يُخوّلك بالتصعيد'}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Reason */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">
+              سبب التصعيد <span className="text-red-400">*</span>
+            </label>
+            <textarea value={reason} onChange={e=>{ setReason(e.target.value); setError('') }}
+              rows={3} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 text-right resize-none"
+              placeholder="اشرح بوضوح لماذا تحتاج لتصعيد هذه المهمة وما الذي يحول دون حلها على مستواك..."/>
+          </div>
+
+          {/* Rules note */}
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 space-y-1">
+            <p className="font-bold">⚠️ قواعد التصعيد:</p>
+            <p>• التصعيد لا يُغير حالة المهمة تلقائياً</p>
+            <p>• سيُسجَّل في سجل التدقيق</p>
+            <p>• الطرف المُصعَّد إليه سيتلقى إشعاراً فورياً</p>
+          </div>
+
+          {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 font-medium">⚠️ {error}</div>}
+        </div>
+
+        <div className="p-5 border-t border-gray-100 flex gap-3">
+          <button onClick={onClose} className="border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+          <button onClick={handleSubmit} disabled={loading || !role.canEscalate}
+            className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">
+            {loading ? '⏳' : '🔺'} {loading ? 'جارٍ التصعيد...' : 'تأكيد التصعيد'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Task Detail Panel ────────────────────────────────────────────────────────
 function TaskDetail({ task, onClose, onUpdate, isAdmin }) {
   const [comment, setComment] = useState('')
   const [files, setFiles]     = useState([])
   const [addingComment, setAddingComment] = useState(false)
+  const [showEscModal, setShowEscModal]   = useState(false)
   const fileRef = useRef()
   const s = STATUS_MAP[task.status] || STATUS_MAP.new
   const p = PRIO_MAP[task.priority] || PRIO_MAP.medium
@@ -274,9 +428,9 @@ function TaskDetail({ task, onClose, onUpdate, isAdmin }) {
                 )
               })}
               {!task.escalated && !['completed','cancelled'].includes(task.status) && (
-                <button onClick={escalate}
+                <button onClick={()=>setShowEscModal(true)}
                   className="text-xs font-bold px-3 py-2 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50 transition-colors">
-                  🔺 تصعيد للمدير
+                  🔺 تصعيد (مستوى {isAdmin?'المدير':'الموظف'})
                 </button>
               )}
             </div>
@@ -351,6 +505,42 @@ function TaskDetail({ task, onClose, onUpdate, isAdmin }) {
             </div>
           ) : !addingComment && <p className="text-xs text-gray-400 text-center py-2">لا توجد تعليقات</p>}
         </div>
+
+        {showEscModal && (
+          <EscalationModal
+            task={task}
+            userRole={isAdmin ? 3 : 1}
+            onClose={()=>setShowEscModal(false)}
+            onEscalate={(esc) => {
+              onUpdate({ ...task, escalated: true,
+                escalations: [...(task.escalations||[]), esc],
+                history: [...task.history, {status:'escalated', date:new Date().toISOString().split('T')[0]}]
+              })
+            }}
+          />
+        )}
+
+        {/* Escalation history */}
+        {task.escalations?.length > 0 && (
+          <div>
+            <p className="text-xs font-black text-gray-400 uppercase mb-2">سجل التصعيد</p>
+            <div className="space-y-2">
+              {task.escalations.map((e,i)=>(
+                <div key={i} className="bg-red-50 border border-red-100 rounded-xl p-3 text-xs">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-red-700">🔺 المستوى {e.level}</span>
+                    <span className={`px-2 py-0.5 rounded-full font-medium ${e.status==='pending'?'bg-amber-100 text-amber-700':'bg-green-100 text-green-700'}`}>
+                      {e.status==='pending'?'معلق':e.status==='accepted'?'مقبول':'محلول'}
+                    </span>
+                  </div>
+                  <p className="text-gray-600">{e.fromUser} ({e.fromRole}) → {e.toUser} ({e.toRole})</p>
+                  <p className="text-gray-500 mt-0.5">السبب: {e.reason}</p>
+                  <p className="text-gray-400 mt-0.5">{e.date}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Info */}
         <div className="text-xs text-gray-400 space-y-1 pt-2 border-t border-gray-100">

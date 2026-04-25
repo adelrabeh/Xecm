@@ -460,6 +460,69 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+
+      {/* ── Escalation Dashboard ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🔺</span>
+            <div>
+              <p className="font-bold text-gray-900">التصعيدات</p>
+              <p className="text-xs text-gray-400">حسب المستوى والقسم</p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {[
+            {l:'المُكلَّفة لي',   v:2, icon:'👤', c:'bg-red-50 text-red-700 border-red-100'},
+            {l:'قيد الانتظار',  v:3, icon:'⏳', c:'bg-amber-50 text-amber-700 border-amber-100'},
+            {l:'متأخرة مُصعَّدة', v:1, icon:'⚠️', c:'bg-orange-50 text-orange-700 border-orange-100'},
+            {l:'محلولة',         v:5, icon:'✅', c:'bg-green-50 text-green-700 border-green-100'},
+          ].map(k=>(
+            <div key={k.l} className={`${k.c} border rounded-xl p-3 flex items-center gap-2`}>
+              <span className="text-xl">{k.icon}</span>
+              <div><p className="text-lg font-black">{k.v}</p><p className="text-[10px] opacity-80">{k.l}</p></div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* By level */}
+          <div>
+            <p className="text-xs font-black text-gray-400 mb-2 uppercase">حسب المستوى</p>
+            {[
+              {l:'المستوى 1 — إلى المشرف',      v:3, color:'#6366f1'},
+              {l:'المستوى 2 — إلى مدير القسم', v:2, color:'#f59e0b'},
+              {l:'المستوى 3 — تصعيد متقاطع',   v:1, color:'#dc2626'},
+            ].map(r=>(
+              <div key={r.l} className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-gray-600 w-40 flex-shrink-0">{r.l}</span>
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{width:`${r.v/6*100}%`,background:r.color}}/>
+                </div>
+                <span className="text-xs font-bold text-gray-700 w-4">{r.v}</span>
+              </div>
+            ))}
+          </div>
+          {/* By dept */}
+          <div>
+            <p className="text-xs font-black text-gray-400 mb-2 uppercase">حسب القسم</p>
+            {[
+              {dept:'الشؤون المالية',   v:2},
+              {dept:'تقنية المعلومات',  v:2},
+              {dept:'التدقيق الداخلي',  v:2},
+            ].map(d=>(
+              <div key={d.dept} className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-gray-600 flex-1 truncate">{d.dept}</span>
+                <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-400 rounded-full" style={{width:`${d.v/4*100}%`}}/>
+                </div>
+                <span className="text-xs font-bold text-gray-700 w-4">{d.v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+        </div>
   )
 }

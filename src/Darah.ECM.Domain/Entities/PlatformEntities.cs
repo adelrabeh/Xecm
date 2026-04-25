@@ -315,3 +315,134 @@ public sealed class GroupMember
     public bool IsManager   { get; set; }
     public DateTime JoinedAt{ get; set; } = DateTime.UtcNow;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ESCALATION MODEL — Hierarchy-Aware, Permission-Based
+// ═══════════════════════════════════════════════════════════════════════════════
+
+public enum UserRole
+{
+    Viewer            = 0,
+    Employee          = 1,
+    Supervisor        = 2,
+    DepartmentManager = 3,
+    SystemAdmin       = 4,
+}
+
+public enum EscalationStatus
+{
+    Pending    = 0,  // Awaiting action from escalated-to user
+    Accepted   = 1,  // Acknowledged by receiving party
+    Rejected   = 2,  // Returned to original assignee
+    Resolved   = 3,  // Escalation resolved
+    Cancelled  = 4,  // Withdrawn by initiator
+}
+
+public enum EscalationLevel
+{
+    ToSupervisor        = 1,  // Employee → Supervisor
+    ToDepartmentManager = 2,  // Supervisor → Dept Manager
+    ToCrossManager      = 3,  // Dept Manager → peer/higher
+}
+
+/// <summary>
+/// Represents one escalation event on a task.
+/// A task may have multiple escalation records over its lifecycle.
+/// </summary>
+public sealed class TaskEscalation
+{
+    public long             EscalationId       { get; private set; }
+    public int              TaskId             { get; private set; }
+    public int              EscalatedFromUserId{ get; private set; }
+    public int              EscalatedToUserId  { get; private set; }
+    public UserRole         EscalatedToRole    { get; private set; }
+    public EscalationLevel  EscalationLevel    { get; private set; }
+    public EscalationStatus Status             { get; private set; } = EscalationStatus.Pending;
+    public string?          Reason             { get; private set; }
+    public string?          Department         { get; private set; }
+    public DateTime         EscalatedAt        { get; private set; } = DateTime.UtcNow;
+    public DateTime?        ResolvedAt         { get; private set; }
+    public string?          ResolutionNote     { get; private set; }
+    public int?             ResolvedByUserId   { get; private set; }
+
+    private TaskEscalation() {}
+
+    public static TaskEscalation Create(
+        int taskId, int fromUserId, int toUserId,
+        UserRole toRole, EscalationLevel level,
+        string? reason, string? department)
+    {
+        return new TaskEscalation
+        {
+            TaskId              = taskId,
+            EscalatedFromUserId = fromUserId,
+            EscalatedToUserId   = toUserId,
+            EscalatedToRole     = toRole,
+            EscalationLevel     = level,
+            Reason              = reason,
+            Department          = department,
+            EscalatedAt         = DateTime.UtcNow,
+            Status              = EscalationStatus.Pending,
+        };
+    }
+
+    public void Accept(int byUserId) =>
+        Apply(EscalationStatus.Accepted, byUserId);
+
+    public void Reject(int byUserId, string note) =>
+        Apply(EscalationStatus.Rejected, byUserId, note);
+
+    public void Resolve(int byUserId, string note) =>
+        Apply(EscalationStatus.Resolved, byUserId, note);
+
+    private void Apply(EscalationStatus s, int userId, string? note = null)
+    {
+        Status = s; ResolvedAt = DateTime.UtcNow;
+        ResolvedByUserId = userId; ResolutionNote = note;
+    }
+}
+
+/// <summary>
+/// Hierarchy-aware escalation validation service.
+/// </summary>
+public static class EscalationPolicy
+{
+    /// <summary>
+    /// Returns true if fromRole can escalate to toRole in the same department context.
+    /// </summary>
+    public static bool CanEscalate(UserRole fromRole, UserRole toRole, bool sameDepartment)
+    {
+        return (fromRole, toRole, sameDepartment) switch
+        {
+            // Employee can only escalate to their Supervisor (same dept)
+            (UserRole.Employee, UserRole.Supervisor, true)               => true,
+            // Supervisor can escalate to DeptManager (same dept)
+            (UserRole.Supervisor, UserRole.DepartmentManager, true)      => true,
+            // DeptManager can escalate to another DeptManager or higher (cross-dept)
+            (UserRole.DepartmentManager, UserRole.DepartmentManager, _)  => true,
+            // SystemAdmin does not participate in operational escalation
+            (_, UserRole.SystemAdmin, _)                                  => false,
+            _                                                             => false,
+        };
+    }
+
+    public static EscalationLevel GetLevel(UserRole fromRole) => fromRole switch
+    {
+        UserRole.Employee          => EscalationLevel.ToSupervisor,
+        UserRole.Supervisor        => EscalationLevel.ToDepartmentManager,
+        UserRole.DepartmentManager => EscalationLevel.ToCrossManager,
+        _                          => EscalationLevel.ToSupervisor,
+    };
+
+    public static string GetDenialReason(UserRole fromRole, UserRole toRole) =>
+        (fromRole, toRole) switch
+        {
+            (UserRole.Employee, UserRole.DepartmentManager) =>
+                "الموظف لا يستطيع التصعيد مباشرة لمدير القسم — يجب أن يمر عبر المشرف أولاً.",
+            (UserRole.Employee, UserRole.SystemAdmin) =>
+                "لا يمكن التصعيد لمدير النظام — هذا ليس مسار تشغيلي.",
+            (_, UserRole.SystemAdmin) =>
+                "مدير النظام ليس جزءاً من مسار التصعيد التشغيلي.",
+            _ => "ليس لديك صلاحية هذا التصعيد.",
+        };
+}

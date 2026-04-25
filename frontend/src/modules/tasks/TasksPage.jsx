@@ -1,25 +1,24 @@
-import { useLang } from '../../i18n.js'
 import React, { useState, useRef } from 'react'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../../components/Toast'
+import { useLang } from '../../i18n.js'
 import client from '../../api/client'
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 const STATUSES = [
-  { key:'new',        label:'جديدة', labelEn:'New',         icon:'🆕', color:'#6366f1', bg:'#eef2ff', dot:'#818cf8' },
-  { key:'assigned',   label:'مُسنَدة', labelEn:'Assigned',        icon:'👤', color:'#0369a1', bg:'#eff6ff', dot:'#38bdf8' },
-  { key:'inprogress', label:'قيد التنفيذ', labelEn:'In Progress',   icon:'🔄', color:'#b45309', bg:'#fffbeb', dot:'#f59e0b' },
-  { key:'review',     label:'قيد المراجعة', labelEn:'Under Review',  icon:'🔍', color:'#7c3aed', bg:'#f5f3ff', dot:'#a78bfa' },
-  { key:'completed',  label:'مكتملة', labelEn:'Completed',        icon:'✅', color:'#059669', bg:'#ecfdf5', dot:'#34d399' },
-  { key:'overdue',    label:'متأخرة', labelEn:'Overdue',         icon:'⚠️', color:'#dc2626', bg:'#fef2f2', dot:'#f87171' },
-  { key:'cancelled',  label:'ملغاة', labelEn:'Cancelled',          icon:'⛔', color:'#6b7280', bg:'#f9fafb', dot:'#9ca3af' },
+  { key:'new',        labelAr:'جديدة',         labelEn:'New',           icon:'🆕', color:'#6366f1', bg:'#eef2ff', dot:'#818cf8' },
+  { key:'assigned',   labelAr:'مُسنَدة',        labelEn:'Assigned',      icon:'👤', color:'#0369a1', bg:'#eff6ff', dot:'#38bdf8' },
+  { key:'inprogress', labelAr:'قيد التنفيذ',   labelEn:'In Progress',   icon:'🔄', color:'#b45309', bg:'#fffbeb', dot:'#f59e0b' },
+  { key:'review',     labelAr:'قيد المراجعة',  labelEn:'Under Review',  icon:'🔍', color:'#7c3aed', bg:'#f5f3ff', dot:'#a78bfa' },
+  { key:'completed',  labelAr:'مكتملة',        labelEn:'Completed',     icon:'✅', color:'#059669', bg:'#ecfdf5', dot:'#34d399' },
+  { key:'overdue',    labelAr:'متأخرة',         labelEn:'Overdue',       icon:'⚠️', color:'#dc2626', bg:'#fef2f2', dot:'#f87171' },
+  { key:'cancelled',  labelAr:'ملغاة',          labelEn:'Cancelled',     icon:'⛔', color:'#6b7280', bg:'#f9fafb', dot:'#9ca3af' },
 ]
 const PRIORITIES = [
-  { key:'low',    label:'منخفضة', labelEn:'Low', color:'#16a34a', bg:'#dcfce7' },
-  { key:'medium', label:'متوسطة', labelEn:'Medium', color:'#d97706', bg:'#fef9c3' },
-  { key:'high',   label:'عالية', labelEn:'High',  color:'#ea580c', bg:'#ffedd5' },
-  { key:'urgent', label:'عاجلة', labelEn:'Urgent',  color:'#dc2626', bg:'#fee2e2' },
+  { key:'low',    labelAr:'منخفضة', labelEn:'Low',    color:'#16a34a', bg:'#dcfce7' },
+  { key:'medium', labelAr:'متوسطة', labelEn:'Medium', color:'#d97706', bg:'#fef9c3' },
+  { key:'high',   labelAr:'عالية',  labelEn:'High',   color:'#ea580c', bg:'#ffedd5' },
+  { key:'urgent', labelAr:'عاجلة',  labelEn:'Urgent', color:'#dc2626', bg:'#fee2e2' },
 ]
 const DEPARTMENTS = ['تقنية المعلومات','الشؤون المالية','الشؤون الإدارية','الموارد البشرية','إدارة المخاطر','التدقيق الداخلي','الرئاسة التنفيذية','التحول الرقمي']
 const USERS = [
@@ -30,220 +29,44 @@ const USERS = [
   { id:6, name:'عمر الدوسري',   dept:'التدقيق الداخلي',  roleId:3 },
   { id:7, name:'نورة السبيعي',  dept:'الرئاسة التنفيذية',roleId:3 },
 ]
-
-const MOCK_TASKS = [
-  { id:1, title:'مراجعة عقود الموردين للربع الثاني', desc:'مراجعة وتدقيق جميع عقود الموردين المبرمة خلال الربع الثاني من عام 2026 والتحقق من مطابقتها للمعايير المعتمدة.', dept:'الشؤون المالية', assignedTo:2, assignedName:'أحمد الزهراني', priority:'high', status:'inprogress', due:'2026-04-30', created:'2026-04-01', createdBy:'مدير النظام', tags:['عقود','مالي'], comments:[{id:1,by:'أحمد الزهراني',text:'تم مراجعة 60% من العقود',date:'2026-04-15'}], attachments:[], escalated:false, history:[{status:'new',date:'2026-04-01'},{status:'assigned',date:'2026-04-02'},{status:'inprogress',date:'2026-04-05'}] },
-  { id:2, title:'إعداد تقرير الأداء الشهري أبريل',   desc:'إعداد تقرير مفصل عن مؤشرات الأداء الرئيسية لشهر أبريل 2026 وتقديمه للإدارة العليا.',                               dept:'الشؤون الإدارية', assignedTo:3, assignedName:'مريم العنزي',  priority:'medium',status:'review',      due:'2026-04-25', created:'2026-04-10', createdBy:'مدير النظام', tags:['تقارير'],   comments:[], attachments:[], escalated:false, history:[{status:'new',date:'2026-04-10'},{status:'assigned',date:'2026-04-11'},{status:'review',date:'2026-04-20'}] },
-  { id:3, title:'تحديث سياسة أمن المعلومات',          desc:'مراجعة وتحديث سياسة أمن المعلومات المؤسسية لتتوافق مع أحدث المعايير الدولية ISO 27001.',                                dept:'تقنية المعلومات',  assignedTo:4, assignedName:'خالد القحطاني',priority:'urgent',status:'new',         due:'2026-05-01', created:'2026-04-20', createdBy:'مدير النظام', tags:['أمن','سياسات'], comments:[], attachments:[], escalated:false, history:[{status:'new',date:'2026-04-20'}] },
-  { id:4, title:'إجراء جلسة تدريبية للموظفين الجدد',  desc:'تنظيم وإدارة جلسة تدريبية شاملة للموظفين الجدد المنضمين خلال الفترة الأخيرة.',                                        dept:'الموارد البشرية', assignedTo:5, assignedName:'فاطمة الشمري',priority:'medium',status:'completed',  due:'2026-04-15', created:'2026-04-01', createdBy:'مدير النظام', tags:['تدريب','HR'],   comments:[{id:2,by:'فاطمة الشمري',text:'تمت الجلسة بنجاح، 15 موظف حضروا',date:'2026-04-15'}], attachments:[], escalated:false, history:[{status:'new',date:'2026-04-01'},{status:'completed',date:'2026-04-15'}] },
-  { id:5, title:'تدقيق منظومة المشتريات',             desc:'إجراء تدقيق شامل على إجراءات المشتريات للتحقق من الامتثال للسياسات المعتمدة.',                                          dept:'التدقيق الداخلي', assignedTo:6, assignedName:'عمر الدوسري',  priority:'high',  status:'overdue',   due:'2026-04-10', created:'2026-03-25', createdBy:'مدير النظام', tags:['تدقيق'],    comments:[], attachments:[], escalated:true,  history:[{status:'new',date:'2026-03-25'},{status:'assigned',date:'2026-03-26'}] },
+const ROLE_HIERARCHY = [
+  { id:0, nameAr:'مشاهد',      nameEn:'Viewer',            level:0, canEscalate:false },
+  { id:1, nameAr:'موظف',       nameEn:'Employee',          level:1, canEscalate:true,  escalatesTo:[2] },
+  { id:2, nameAr:'مشرف',       nameEn:'Supervisor',        level:2, canEscalate:true,  escalatesTo:[3] },
+  { id:3, nameAr:'مدير القسم', nameEn:'Dept. Manager',     level:3, canEscalate:true,  escalatesTo:[3] },
+  { id:4, nameAr:'مدير النظام',nameEn:'System Admin',      level:4, canEscalate:false },
 ]
-
+const MOCK_TASKS = [
+  { id:1, title:'مراجعة عقود الموردين للربع الثاني', desc:'مراجعة وتدقيق جميع عقود الموردين المبرمة خلال الربع الثاني من عام 2026.', dept:'الشؤون المالية', assignedTo:2, assignedName:'أحمد الزهراني', priority:'high', status:'inprogress', due:'2026-04-30', created:'2026-04-01', createdBy:'مدير النظام', tags:['عقود','مالي'], comments:[{id:1,by:'أحمد الزهراني',text:'تم مراجعة 60% من العقود',date:'2026-04-15'}], attachments:[], escalated:false, escalations:[], history:[{status:'new',date:'2026-04-01'},{status:'inprogress',date:'2026-04-05'}] },
+  { id:2, title:'إعداد تقرير الأداء الشهري أبريل', desc:'إعداد تقرير مفصل عن مؤشرات الأداء لشهر أبريل 2026.', dept:'الشؤون الإدارية', assignedTo:3, assignedName:'مريم العنزي', priority:'medium', status:'review', due:'2026-04-25', created:'2026-04-10', createdBy:'مدير النظام', tags:['تقارير'], comments:[], attachments:[], escalated:false, escalations:[], history:[{status:'new',date:'2026-04-10'},{status:'review',date:'2026-04-20'}] },
+  { id:3, title:'تحديث سياسة أمن المعلومات', desc:'مراجعة وتحديث سياسة أمن المعلومات ISO 27001.', dept:'تقنية المعلومات', assignedTo:4, assignedName:'خالد القحطاني', priority:'urgent', status:'new', due:'2026-05-01', created:'2026-04-20', createdBy:'مدير النظام', tags:['أمن','سياسات'], comments:[], attachments:[], escalated:false, escalations:[], history:[{status:'new',date:'2026-04-20'}] },
+  { id:4, title:'إجراء جلسة تدريبية للموظفين الجدد', desc:'تنظيم جلسة تدريبية للموظفين الجدد.', dept:'الموارد البشرية', assignedTo:5, assignedName:'فاطمة الشمري', priority:'medium', status:'completed', due:'2026-04-15', created:'2026-04-01', createdBy:'مدير النظام', tags:['تدريب'], comments:[{id:2,by:'فاطمة الشمري',text:'تمت الجلسة بنجاح',date:'2026-04-15'}], attachments:[], escalated:false, escalations:[], history:[{status:'new',date:'2026-04-01'},{status:'completed',date:'2026-04-15'}] },
+  { id:5, title:'تدقيق منظومة المشتريات', desc:'تدقيق شامل على إجراءات المشتريات.', dept:'التدقيق الداخلي', assignedTo:6, assignedName:'عمر الدوسري', priority:'high', status:'overdue', due:'2026-04-10', created:'2026-03-25', createdBy:'مدير النظام', tags:['تدقيق'], comments:[], attachments:[], escalated:true, escalations:[], history:[{status:'new',date:'2026-03-25'},{status:'assigned',date:'2026-03-26'}] },
+]
 const STATUS_MAP = Object.fromEntries(STATUSES.map(s=>[s.key,s]))
 const PRIO_MAP   = Object.fromEntries(PRIORITIES.map(p=>[p.key,p]))
 
-// ─── Task Card ────────────────────────────────────────────────────────────────
-function TaskCard({ task, onClick, selected }) {
-  const s = STATUS_MAP[task.status] || STATUS_MAP.new
-  const p = PRIO_MAP[task.priority] || PRIO_MAP.medium
-  const isOverdue = task.due && new Date(task.due) < new Date() && !['completed','cancelled'].includes(task.status)
-  return (
-    <div onClick={onClick} className={`bg-white rounded-2xl border-2 p-4 cursor-pointer transition-all active:scale-[0.98] ${selected?'border-blue-500 shadow-md':'border-gray-100 hover:border-gray-200'}`}>
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full`} style={{background:s.bg,color:s.color}}>
-            {s.icon} {sl(s)}
-          </span>
-          {task.escalated && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">🔺 مُصعَّدة</span>}
-        </div>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background:p.bg,color:p.color}}>{pl(p)}</span>
-      </div>
-      <p className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{task.title}</p>
-      <div className="flex items-center justify-between text-xs text-gray-400">
-        <span>👤 {task.assignedName||'غير مُسنَدة'}</span>
-        <span className={isOverdue?'text-red-500 font-semibold':''}>{isOverdue?'⚠️ ':'📅 '}{task.due}</span>
-      </div>
-      {task.comments?.length>0&&<div className="mt-2 text-[10px] text-gray-400">💬 {task.comments.length} تعليق</div>}
-    </div>
-  )
-}
+// ─── Escalation Modal ─────────────────────────────────────────────────────────
+function EscalationModal({ task, userRole, onClose, onEscalate, t, lang }) {
+  const role = ROLE_HIERARCHY.find(r=>r.id===userRole)||ROLE_HIERARCHY[1]
+  const allowed = role.escalatesTo||[]
+  const targets = USERS.filter(u=>allowed.includes(u.roleId||2))
+  const [targetUser,setTU] = useState('')
+  const [reason,setR]      = useState('')
+  const [error,setE]       = useState('')
+  const [loading,setL]     = useState(false)
+  const rn = (r) => lang==='en' ? (r.nameEn||r.nameAr) : r.nameAr
+  const levelLabel = role.id===1?t('level1'):role.id===2?t('level2'):t('level3')
 
-// ─── Create/Edit Task Modal ───────────────────────────────────────────────────
-function TaskFormModal({ task, onClose, onSave }) {
-  const isEdit = !!task?.id
-  const [form, setForm] = useState({
-    title: task?.title||'', desc: task?.desc||'',
-    dept: task?.dept||'', assignedTo: task?.assignedTo||'',
-    priority: task?.priority||'medium', due: task?.due||'',
-    tags: (task?.tags||[]).join('، '),
-  })
-  const [errors, setErrors] = useState({})
-  const set = (k,v) => { setForm(p=>({...p,[k]:v})); setErrors(p=>({...p,[k]:''})) }
-
-  const validate = () => {
-    const e = {}
-    if (!form.title.trim()) e.title = 'العنوان مطلوب'
-    if (!form.dept)         e.dept  = 'القسم مطلوب'
-    if (!form.due)          e.due   = 'تاريخ الاستحقاق مطلوب'
-    setErrors(e)
-    return Object.keys(e).length === 0
+  const submit = async () => {
+    if (!targetUser) { setE(t('choose_person')); return }
+    if (!reason.trim()) { setE(t('esc_reason_label')+' '+t('required')); return }
+    setL(true)
+    const tgt = USERS.find(u=>u.id===Number(targetUser))
+    try { await client.post('/api/v1/escalations',{taskId:task.id,toUserId:tgt.id,fromRole:role.id,toRole:tgt.roleId||2,reason,fromDepartment:task.dept}) } catch {}
+    const entry = { id:Date.now(), taskId:task.id, fromUser:'أنت', toUser:tgt.name, fromRole:rn(role), toRole:ROLE_HIERARCHY[tgt.roleId||2]?rn(ROLE_HIERARCHY[tgt.roleId||2]):'', level:role.id===1?1:role.id===2?2:3, reason, status:'pending', date:new Date().toISOString().split('T')[0] }
+    setL(false); onEscalate(entry); onClose()
   }
-
-  const handleSave = () => {
-    if (!validate()) return
-    const assignedUser = USERS.find(u=>u.id===Number(form.assignedTo))
-    onSave({
-      ...task,
-      ...form,
-      assignedTo: Number(form.assignedTo)||null,
-      assignedName: assignedUser?.name||'',
-      tags: form.tags.split('،').map(t=>t.trim()).filter(Boolean),
-      status: task?.status||'new',
-      created: task?.created||new Date().toISOString().split('T')[0],
-      createdBy: task?.createdBy||'أنت',
-      comments: task?.comments||[],
-      attachments: task?.attachments||[],
-      escalated: task?.escalated||false,
-      history: task?.history||[{status:'new',date:new Date().toISOString().split('T')[0]}],
-    })
-    onClose()
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl my-4" onClick={e=>e.stopPropagation()}>
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-black text-gray-900">{isEdit?'تعديل المهمة':'إنشاء مهمة جديدة'}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 text-xl">✕</button>
-        </div>
-        <div className="p-5 space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">عنوان المهمة <span className="text-red-400">*</span></label>
-            <input value={form.title} onChange={e=>set('title',e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right ${errors.title?'border-red-300':'border-gray-200'}`}
-              placeholder="عنوان واضح وموجز..."/>
-            {errors.title&&<p className="text-red-500 text-[10px] mt-0.5">{errors.title}</p>}
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">الوصف التفصيلي</label>
-            <textarea value={form.desc} onChange={e=>set('desc',e.target.value)} rows={3}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right resize-none"
-              placeholder="وصف تفصيلي للمهمة والنتائج المطلوبة..."/>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">القسم المعني <span className="text-red-400">*</span></label>
-              <select value={form.dept} onChange={e=>set('dept',e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.dept?'border-red-300':'border-gray-200'}`}>
-                <option value="">— اختر القسم —</option>
-                {DEPARTMENTS.map(d=><option key={d}>{d}</option>)}
-              </select>
-              {errors.dept&&<p className="text-red-500 text-[10px] mt-0.5">{errors.dept}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">تكليف إلى</label>
-              <select value={form.assignedTo} onChange={e=>set('assignedTo',e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <option value="">— اختر الموظف —</option>
-                {USERS.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">الأولوية</label>
-              <select value={form.priority} onChange={e=>set('priority',e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                {PRIORITIES.map(p=><option key={p.key} value={p.key}>{pl(p)}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">تاريخ الاستحقاق <span className="text-red-400">*</span></label>
-              <input type="date" value={form.due} onChange={e=>set('due',e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.due?'border-red-300':'border-gray-200'}`}
-                min={new Date().toISOString().split('T')[0]}/>
-              {errors.due&&<p className="text-red-500 text-[10px] mt-0.5">{errors.due}</p>}
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">الوسوم (مفصولة بفاصلة)</label>
-            <input value={form.tags} onChange={e=>set('tags',e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
-              placeholder="تدريب، مالي، عاجل، ..."/>
-          </div>
-        </div>
-        <div className="p-5 border-t border-gray-100 flex gap-3">
-          <button onClick={onClose} className="border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
-          <button onClick={handleSave} className="flex-1 bg-blue-700 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-blue-800 transition-colors">
-            {isEdit?'💾 حفظ التعديلات':'✅ إنشاء المهمة'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-
-// ─── Escalation Modal (hierarchy-aware) ────────────────────────────────────────
-const ROLE_HIERARCHY = [
-  { id:0, nameAr:'مشاهد',      code:'Viewer',            level:0, canEscalate:false },
-  { id:1, nameAr:'موظف',       code:'Employee',          level:1, canEscalate:true,  escalatesTo:[2] },
-  { id:2, nameAr:'مشرف',       code:'Supervisor',        level:2, canEscalate:true,  escalatesTo:[3] },
-  { id:3, nameAr:'مدير القسم', code:'DepartmentManager', level:3, canEscalate:true,  escalatesTo:[3] },
-  { id:4, nameAr:'مدير النظام',code:'SystemAdmin',       level:4, canEscalate:false },
-]
-
-function EscalationModal({ task, userRole, onClose, onEscalate }) {
-  const role = ROLE_HIERARCHY.find(r => r.id === userRole) || ROLE_HIERARCHY[1]
-  const allowedTargetRoles = role.escalatesTo || []
-  const allowedUsers = USERS.filter(u => allowedTargetRoles.includes(u.roleId||2))
-
-  const [targetUser, setTargetUser] = useState('')
-  const [reason, setReason]         = useState('')
-  const [error, setError]           = useState('')
-  const [loading, setLoading]       = useState(false)
-
-  const validate = () => {
-    const target = USERS.find(u=>u.id===Number(targetUser))
-    if (!targetUser || !target) { setError('يجب تحديد الشخص المُصعَّد إليه'); return false }
-    if (!reason.trim())         { setError('يجب ذكر سبب التصعيد'); return false }
-    // Hierarchy check
-    const targetRole = target.roleId || 2
-    if (!allowedTargetRoles.includes(targetRole)) {
-      setError(role.id===1 && targetRole===3
-        ? 'الموظف لا يستطيع التصعيد مباشرة لمدير القسم — يجب المرور عبر المشرف أولاً.'
-        : 'لا يمكنك التصعيد لهذا الدور حسب صلاحياتك.')
-      return false
-    }
-    return true
-  }
-
-  const handleSubmit = async () => {
-    if (!validate()) return
-    setLoading(true)
-    const target = USERS.find(u=>u.id===Number(targetUser))
-    try {
-      await client.post('/api/v1/escalations', {
-        taskId: task.id, toUserId: target.id,
-        fromRole: role.id, toRole: target.roleId||2,
-        reason, fromDepartment: task.dept,
-      })
-    } catch {}
-    // Audit log entry (local)
-    const escalationEntry = {
-      id: Date.now(), taskId: task.id,
-      fromUser: 'أنت', toUser: target.name,
-      fromRole: role.nameAr, toRole: ROLE_HIERARCHY[target.roleId||2]?.nameAr,
-      level: role.id===1 ? 1 : role.id===2 ? 2 : 3,
-      reason, status: 'pending',
-      date: new Date().toISOString().split('T')[0],
-    }
-    setLoading(false)
-    onEscalate(escalationEntry)
-    onClose()
-  }
-
-  const levelLabel = role.id===1 ? 'المستوى الأول: إلى المشرف' :
-                     role.id===2 ? 'المستوى الثاني: إلى مدير القسم' :
-                     'المستوى الثالث: تصعيد متقاطع'
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={onClose}>
@@ -251,82 +74,50 @@ function EscalationModal({ task, userRole, onClose, onEscalate }) {
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-2xl">🔺</div>
-            <div>
-              <h2 className="font-black text-gray-900">تصعيد المهمة</h2>
-              <p className="text-xs text-gray-400">دورك: {role.nameAr}</p>
-            </div>
+            <div><h2 className="font-black text-gray-900">{t('escalate_task')}</h2><p className="text-xs text-gray-400">{t('your_role')}: {rn(role)}</p></div>
             <button onClick={onClose} className="mr-auto w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 text-xl">✕</button>
           </div>
-
-          {/* Hierarchy diagram */}
-          <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2 text-xs">
+          <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2 text-xs flex-wrap">
             {ROLE_HIERARCHY.filter(r=>r.canEscalate).map((r,i,arr)=>(
               <React.Fragment key={r.id}>
-                <span className={`px-2 py-1 rounded-lg font-bold ${r.id===role.id?'bg-blue-700 text-white':'bg-gray-200 text-gray-500'}`}>
-                  {r.nameAr}
-                </span>
+                <span className={`px-2 py-1 rounded-lg font-bold ${r.id===role.id?'bg-blue-700 text-white':'bg-gray-200 text-gray-500'}`}>{rn(r)}</span>
                 {i<arr.length-1&&<span className="text-gray-300">→</span>}
               </React.Fragment>
             ))}
           </div>
           <p className="text-xs text-blue-600 font-semibold mt-2">📍 {levelLabel}</p>
         </div>
-
         <div className="p-5 space-y-4">
-          {/* Task info */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-            <p className="text-xs font-bold text-amber-800 mb-1">المهمة المُصعَّدة:</p>
+            <p className="text-xs font-bold text-amber-800 mb-1">{t('escalated_task_label')}</p>
             <p className="text-sm text-gray-800 font-semibold">{task.title}</p>
-            <p className="text-xs text-gray-500 mt-0.5">القسم: {task.dept}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{task.dept}</p>
           </div>
-
-          {/* Target user */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5">
-              التصعيد إلى <span className="text-red-400">*</span>
-            </label>
-            {allowedUsers.length > 0 ? (
-              <select value={targetUser} onChange={e=>{ setTargetUser(e.target.value); setError('') }}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400">
-                <option value="">— اختر الشخص المسؤول —</option>
-                {allowedUsers.map(u=>(
-                  <option key={u.id} value={u.id}>{u.name} ({ROLE_HIERARCHY[u.roleId||2]?.nameAr})</option>
-                ))}
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">{t('escalate_to_label')} <span className="text-red-400">*</span></label>
+            {targets.length>0?(
+              <select value={targetUser} onChange={e=>{setTU(e.target.value);setE('')}} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400">
+                <option value="">{t('choose_person')}</option>
+                {targets.map(u=><option key={u.id} value={u.id}>{u.name} ({ROLE_HIERARCHY[u.roleId||2]?rn(ROLE_HIERARCHY[u.roleId||2]):''})</option>)}
               </select>
-            ) : (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="text-sm text-red-700 font-semibold">⚠️ لا يوجد مستهدف مناسب لمستوى تصعيدك</p>
-                <p className="text-xs text-red-500 mt-1">{role.canEscalate ? 'لا توجد جهات في النطاق المسموح' : 'دورك لا يُخوّلك بالتصعيد'}</p>
-              </div>
+            ):(
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">{t('no_valid_targets')}</div>
             )}
           </div>
-
-          {/* Reason */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5">
-              سبب التصعيد <span className="text-red-400">*</span>
-            </label>
-            <textarea value={reason} onChange={e=>{ setReason(e.target.value); setError('') }}
-              rows={3} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 text-right resize-none"
-              placeholder="اشرح بوضوح لماذا تحتاج لتصعيد هذه المهمة وما الذي يحول دون حلها على مستواك..."/>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">{t('escalation_reason_label')} <span className="text-red-400">*</span></label>
+            <textarea value={reason} onChange={e=>{setR(e.target.value);setE('')}} rows={3} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none" placeholder={t('escalation_reason_ph')} dir={lang==='en'?'ltr':'rtl'}/>
           </div>
-
-          {/* Rules note */}
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 space-y-1">
-            <p className="font-bold">⚠️ قواعد التصعيد:</p>
-            <p>• التصعيد لا يُغير حالة المهمة تلقائياً</p>
-            <p>• سيُسجَّل في سجل التدقيق</p>
-            <p>• الطرف المُصعَّد إليه سيتلقى إشعاراً فورياً</p>
+            <p className="font-bold">⚠️ {t('escalation_rules')}</p>
+            <p>• {t('esc_rule1')}</p><p>• {t('esc_rule2')}</p><p>• {t('esc_rule3')}</p>
           </div>
-
-          {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 font-medium">⚠️ {error}</div>}
+          {error&&<div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">⚠️ {error}</div>}
         </div>
-
         <div className="p-5 border-t border-gray-100 flex gap-3">
-          <button onClick={onClose} className="border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
-          <button onClick={handleSubmit} disabled={loading || !role.canEscalate}
-            className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">
-            {loading ? '⏳' : '🔺'} {loading ? 'جارٍ التصعيد...' : 'تأكيد التصعيد'}
+          <button onClick={onClose} className="border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
+          <button onClick={submit} disabled={loading||!role.canEscalate} className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">
+            {loading?t('escalating'):'🔺 '+t('confirm_escalation')}
           </button>
         </div>
       </div>
@@ -334,473 +125,416 @@ function EscalationModal({ task, userRole, onClose, onEscalate }) {
   )
 }
 
-// ─── Task Detail Panel ────────────────────────────────────────────────────────
-function TaskDetail({ task, onClose, onUpdate, isAdmin }) {
-  const [comment, setComment] = useState('')
-  const [files, setFiles]     = useState([])
-  const [addingComment, setAddingComment] = useState(false)
-  const [showEscModal, setShowEscModal]   = useState(false)
-  const fileRef = useRef()
-  const s = STATUS_MAP[task.status] || STATUS_MAP.new
-  const p = PRIO_MAP[task.priority] || PRIO_MAP.medium
-  const isOverdue = task.due && new Date(task.due) < new Date() && !['completed','cancelled'].includes(task.status)
+// ─── Task Card ─────────────────────────────────────────────────────────────────
+function TaskCard({ task, onClick, selected, lang }) {
+  const s = STATUS_MAP[task.status]||STATUS_MAP.new
+  const p = PRIO_MAP[task.priority]||PRIO_MAP.medium
+  const sl = lang==='en'?(s.labelEn||s.labelAr):s.labelAr
+  const pl = lang==='en'?(p.labelEn||p.labelAr):p.labelAr
+  const isOverdue = task.due && new Date(task.due)<new Date() && !['completed','cancelled'].includes(task.status)
+  return (
+    <div onClick={onClick} className={`bg-white rounded-2xl border-2 p-4 cursor-pointer transition-all hover:shadow-md active:scale-[0.98] ${selected?'border-blue-500 shadow-md':'border-gray-100 hover:border-gray-200'}`}>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background:s.bg,color:s.color}}>{s.icon} {sl}</span>
+          {task.escalated&&<span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">🔺</span>}
+        </div>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{background:p.bg,color:p.color}}>{pl}</span>
+      </div>
+      <p className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{task.title}</p>
+      <div className="flex items-center justify-between text-xs text-gray-400">
+        <span>👤 {task.assignedName||'—'}</span>
+        <span className={isOverdue?'text-red-500 font-semibold':''}>{isOverdue?'⚠️ ':''}{task.due}</span>
+      </div>
+      {task.comments?.length>0&&<div className="mt-1.5 text-[10px] text-gray-400">💬 {task.comments.length}</div>}
+    </div>
+  )
+}
 
-  const nextStatuses = {
-    new:        ['assigned'],
-    assigned:   ['inprogress','cancelled'],
-    inprogress: ['review','cancelled'],
-    review:     ['completed','inprogress'],
-    overdue:    ['inprogress','cancelled'],
-    completed:  [],
-    cancelled:  [],
+// ─── Task Form Modal ────────────────────────────────────────────────────────────
+function TaskFormModal({ task, onClose, onSave, t, lang }) {
+  const isEdit = !!task?.id
+  const [form, setForm] = useState({
+    title:task?.title||'', desc:task?.desc||'', dept:task?.dept||'',
+    assignedTo:task?.assignedTo||'', priority:task?.priority||'medium',
+    due:task?.due||'', tags:(task?.tags||[]).join('، '),
+  })
+  const [errors, setErrors] = useState({})
+  const set = (k,v) => { setForm(p=>({...p,[k]:v})); setErrors(p=>({...p,[k]:''})) }
+
+  const validate = () => {
+    const e = {}
+    if (!form.title.trim()) e.title = t('required')
+    if (!form.dept)         e.dept  = t('required')
+    if (!form.due)          e.due   = t('required')
+    setErrors(e); return Object.keys(e).length===0
   }
 
-  const addComment = () => {
-    if (!comment.trim()) return
-    const newComment = { id:Date.now(), by:'أنت', text:comment.trim(), date:new Date().toISOString().split('T')[0] }
-    onUpdate({ ...task, comments:[...task.comments, newComment] })
-    setComment('')
-    setAddingComment(false)
-  }
-
-  const changeStatus = (newStatus) => {
-    onUpdate({
-      ...task, status: newStatus,
-      history: [...task.history, {status:newStatus, date:new Date().toISOString().split('T')[0]}]
+  const handleSave = () => {
+    if (!validate()) return
+    const u = USERS.find(u=>u.id===Number(form.assignedTo))
+    onSave({ ...task, ...form, assignedTo:Number(form.assignedTo)||null, assignedName:u?.name||'',
+      tags:form.tags.split(/[،,]/).map(t=>t.trim()).filter(Boolean),
+      status:task?.status||'new', created:task?.created||new Date().toISOString().split('T')[0],
+      createdBy:task?.createdBy||'أنت', comments:task?.comments||[], attachments:task?.attachments||[],
+      escalated:task?.escalated||false, escalations:task?.escalations||[],
+      history:task?.history||[{status:'new',date:new Date().toISOString().split('T')[0]}],
     })
+    onClose()
   }
 
-  const escalate = () => {
-    onUpdate({ ...task, escalated: true, history:[...task.history, {status:'escalated', date:new Date().toISOString().split('T')[0]}] })
-  }
-
-  const addFiles = (e) => {
-    const newFiles = Array.from(e.target.files||[]).map(f=>({name:f.name, size:(f.size/1024).toFixed(0)+'KB', date:new Date().toISOString().split('T')[0]}))
-    onUpdate({...task, attachments:[...(task.attachments||[]), ...newFiles]})
-  }
-
-  const nextBtns = nextStatuses[task.status] || []
-  const STATUS_ACTIONS = {
-    assigned:   { label:'بدء التنفيذ',      icon:'▶️', cls:'bg-blue-700 text-white hover:bg-blue-800' },
-    inprogress: { label:'إرسال للمراجعة',   icon:'🔍', cls:'bg-purple-600 text-white hover:bg-purple-700' },
-    review:     { label:'إغلاق ✅',          icon:'✅', cls:'bg-green-600 text-white hover:bg-green-700' },
-    cancelled:  { label:'إلغاء المهمة',     icon:'⛔', cls:'bg-gray-500 text-white hover:bg-gray-600' },
-  }
+  const INP = (err) => `w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${err?'border-red-300':'border-gray-200'}`
 
   return (
-    <div className="fixed inset-0 z-40 md:relative md:inset-auto bg-white border-r border-gray-100 flex flex-col" style={{width:'100%',maxWidth:'none',height:'100%'}}>
-          <style>{`.md-detail-panel { position: relative !important; width: 420px !important; }`}</style>
-      {/* Header */}
-      <div className="p-4 border-b border-gray-100 flex-shrink-0" style={{background: s.bg}}>
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex gap-1.5 flex-wrap">
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:'white',color:s.color}}>{s.icon} {sl(s)}</span>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:p.bg,color:p.color}}>{pl(p)}</span>
-            {task.escalated && <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">🔺 مُصعَّدة</span>}
-          </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 text-lg flex-shrink-0">✕</button>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl my-4" onClick={e=>e.stopPropagation()}>
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-black text-gray-900">{isEdit?t('edit_task'):t('new_task')}</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 text-xl">✕</button>
         </div>
-        <h2 className="font-black text-gray-900 leading-snug">{task.title}</h2>
-        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
-          {task.assignedName && <span>👤 {task.assignedName}</span>}
-          <span>🏛 {task.dept}</span>
-          <span className={isOverdue?'text-red-600 font-semibold':''}>{isOverdue?'⚠️ متأخرة: ':'📅 '}{task.due}</span>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">{t('task_title_field')} <span className="text-red-400">*</span></label>
+            <input value={form.title} onChange={e=>set('title',e.target.value)} className={INP(errors.title)} placeholder={t('title_placeholder')}/>
+            {errors.title&&<p className="text-red-500 text-[10px] mt-0.5">{errors.title}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">{t('task_desc')}</label>
+            <textarea value={form.desc} onChange={e=>set('desc',e.target.value)} rows={3} className={`${INP()} resize-none`} placeholder={t('desc_placeholder')}/>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">{t('department')} <span className="text-red-400">*</span></label>
+              <select value={form.dept} onChange={e=>set('dept',e.target.value)} className={INP(errors.dept)}>
+                <option value="">{lang==='en'?'— Select Dept —':'— اختر القسم —'}</option>
+                {DEPARTMENTS.map(d=><option key={d}>{d}</option>)}
+              </select>
+              {errors.dept&&<p className="text-red-500 text-[10px] mt-0.5">{errors.dept}</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">{t('assign_to')}</label>
+              <select value={form.assignedTo} onChange={e=>set('assignedTo',e.target.value)} className={INP()}>
+                <option value="">{lang==='en'?'— Select Employee —':'— اختر الموظف —'}</option>
+                {USERS.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">{t('priority')}</label>
+              <select value={form.priority} onChange={e=>set('priority',e.target.value)} className={INP()}>
+                {PRIORITIES.map(p=><option key={p.key} value={p.key}>{lang==='en'?(p.labelEn||p.labelAr):p.labelAr}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">{t('due_date')} <span className="text-red-400">*</span></label>
+              <input type="date" value={form.due} onChange={e=>set('due',e.target.value)} className={INP(errors.due)} min={new Date().toISOString().split('T')[0]}/>
+              {errors.due&&<p className="text-red-500 text-[10px] mt-0.5">{errors.due}</p>}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">{t('tags')}</label>
+            <input value={form.tags} onChange={e=>set('tags',e.target.value)} className={INP()} placeholder={t('tags_placeholder')}/>
+          </div>
+        </div>
+        <div className="p-5 border-t border-gray-100 flex gap-3">
+          <button onClick={onClose} className="border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
+          <button onClick={handleSave} className="flex-1 bg-blue-700 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-blue-800 transition-colors">
+            {isEdit?'💾 '+t('save_edits'):'✅ '+t('create_task')}
+          </button>
         </div>
       </div>
+    </div>
+  )
+}
 
-      {/* Scrollable body */}
+// ─── Task Detail Panel ─────────────────────────────────────────────────────────
+function TaskDetail({ task, onClose, onUpdate, isAdmin, t, lang }) {
+  const [comment, setComment] = useState('')
+  const [addingComment, setAC] = useState(false)
+  const [showEscModal, setSEM]  = useState(false)
+  const fileRef = useRef()
+  const s = STATUS_MAP[task.status]||STATUS_MAP.new
+  const p = PRIO_MAP[task.priority]||PRIO_MAP.medium
+  const sl = lang==='en'?(s.labelEn||s.labelAr):s.labelAr
+  const pl = lang==='en'?(p.labelEn||p.labelAr):p.labelAr
+  const isOverdue = task.due&&new Date(task.due)<new Date()&&!['completed','cancelled'].includes(task.status)
+
+  const NEXT = { new:['assigned'], assigned:['inprogress','cancelled'], inprogress:['review','cancelled'], review:['completed','inprogress'], overdue:['inprogress','cancelled'] }
+  const BTN_CFG = {
+    assigned:   {label:t('start_task'),   cls:'bg-blue-700 text-white hover:bg-blue-800'},
+    inprogress: {label:t('send_review'),  cls:'bg-purple-600 text-white hover:bg-purple-700'},
+    review:     {label:t('close_approve'),cls:'bg-green-600 text-white hover:bg-green-700'},
+    cancelled:  {label:t('cancel_task'), cls:'bg-gray-500 text-white hover:bg-gray-600'},
+  }
+
+  const changeStatus = (ns) => onUpdate({...task,status:ns,history:[...task.history,{status:ns,date:new Date().toISOString().split('T')[0]}]})
+  const addComment   = () => {
+    if (!comment.trim()) return
+    onUpdate({...task,comments:[...task.comments,{id:Date.now(),by:'أنت',text:comment.trim(),date:new Date().toISOString().split('T')[0]}]})
+    setComment(''); setAC(false)
+  }
+  const addFiles = (e) => onUpdate({...task,attachments:[...(task.attachments||[]),...Array.from(e.target.files||[]).map(f=>({name:f.name,size:(f.size/1024).toFixed(0)+'KB',date:new Date().toISOString().split('T')[0]}))]})
+
+  return (
+    <div className="fixed inset-0 z-40 md:relative md:inset-auto bg-white border-r border-gray-100 flex flex-col" style={{width:'100%',height:'100%'}}>
+      {showEscModal&&<EscalationModal task={task} userRole={isAdmin?3:1} onClose={()=>setSEM(false)} t={t} lang={lang}
+        onEscalate={esc=>onUpdate({...task,escalated:true,escalations:[...(task.escalations||[]),esc],history:[...task.history,{status:'escalated',date:new Date().toISOString().split('T')[0]}]})}/>}
+      <div className="p-4 border-b border-gray-100 flex-shrink-0" style={{background:s.bg}}>
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex gap-1.5 flex-wrap">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:'white',color:s.color}}>{s.icon} {sl}</span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:p.bg,color:p.color}}>{pl}</span>
+            {task.escalated&&<span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">🔺</span>}
+          </div>
+          <button onClick={onClose} className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 text-lg">✕</button>
+        </div>
+        <h2 className="font-black text-gray-900 leading-snug">{task.title}</h2>
+        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 flex-wrap">
+          {task.assignedName&&<span>👤 {task.assignedName}</span>}
+          <span>🏛 {task.dept}</span>
+          <span className={isOverdue?'text-red-600 font-semibold':''}>{isOverdue?'⚠️ ':''}{task.due}</span>
+        </div>
+      </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Description */}
-        {task.desc && (
-          <div>
-            <p className="text-xs font-black text-gray-400 uppercase mb-1.5">الوصف</p>
-            <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-3">{task.desc}</p>
-          </div>
-        )}
-
-        {/* Tags */}
-        {task.tags?.length>0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {task.tags.map(t=><span key={t} className="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full border border-blue-100">#{t}</span>)}
-          </div>
-        )}
-
+        {task.desc&&<div><p className="text-xs font-black text-gray-400 uppercase mb-1.5">{t('description')}</p><p className="text-sm text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-3">{task.desc}</p></div>}
+        {task.tags?.length>0&&<div className="flex flex-wrap gap-1.5">{task.tags.map(tg=><span key={tg} className="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full border border-blue-100">#{tg}</span>)}</div>}
         {/* Actions */}
-        {(nextBtns.length > 0 || !task.escalated) && (
-          <div className="space-y-2">
-            <p className="text-xs font-black text-gray-400 uppercase">الإجراءات</p>
+        {(NEXT[task.status]||[]).length>0&&(
+          <div>
+            <p className="text-xs font-black text-gray-400 uppercase mb-2">{t('status_actions')}</p>
             <div className="flex flex-wrap gap-2">
-              {nextBtns.map(next => {
-                const a = STATUS_ACTIONS[next]
-                if (!a) return null
-                return (
-                  <button key={next} onClick={()=>changeStatus(next)}
-                    className={`text-xs font-bold px-3 py-2 rounded-xl transition-colors ${a.cls}`}>
-                    {a.icon} {a.label}
-                  </button>
-                )
-              })}
-              {!task.escalated && !['completed','cancelled'].includes(task.status) && (
-                <button onClick={()=>setShowEscModal(true)}
-                  className="text-xs font-bold px-3 py-2 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50 transition-colors">
-                  🔺 تصعيد (مستوى {isAdmin?'المدير':'الموظف'})
-                </button>
+              {(NEXT[task.status]||[]).map(ns=>{const b=BTN_CFG[ns]; return b?<button key={ns} onClick={()=>changeStatus(ns)} className={`text-xs font-bold px-3 py-2 rounded-xl transition-colors ${b.cls}`}>{b.label}</button>:null})}
+              {!task.escalated&&!['completed','cancelled'].includes(task.status)&&(
+                <button onClick={()=>setSEM(true)} className="text-xs font-bold px-3 py-2 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50">🔺 {t('escalate')}</button>
               )}
             </div>
           </div>
         )}
-
         {/* History */}
         <div>
-          <p className="text-xs font-black text-gray-400 uppercase mb-2">سجل الحالات</p>
+          <p className="text-xs font-black text-gray-400 uppercase mb-2">{t('status_history')}</p>
           <div className="space-y-1.5 border-r-2 border-gray-100 pr-3">
-            {[...task.history].reverse().map((h,i)=>{
-              const hs = STATUS_MAP[h.status]
-              return (
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 -mr-4`} style={{background:hs?.dot||'#9ca3af'}}/>
-                  <span className="font-medium" style={{color:hs?.color||'#6b7280'}}>{hs?.label||h.status}</span>
-                  <span className="text-gray-400">{h.date}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Attachments */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-black text-gray-400 uppercase">المرفقات ({task.attachments?.length||0})</p>
-            <button onClick={()=>fileRef.current?.click()} className="text-xs text-blue-600 hover:text-blue-800 font-semibold">+ إضافة</button>
-          </div>
-          <input ref={fileRef} type="file" multiple className="hidden" onChange={addFiles}/>
-          {task.attachments?.length>0 ? (
-            <div className="space-y-1.5">
-              {task.attachments.map((a,i)=>(
-                <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-xl text-xs">
-                  <span>📎</span>
-                  <span className="flex-1 font-medium truncate text-gray-700">{a.name}</span>
-                  <span className="text-gray-400">{a.size}</span>
-                </div>
-              ))}
-            </div>
-          ) : <p className="text-xs text-gray-400 text-center py-2">لا توجد مرفقات</p>}
-        </div>
-
-        {/* Comments */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-black text-gray-400 uppercase">التعليقات ({task.comments?.length||0})</p>
-            <button onClick={()=>setAddingComment(p=>!p)} className="text-xs text-blue-600 hover:text-blue-800 font-semibold">+ تعليق</button>
-          </div>
-          {addingComment && (
-            <div className="mb-3 space-y-2">
-              <textarea value={comment} onChange={e=>setComment(e.target.value)} rows={2}
-                placeholder="اكتب تعليقك..."
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right resize-none"/>
-              <div className="flex gap-2">
-                <button onClick={addComment} className="flex-1 bg-blue-700 text-white text-xs py-2 rounded-xl font-bold hover:bg-blue-800">إضافة</button>
-                <button onClick={()=>{setAddingComment(false);setComment('')}} className="border border-gray-200 text-gray-500 text-xs px-3 py-2 rounded-xl hover:bg-gray-50">إلغاء</button>
+            {[...task.history].reverse().map((h,i)=>{const hs=STATUS_MAP[h.status]; const hl=lang==='en'?(hs?.labelEn||h.status):hs?.labelAr||h.status; return(
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <div className="w-2 h-2 rounded-full flex-shrink-0 -mr-4" style={{background:hs?.dot||'#9ca3af'}}/>
+                <span className="font-medium" style={{color:hs?.color||'#6b7280'}}>{hl}</span>
+                <span className="text-gray-400">{h.date}</span>
               </div>
-            </div>
-          )}
-          {task.comments?.length>0 ? (
-            <div className="space-y-2">
-              {task.comments.map(c=>(
-                <div key={c.id} className="bg-gray-50 rounded-xl p-3">
-                  <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
-                    <span className="font-bold text-gray-600">👤 {c.by}</span>
-                    <span>{c.date}</span>
-                  </div>
-                  <p className="text-xs text-gray-700">{c.text}</p>
-                </div>
-              ))}
-            </div>
-          ) : !addingComment && <p className="text-xs text-gray-400 text-center py-2">لا توجد تعليقات</p>}
+            )})}
+          </div>
         </div>
-
-        {showEscModal && (
-          <EscalationModal
-            task={task}
-            userRole={isAdmin ? 3 : 1}
-            onClose={()=>setShowEscModal(false)}
-            onEscalate={(esc) => {
-              onUpdate({ ...task, escalated: true,
-                escalations: [...(task.escalations||[]), esc],
-                history: [...task.history, {status:'escalated', date:new Date().toISOString().split('T')[0]}]
-              })
-            }}
-          />
-        )}
-
         {/* Escalation history */}
-        {task.escalations?.length > 0 && (
+        {task.escalations?.length>0&&(
           <div>
-            <p className="text-xs font-black text-gray-400 uppercase mb-2">سجل التصعيد</p>
+            <p className="text-xs font-black text-gray-400 uppercase mb-2">{t('escalation_history')}</p>
             <div className="space-y-2">
               {task.escalations.map((e,i)=>(
                 <div key={i} className="bg-red-50 border border-red-100 rounded-xl p-3 text-xs">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-red-700">🔺 المستوى {e.level}</span>
-                    <span className={`px-2 py-0.5 rounded-full font-medium ${e.status==='pending'?'bg-amber-100 text-amber-700':'bg-green-100 text-green-700'}`}>
-                      {e.status==='pending'?'معلق':e.status==='accepted'?'مقبول':'محلول'}
-                    </span>
+                    <span className="font-bold text-red-700">🔺 {t('esc_level')} {e.level}</span>
+                    <span className={`px-2 py-0.5 rounded-full font-medium ${e.status==='pending'?'bg-amber-100 text-amber-700':'bg-green-100 text-green-700'}`}>{e.status==='pending'?t('esc_pending'):t('esc_resolved')}</span>
                   </div>
                   <p className="text-gray-600">{e.fromUser} ({e.fromRole}) → {e.toUser} ({e.toRole})</p>
-                  <p className="text-gray-500 mt-0.5">السبب: {e.reason}</p>
+                  <p className="text-gray-500 mt-0.5">{t('esc_reason_label')} {e.reason}</p>
                   <p className="text-gray-400 mt-0.5">{e.date}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
-
-        {/* Info */}
+        {/* Attachments */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-black text-gray-400 uppercase">{t('attachments')} ({task.attachments?.length||0})</p>
+            <button onClick={()=>fileRef.current?.click()} className="text-xs text-blue-600 hover:text-blue-800 font-semibold">+ {t('add_attachment')}</button>
+          </div>
+          <input ref={fileRef} type="file" multiple className="hidden" onChange={addFiles}/>
+          {task.attachments?.length>0?<div className="space-y-1.5">{task.attachments.map((a,i)=><div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-xl text-xs"><span>📎</span><span className="flex-1 font-medium truncate">{a.name}</span><span className="text-gray-400">{a.size}</span></div>)}</div>
+          :<p className="text-xs text-gray-400 text-center py-2">{t('no_attachments')}</p>}
+        </div>
+        {/* Comments */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-black text-gray-400 uppercase">{t('comments')} ({task.comments?.length||0})</p>
+            <button onClick={()=>setAC(p=>!p)} className="text-xs text-blue-600 hover:text-blue-800 font-semibold">+ {t('add_comment')}</button>
+          </div>
+          {addingComment&&<div className="mb-3 space-y-2">
+            <textarea value={comment} onChange={e=>setComment(e.target.value)} rows={2} placeholder={t('comment_placeholder')} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none" dir={lang==='en'?'ltr':'rtl'}/>
+            <div className="flex gap-2">
+              <button onClick={addComment} className="flex-1 bg-blue-700 text-white text-xs py-2 rounded-xl font-bold hover:bg-blue-800">{t('add')}</button>
+              <button onClick={()=>{setAC(false);setComment('')}} className="border border-gray-200 text-gray-500 text-xs px-3 py-2 rounded-xl hover:bg-gray-50">{t('cancel')}</button>
+            </div>
+          </div>}
+          {task.comments?.length>0?<div className="space-y-2">{task.comments.map(c=><div key={c.id} className="bg-gray-50 rounded-xl p-3"><div className="flex items-center justify-between text-[10px] text-gray-400 mb-1"><span className="font-bold text-gray-600">👤 {c.by}</span><span>{c.date}</span></div><p className="text-xs text-gray-700">{c.text}</p></div>)}</div>
+          :!addingComment&&<p className="text-xs text-gray-400 text-center py-2">{t('no_comments')}</p>}
+        </div>
         <div className="text-xs text-gray-400 space-y-1 pt-2 border-t border-gray-100">
-          <div className="flex justify-between"><span>أُنشئت بتاريخ</span><span>{task.created}</span></div>
-          <div className="flex justify-between"><span>أنشأها</span><span>{task.createdBy}</span></div>
-          {task.assignedName&&<div className="flex justify-between"><span>مُكلَّف</span><span>{task.assignedName}</span></div>}
+          <div className="flex justify-between"><span>{t('task_created_at')}</span><span>{task.created}</span></div>
+          <div className="flex justify-between"><span>{t('task_created_by')}</span><span>{task.createdBy}</span></div>
+          {task.assignedName&&<div className="flex justify-between"><span>{t('task_assigned_to')}</span><span>{task.assignedName}</span></div>}
         </div>
       </div>
     </div>
   )
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+// ─── Main Page ──────────────────────────────────────────────────────────────────
 export default function TasksPage() {
-  const { show, ToastContainer }     = useToast()
-  const { user }                     = useAuthStore()
-  const [tasks, setTasks]            = useLocalStorage('ecm_tasks_v2', MOCK_TASKS)
-  const [selected, setSelected]      = useState(null)
-  const [showCreate, setShowCreate]  = useState(false)
-  const [editTask, setEditTask]      = useState(null)
-  const [filterStatus, setFS]        = useState('all')
-  const [filterPrio, setFP]          = useState('all')
-  const [filterDept, setFD]          = useState('all')
-  const [search, setSearch]          = useState('')
-  const [view, setView]              = useState('board')  // board | list
-  const [showReports, setShowReports]= useState(false)
-  const [showFilters, setShowFilters]  = useState(false)
+  const { show, ToastContainer }    = useToast()
+  const { user }                    = useAuthStore()
+  const { lang, t, isRTL }         = useLang()
+  const [tasks, setTasks]           = useLocalStorage('ecm_tasks_v2', MOCK_TASKS)
+  const [selected, setSelected]     = useState(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [editTask, setEditTask]     = useState(null)
+  const [filterStatus, setFS]       = useState('all')
+  const [filterPrio, setFP]         = useState('all')
+  const [filterDept, setFD]         = useState('all')
+  const [search, setSearch]         = useState('')
+  const [view, setView]             = useState('board')
+  const [showReports, setSR]        = useState(false)
+  const [showFilters, setSF]        = useState(false)
 
-  const { lang, t, isRTL, fmtDate } = useLang()
   const isAdmin = (user?.permissions||[]).some(p=>p==='admin.*')
-  // Dynamic labels based on lang
-  const sl = (s) => lang==='en' ? (s.labelEn||s.label) : s.label
-  const pl = (p) => lang==='en' ? (p.labelEn||p.label) : p.label
   const safeTasks = Array.isArray(tasks) ? tasks : MOCK_TASKS
+  const sl = (s) => lang==='en'?(s.labelEn||s.labelAr):s.labelAr
+  const pl = (p) => lang==='en'?(p.labelEn||p.labelAr):p.labelAr
 
-  // Mark overdue
-  const withOverdue = safeTasks.map(t=>({
-    ...t,
-    status: !['completed','cancelled'].includes(t.status) && t.due && new Date(t.due) < new Date()
-      ? 'overdue' : t.status
-  }))
+  const withOverdue = safeTasks.map(t=>({...t,status:!['completed','cancelled'].includes(t.status)&&t.due&&new Date(t.due)<new Date()?'overdue':t.status}))
+  const filtered = withOverdue.filter(t=>(filterStatus==='all'||t.status===filterStatus)&&(filterPrio==='all'||t.priority===filterPrio)&&(filterDept==='all'||t.dept===filterDept)&&(!search||t.title.includes(search)||(t.assignedName||'').includes(search)||(t.dept||'').includes(search)))
 
-  const filtered = withOverdue.filter(t=>
-    (filterStatus==='all'||t.status===filterStatus)&&
-    (filterPrio==='all'||t.priority===filterPrio)&&
-    (filterDept==='all'||t.dept===filterDept)&&
-    (!search||(t.title||'').includes(search)||(t.assignedName||'').includes(search)||(t.dept||'').includes(search))
-  )
-
-  const updateTask = (updated) => {
-    setTasks(p=>(Array.isArray(p)?p:MOCK_TASKS).map(t=>t.id===updated.id?updated:t))
-    if (selected?.id===updated.id) setSelected(updated)
-    client.post(`/api/v1/tasks/${updated.id}/assign`,{}).catch(()=>{})
-  }
-
+  const updateTask = (u) => { setTasks(p=>(Array.isArray(p)?p:MOCK_TASKS).map(t=>t.id===u.id?u:t)); if(selected?.id===u.id) setSelected(u) }
   const saveTask = (task) => {
-    if (task.id) {
-      updateTask(task)
-      show(`✅ تم تعديل: ${task.title}`, 'success')
-    } else {
-      const newTask = { ...task, id: Date.now() }
-      setTasks(p=>[newTask,...(Array.isArray(p)?p:MOCK_TASKS)])
-      show(`✅ تم إنشاء: ${task.title}`, 'success')
-      client.post('/api/v1/tasks', newTask).catch(()=>{})
-    }
+    if (task.id) { updateTask(task); show('✅ '+t('save_edits'), 'success') }
+    else { const n={...task,id:Date.now()}; setTasks(p=>[n,...(Array.isArray(p)?p:MOCK_TASKS)]); show('✅ '+t('new_task'), 'success'); client.post('/api/v1/tasks',n).catch(()=>{}) }
   }
-
   const deleteTask = (id) => {
-    const t = safeTasks.find(t=>t.id===id)
-    if (t?.status==='completed') { show('لا يمكن حذف مهمة مكتملة','error'); return }
-    setTasks(p=>(Array.isArray(p)?p:[]).filter(t=>t.id!==id))
-    setSelected(null)
-    show('تم حذف المهمة','success')
+    const tk = safeTasks.find(t=>t.id===id)
+    if (tk?.status==='completed') { show(lang==='en'?'Cannot delete completed task':'لا يمكن حذف مهمة مكتملة','error'); return }
+    setTasks(p=>(Array.isArray(p)?p:[]).filter(t=>t.id!==id)); setSelected(null); show(t('delete'), 'success')
   }
 
-  // Board columns
-  const boardCols = STATUSES.filter(s=>!['overdue','cancelled'].includes(s.key)).map(s=>({
-    ...s,
-    tasks: filtered.filter(t=>t.status===s.key)
-  }))
-  const overdueTasks   = filtered.filter(t=>t.status==='overdue')
+  const boardCols = STATUSES.filter(s=>!['overdue','cancelled'].includes(s.key)).map(s=>({...s,label:sl(s),tasks:filtered.filter(t=>t.status===s.key)}))
+  const overdueTasks = filtered.filter(t=>t.status==='overdue')
   const cancelledTasks = filtered.filter(t=>t.status==='cancelled')
-
-  // Stats
-  const stats = {
-    total:     safeTasks.length,
-    inprogress:withOverdue.filter(t=>t.status==='inprogress').length,
-    overdue:   withOverdue.filter(t=>t.status==='overdue').length,
-    completed: withOverdue.filter(t=>t.status==='completed').length,
-    escalated: withOverdue.filter(t=>t.escalated).length,
-    byDept:    DEPARTMENTS.map(d=>({name:d, count:withOverdue.filter(t=>t.dept===d).length})).filter(d=>d.count>0),
-    byStatus:  STATUSES.map(s=>({...s, count:withOverdue.filter(t=>t.status===s.key).length})),
-  }
+  const stats = { total:safeTasks.length, inprogress:withOverdue.filter(t=>t.status==='inprogress').length, overdue:withOverdue.filter(t=>t.status==='overdue').length, completed:withOverdue.filter(t=>t.status==='completed').length, escalated:withOverdue.filter(t=>t.escalated).length }
 
   return (
     <div className="flex flex-col h-full">
       <ToastContainer/>
-      {(showCreate||editTask) && (
-        <TaskFormModal task={editTask} onClose={()=>{setShowCreate(false);setEditTask(null)}} onSave={saveTask}/>
-      )}
+      {(showCreate||editTask)&&<TaskFormModal task={editTask} onClose={()=>{setShowCreate(false);setEditTask(null)}} onSave={saveTask} t={t} lang={lang}/>}
 
-      {/* ── Header ── */}
       <div className="flex-shrink-0 space-y-3 mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-gray-900">{t ? t("tasks_title") : "إدارة المهام"}</h1>
-            <p className="text-sm text-gray-400 mt-0.5">{safeTasks.length} مهمة · {stats.overdue} متأخرة · {stats.escalated} مُصعَّدة</p>
+            <h1 className="text-2xl font-black text-gray-900">{t('tasks_title')}</h1>
+            <p className="text-sm text-gray-400 mt-0.5">{stats.total} {lang==='en'?'tasks':'مهمة'} · {stats.overdue} {t('st_overdue')} · {stats.escalated} {t('task_kpi_escalated')}</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={()=>setShowReports(p=>!p)}
-              className={`border text-sm px-4 py-2 rounded-xl transition-colors ${showReports?'bg-gray-900 text-white border-gray-900':'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-              📊 التقارير
-            </button>
-            <button onClick={()=>{setShowCreate(true);setEditTask(null)}}
-              className="bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-blue-800 shadow-sm transition-colors">
-              + مهمة جديدة
-            </button>
+            <button onClick={()=>setSR(p=>!p)} className={`border text-sm px-4 py-2 rounded-xl transition-colors ${showReports?'bg-gray-900 text-white border-gray-900':'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>📊 {t('reports')}</button>
+            <button onClick={()=>{setShowCreate(true);setEditTask(null)}} className="bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-blue-800 shadow-sm">+ {t('new_task')}</button>
           </div>
         </div>
 
-        {/* KPI */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
-          {[
-            {l:'إجمالي المهام',   v:stats.total,     icon:'📋', cls:'bg-indigo-50 text-indigo-700 border-indigo-100'},
-            {l:'قيد التنفيذ',    v:stats.inprogress, icon:'🔄', cls:'bg-amber-50 text-amber-700 border-amber-100'},
-            {l:'متأخرة',          v:stats.overdue,   icon:'⚠️', cls:'bg-red-50 text-red-700 border-red-100'},
-            {l:'مكتملة',          v:stats.completed, icon:'✅', cls:'bg-green-50 text-green-700 border-green-100'},
-            {l:'مُصعَّدة',        v:stats.escalated, icon:'🔺', cls:'bg-rose-50 text-rose-700 border-rose-100'},
-          ].map(k=>(
-            <div key={k.l} className={`${k.cls} border rounded-2xl p-3 flex items-center gap-2.5`}>
-              <span className="text-2xl">{k.icon}</span>
-              <div><p className="text-xl font-black">{k.v}</p><p className="text-[10px] opacity-80">{k.l}</p></div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {[[t('task_kpi_total'),stats.total,'📋','bg-indigo-50 text-indigo-700 border-indigo-100'],
+            [t('task_kpi_inprog'),stats.inprogress,'🔄','bg-amber-50 text-amber-700 border-amber-100'],
+            [t('task_kpi_overdue'),stats.overdue,'⚠️','bg-red-50 text-red-700 border-red-100'],
+            [t('task_kpi_done'),stats.completed,'✅','bg-green-50 text-green-700 border-green-100'],
+            [t('task_kpi_escalated'),stats.escalated,'🔺','bg-rose-50 text-rose-700 border-rose-100'],
+          ].map(([l,v,ic,cls])=>(
+            <div key={l} className={`${cls} border rounded-2xl p-3 flex items-center gap-2.5`}>
+              <span className="text-2xl">{ic}</span><div><p className="text-xl font-black">{v}</p><p className="text-[10px] opacity-80">{l}</p></div>
             </div>
           ))}
         </div>
 
-        {/* Reports panel */}
-        {showReports && (
+        {showReports&&(
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <p className="font-bold text-gray-800 mb-4">📊 تقارير المهام</p>
+            <p className="font-bold text-gray-800 mb-4">📊 {t('tasks_reports_title')}</p>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-xs font-black text-gray-500 mb-2 uppercase">حسب الحالة</p>
-                {stats.byStatus.map(s=>(
+                <p className="text-xs font-black text-gray-500 mb-2 uppercase">{t('by_status')}</p>
+                {STATUSES.map(s=>{const cnt=withOverdue.filter(t=>t.status===s.key).length; return(
                   <div key={s.key} className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:s.dot}}/>
                     <span className="text-xs text-gray-600 flex-1">{sl(s)}</span>
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{width:`${stats.total?s.count/stats.total*100:0}%`,background:s.color}}/>
-                    </div>
-                    <span className="text-xs font-bold text-gray-700 w-6 text-left">{s.count}</span>
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${stats.total?cnt/stats.total*100:0}%`,background:s.color}}/></div>
+                    <span className="text-xs font-bold text-gray-700 w-4">{cnt}</span>
                   </div>
-                ))}
+                )})}
               </div>
               <div>
-                <p className="text-xs font-black text-gray-500 mb-2 uppercase">حسب القسم</p>
-                {stats.byDept.slice(0,6).map(d=>(
-                  <div key={d.name} className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-gray-600 flex-1 truncate">{d.name}</span>
-                    <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-400 rounded-full" style={{width:`${stats.total?d.count/stats.total*100:0}%`}}/>
-                    </div>
-                    <span className="text-xs font-bold text-gray-700 w-4 text-left">{d.count}</span>
+                <p className="text-xs font-black text-gray-500 mb-2 uppercase">{t('by_dept')}</p>
+                {DEPARTMENTS.filter(d=>withOverdue.some(t=>t.dept===d)).map(d=>{const cnt=withOverdue.filter(t=>t.dept===d).length; return(
+                  <div key={d} className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-gray-600 flex-1 truncate">{d}</span>
+                    <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-400 rounded-full" style={{width:`${stats.total?cnt/stats.total*100:0}%`}}/></div>
+                    <span className="text-xs font-bold text-gray-700 w-4">{cnt}</span>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           </div>
         )}
 
-        {/* Filters - mobile toggle */}
+        {/* Filters */}
         <div>
-          <button onClick={()=>setShowFilters(p=>!p)} className="md:hidden w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 mb-2">
-            <span>🔍 البحث والتصفية</span>
-            <span>{showFilters?'▲':'▼'}</span>
+          <button onClick={()=>setSF(p=>!p)} className="md:hidden w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 mb-2">
+            <span>🔍 {t('filter')}</span><span>{showFilters?'▲':'▼'}</span>
           </button>
-        <div className={`bg-white rounded-2xl border border-gray-100 p-3 flex gap-2 flex-wrap ${showFilters?'flex':'hidden md:flex'}`}>
-          <div className="relative flex-1 min-w-36">
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">🔍</span>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="بحث..."
-              className="w-full pr-8 pl-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"/>
+          <div className={`bg-white rounded-2xl border border-gray-100 p-3 flex gap-2 flex-wrap ${showFilters?'flex':'hidden md:flex'}`}>
+            <div className="relative flex-1 min-w-36">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">🔍</span>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={t('search_tasks')} className="w-full pr-8 pl-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+            </div>
+            <select value={filterStatus} onChange={e=>setFS(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+              <option value="all">{t('filter_all_status')}</option>
+              {STATUSES.map(s=><option key={s.key} value={s.key}>{sl(s)}</option>)}
+            </select>
+            <select value={filterPrio} onChange={e=>setFP(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+              <option value="all">{t('filter_all_prio')}</option>
+              {PRIORITIES.map(p=><option key={p.key} value={p.key}>{pl(p)}</option>)}
+            </select>
+            <select value={filterDept} onChange={e=>setFD(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+              <option value="all">{t('filter_all_dept')}</option>
+              {DEPARTMENTS.map(d=><option key={d}>{d}</option>)}
+            </select>
+            <div className="flex border border-gray-200 rounded-xl overflow-hidden">
+              <button onClick={()=>setView('board')} className={`px-3 py-2 text-sm ${view==='board'?'bg-gray-900 text-white':'text-gray-500 hover:bg-gray-50'}`}>{t('board_view')}</button>
+              <button onClick={()=>setView('list')}  className={`px-3 py-2 text-sm ${view==='list'?'bg-gray-900 text-white':'text-gray-500 hover:bg-gray-50'}`}>{t('list_view')}</button>
+            </div>
           </div>
-          <select value={filterStatus} onChange={e=>setFS(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
-            <option value="all">كل الحالات</option>
-            {STATUSES.map(s=><option key={s.key} value={s.key}>{sl(s)}</option>)}
-          </select>
-          <select value={filterPrio} onChange={e=>setFP(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
-            <option value="all">كل الأولويات</option>
-            {PRIORITIES.map(p=><option key={p.key} value={p.key}>{pl(p)}</option>)}
-          </select>
-          <select value={filterDept} onChange={e=>setFD(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
-            <option value="all">كل الأقسام</option>
-            {DEPARTMENTS.map(d=><option key={d}>{d}</option>)}
-          </select>
-          <div className="flex border border-gray-200 rounded-xl overflow-hidden">
-            <button onClick={()=>setView('board')} className={`px-3 py-2 text-sm ${view==='board'?'bg-gray-900 text-white':'text-gray-500 hover:bg-gray-50'}`}>⊟ لوحة</button>
-            <button onClick={()=>setView('list')}  className={`px-3 py-2 text-sm ${view==='list'?'bg-gray-900 text-white':'text-gray-500 hover:bg-gray-50'}`}>☰ قائمة</button>
-          </div>
-        </div>
         </div>
       </div>
 
-      {/* ── Content ── */}
       <div className="flex-1 flex gap-4 overflow-hidden min-h-0">
-
-        {/* Board view */}
-        {view==='board' && (
+        {view==='board'&&(
           <div className="flex-1 overflow-x-auto overflow-y-hidden">
-            <div className="flex gap-4 h-full pb-2" style={{minWidth: (boardCols.length+1)*240}}>
+            <div className="flex gap-4 h-full pb-2" style={{minWidth:(boardCols.length+1)*240}}>
               {boardCols.map(col=>(
                 <div key={col.key} className="flex-shrink-0 flex flex-col rounded-2xl overflow-hidden" style={{width:240,background:col.bg}}>
                   <div className="px-3 py-2.5 flex items-center gap-2 flex-shrink-0 border-b" style={{borderColor:col.color+'30'}}>
-                    <span>{col.icon}</span>
-                    <span className="text-xs font-black flex-1" style={{color:col.color}}>{col.label}</span>
+                    <span>{col.icon}</span><span className="text-xs font-black flex-1" style={{color:col.color}}>{col.label}</span>
                     <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{background:col.color,color:'white'}}>{col.tasks.length}</span>
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                    {col.tasks.map(t=>(
-                      <TaskCard key={t.id} task={t} selected={selected?.id===t.id} onClick={()=>setSelected(selected?.id===t.id?null:t)}/>
-                    ))}
-                    {col.tasks.length===0 && <div className="text-center py-6 text-gray-400 text-xs">لا توجد مهام</div>}
+                    {col.tasks.map(tk=><TaskCard key={tk.id} task={tk} lang={lang} selected={selected?.id===tk.id} onClick={()=>setSelected(selected?.id===tk.id?null:tk)}/>)}
+                    {col.tasks.length===0&&<div className="text-center py-6 text-gray-400 text-xs">{t('no_tasks')}</div>}
                   </div>
                 </div>
               ))}
-              {/* Overdue + Cancelled column */}
-              {(overdueTasks.length>0||cancelledTasks.length>0) && (
+              {(overdueTasks.length>0||cancelledTasks.length>0)&&(
                 <div className="flex-shrink-0 flex flex-col gap-2" style={{width:240}}>
-                  {overdueTasks.length>0 && (
+                  {overdueTasks.length>0&&(
                     <div className="flex-shrink-0 rounded-2xl overflow-hidden" style={{background:'#fef2f2'}}>
-                      <div className="px-3 py-2 flex items-center gap-2 border-b border-red-100">
-                        <span>⚠️</span><span className="text-xs font-black text-red-600 flex-1">متأخرة</span>
-                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white">{overdueTasks.length}</span>
-                      </div>
-                      <div className="p-2 space-y-2 max-h-64 overflow-y-auto">
-                        {overdueTasks.map(t=><TaskCard key={t.id} task={t} selected={selected?.id===t.id} onClick={()=>setSelected(selected?.id===t.id?null:t)}/>)}
-                      </div>
+                      <div className="px-3 py-2 flex items-center gap-2 border-b border-red-100"><span>⚠️</span><span className="text-xs font-black text-red-600 flex-1">{t('st_overdue')}</span><span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white">{overdueTasks.length}</span></div>
+                      <div className="p-2 space-y-2 max-h-64 overflow-y-auto">{overdueTasks.map(tk=><TaskCard key={tk.id} task={tk} lang={lang} selected={selected?.id===tk.id} onClick={()=>setSelected(selected?.id===tk.id?null:tk)}/>)}</div>
                     </div>
                   )}
-                  {cancelledTasks.length>0 && (
+                  {cancelledTasks.length>0&&(
                     <div className="flex-shrink-0 rounded-2xl overflow-hidden" style={{background:'#f9fafb'}}>
-                      <div className="px-3 py-2 flex items-center gap-2 border-b border-gray-200">
-                        <span>⛔</span><span className="text-xs font-black text-gray-500 flex-1">ملغاة</span>
-                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-gray-500 text-white">{cancelledTasks.length}</span>
-                      </div>
-                      <div className="p-2 space-y-2 max-h-48 overflow-y-auto">
-                        {cancelledTasks.map(t=><TaskCard key={t.id} task={t} selected={selected?.id===t.id} onClick={()=>setSelected(selected?.id===t.id?null:t)}/>)}
-                      </div>
+                      <div className="px-3 py-2 flex items-center gap-2 border-b border-gray-200"><span>⛔</span><span className="text-xs font-black text-gray-500 flex-1">{t('st_cancelled')}</span><span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-gray-500 text-white">{cancelledTasks.length}</span></div>
+                      <div className="p-2 space-y-2 max-h-48 overflow-y-auto">{cancelledTasks.map(tk=><TaskCard key={tk.id} task={tk} lang={lang} selected={selected?.id===tk.id} onClick={()=>setSelected(selected?.id===tk.id?null:tk)}/>)}</div>
                     </div>
                   )}
                 </div>
@@ -809,46 +543,31 @@ export default function TasksPage() {
           </div>
         )}
 
-        {/* List view */}
-        {view==='list' && (
+        {view==='list'&&(
           <div className="flex-1 overflow-y-auto">
-            {filtered.length===0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center text-gray-400">
-                <div className="text-5xl mb-3">📋</div><p>لا توجد مهام</p>
-              </div>
-            ) : (
+            {filtered.length===0?<div className="bg-white rounded-2xl border border-gray-100 p-16 text-center text-gray-400"><div className="text-5xl mb-3">📋</div><p>{t('no_tasks')}</p></div>:(
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
                   <thead><tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400">المهمة</th>
-                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400 hidden md:table-cell">القسم</th>
-                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400">الحالة</th>
-                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400 hidden md:table-cell">الأولوية</th>
-                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400 hidden lg:table-cell">الاستحقاق</th>
-                    {isAdmin && <th className="px-4 py-3 text-right text-xs font-black text-gray-400">إجراء</th>}
+                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400">{lang==='en'?'Task':'المهمة'}</th>
+                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400 hidden md:table-cell">{t('department')}</th>
+                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400">{t('status')}</th>
+                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400 hidden md:table-cell">{t('priority')}</th>
+                    <th className="px-4 py-3 text-right text-xs font-black text-gray-400 hidden lg:table-cell">{t('due_date')}</th>
+                    {isAdmin&&<th className="px-4 py-3 text-right text-xs font-black text-gray-400">{lang==='en'?'Actions':'إجراء'}</th>}
                   </tr></thead>
                   <tbody className="divide-y divide-gray-50">
-                    {filtered.map(t=>{
-                      const s = STATUS_MAP[t.status]||STATUS_MAP.new
-                      const p = PRIO_MAP[t.priority]||PRIO_MAP.medium
-                      const over = t.due && new Date(t.due)<new Date() && !['completed','cancelled'].includes(t.status)
-                      return (
-                        <tr key={t.id} onClick={()=>setSelected(selected?.id===t.id?null:t)}
-                          className={`cursor-pointer transition-colors ${selected?.id===t.id?'bg-blue-50':'hover:bg-gray-50'}`}>
-                          <td className="px-4 py-3">
-                            <p className="font-bold text-gray-900 truncate max-w-[200px]">{t.title}</p>
-                            <p className="text-[10px] text-gray-400">{t.assignedName||'غير مُسنَدة'} {t.escalated&&'· 🔺'}</p>
-                          </td>
-                          <td className="px-4 py-3 hidden md:table-cell text-xs text-gray-500">{t.dept}</td>
+                    {filtered.map(tk=>{
+                      const s=STATUS_MAP[tk.status]||STATUS_MAP.new; const p=PRIO_MAP[tk.priority]||PRIO_MAP.medium
+                      const over=tk.due&&new Date(tk.due)<new Date()&&!['completed','cancelled'].includes(tk.status)
+                      return(
+                        <tr key={tk.id} onClick={()=>setSelected(selected?.id===tk.id?null:tk)} className={`cursor-pointer transition-colors ${selected?.id===tk.id?'bg-blue-50':'hover:bg-gray-50'}`}>
+                          <td className="px-4 py-3"><p className="font-bold text-gray-900 truncate max-w-[200px]">{tk.title}</p><p className="text-[10px] text-gray-400">{tk.assignedName||'—'} {tk.escalated&&'· 🔺'}</p></td>
+                          <td className="px-4 py-3 hidden md:table-cell text-xs text-gray-500">{tk.dept}</td>
                           <td className="px-4 py-3"><span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{background:s.bg,color:s.color}}>{s.icon} {sl(s)}</span></td>
                           <td className="px-4 py-3 hidden md:table-cell"><span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{background:p.bg,color:p.color}}>{pl(p)}</span></td>
-                          <td className={`px-4 py-3 hidden lg:table-cell text-xs font-medium ${over?'text-red-600':''}`}>{over?'⚠️ ':''}{t.due}</td>
-                          {isAdmin && <td className="px-4 py-3">
-                            <div className="flex gap-2">
-                              <button onClick={e=>{e.stopPropagation();setEditTask(t)}} className="text-xs text-blue-600 hover:underline">تعديل</button>
-                              <button onClick={e=>{e.stopPropagation();deleteTask(t.id)}} className="text-xs text-red-500 hover:underline">حذف</button>
-                            </div>
-                          </td>}
+                          <td className={`px-4 py-3 hidden lg:table-cell text-xs font-medium ${over?'text-red-600':''}`}>{over?'⚠️ ':''}{tk.due}</td>
+                          {isAdmin&&<td className="px-4 py-3"><div className="flex gap-2"><button onClick={e=>{e.stopPropagation();setEditTask(tk)}} className="text-xs text-blue-600 hover:underline">{t('edit')}</button><button onClick={e=>{e.stopPropagation();deleteTask(tk.id)}} className="text-xs text-red-500 hover:underline">{t('delete')}</button></div></td>}
                         </tr>
                       )
                     })}
@@ -859,14 +578,15 @@ export default function TasksPage() {
           </div>
         )}
 
-        {/* Detail panel */}
-        {selected && (
-          <TaskDetail
-            task={selected}
-            isAdmin={isAdmin}
-            onClose={()=>setSelected(null)}
-            onUpdate={updateTask}
-          />
+        {selected&&!showCreate&&!editTask&&(
+          <div className={`${view==='board'?'hidden lg:block':'hidden md:block'} flex-shrink-0`} style={{width:420,height:'100%'}}>
+            <TaskDetail task={selected} isAdmin={isAdmin} onClose={()=>setSelected(null)} onUpdate={updateTask} t={t} lang={lang}/>
+          </div>
+        )}
+        {selected&&!showCreate&&!editTask&&(
+          <div className="md:hidden">
+            <TaskDetail task={selected} isAdmin={isAdmin} onClose={()=>setSelected(null)} onUpdate={updateTask} t={t} lang={lang}/>
+          </div>
         )}
       </div>
     </div>

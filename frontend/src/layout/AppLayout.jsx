@@ -1,15 +1,16 @@
+import { useLang } from '../i18n.js'
 import { ChangePasswordModal } from '../components/ChangePasswordModal'
 import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
 // Bottom nav items (mobile) — most used pages
-const BOTTOM_NAV = [
-  { to: '/dashboard', icon: '⊞', label: 'الرئيسية' },
-  { to: '/tasks',     icon: '📋', label: 'المهام' },
-  { to: '/documents', icon: '📄', label: 'ملفاتي' },
-  { to: '/library',   icon: '📚', label: 'المكتبة' },
-  { to: '/workflows', icon: '✅', label: 'سير العمل' },
+const BOTTOM_NAV_KEYS = [
+  { to: '/dashboard', icon: '⊞', key: 'nav_dashboard' },
+  { to: '/tasks',     icon: '📋', key: 'nav_tasks' },
+  { to: '/documents', icon: '📄', key: 'nav_myfiles' },
+  { to: '/library',   icon: '📚', key: 'nav_library' },
+  { to: '/workflows', icon: '✅', key: 'nav_workflows' },
 ]
 
 // Full sidebar nav (desktop + mobile drawer)
@@ -21,11 +22,12 @@ const FULL_NAV = [
   { to: '/library',       icon: '📚', label: 'المكتبة' },
   { to: '/records',       icon: '🗂',  label: 'السجلات' },
   { to: '/content-model', icon: '🏛️', label: 'نموذج المحتوى' },
-  { to: '/search',        icon: '🔍', label: 'البحث' },
+    { to: '/search',        icon: '🔍', label: 'search' },
   { to: '/admin',         icon: '⚙️', label: 'الإدارة' },
 ]
 
 export default function AppLayout() {
+  const { lang, setLang, t, isRTL } = useLang()
   const [collapsed, setCollapsed]     = useState(false)
   const [mobileMenuOpen, setMobileMenu] = useState(false)
   const [showChangePass, setShowChangePass] = useState(false)
@@ -60,7 +62,7 @@ export default function AppLayout() {
               <div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0">D</div>
               <div>
                 <p className="font-bold text-sm text-white">دارة الملك عبدالعزيز</p>
-                <p className="text-white/50 text-xs">نظام ECM</p>
+                <p className="text-white/50 text-xs">{lang==="ar"?"نظام ECM":"ECM System"}</p>
               </div>
               <button onClick={()=>setMobileMenu(false)} className="mr-auto text-white/60 hover:text-white text-2xl w-8 h-8 flex items-center justify-center">✕</button>
             </div>
@@ -78,7 +80,7 @@ export default function AppLayout() {
 
             {/* Nav */}
             <nav className="flex-1 py-3 overflow-y-auto px-2">
-              {FULL_NAV.map(item => (
+              {FULL_NAV_KEYS.map(item => ({ ...item, label: t(item.key) })).map(item => (
                 <NavLink key={item.to} to={item.to}
                   className={({isActive}) =>
                     `flex items-center gap-3 px-4 py-3.5 rounded-xl mb-1 transition-all text-sm font-medium ${
@@ -129,7 +131,7 @@ export default function AppLayout() {
         </div>
       )}
 
-      <div className="flex h-screen bg-gray-50 overflow-hidden" dir="rtl">
+      <div className={`flex h-screen bg-gray-50 overflow-hidden`} dir={isRTL ? "rtl" : "ltr"}>
 
         {/* ── Desktop sidebar ── */}
         <aside className={`hidden md:flex ${collapsed?'w-16':'w-64'} flex-col transition-all duration-300 flex-shrink-0`}
@@ -140,14 +142,14 @@ export default function AppLayout() {
             </div>
             {!collapsed && (
               <div>
-                <p className="font-bold text-sm text-white leading-tight">دارة الملك عبدالعزيز</p>
-                <p className="text-white/50 text-xs">نظام ECM</p>
+                <p className="font-bold text-sm text-white leading-tight">{lang==="ar"?"دارة الملك عبدالعزيز":"Darah Foundation"}</p>
+                <p className="text-white/50 text-xs">{lang==="ar"?"نظام ECM":"ECM System"}</p>
               </div>
             )}
           </div>
 
           <nav className="flex-1 py-4 overflow-y-auto">
-            {FULL_NAV.map(item => (
+            {FULL_NAV_KEYS.map(item => ({ ...item, label: t(item.key) })).map(item => (
               <NavLink key={item.to} to={item.to}
                 className={({isActive}) =>
                   `flex items-center gap-3 px-4 py-3 mx-2 rounded-xl mb-1 transition-all text-sm ${
@@ -198,7 +200,7 @@ export default function AppLayout() {
             {/* Page title (mobile) */}
             <div className="flex-1 md:hidden">
               <p className="text-sm font-bold text-gray-800 truncate">
-                {FULL_NAV.find(n=>location.pathname.startsWith(n.to))?.label || 'دارة الملك عبدالعزيز'}
+                {FULL_NAV_KEYS.find(n=>location.pathname.startsWith(n.to)) ? t(FULL_NAV_KEYS.find(n=>location.pathname.startsWith(n.to)).key) : (lang==='ar'?'دارة الملك عبدالعزيز':'Darah')}
               </p>
             </div>
             <div className="hidden md:flex flex-1"/>
@@ -209,6 +211,11 @@ export default function AppLayout() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
               </svg>
+            </button>
+            {/* Language toggle */}
+            <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+              className="flex items-center gap-1 text-xs font-bold border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-100 transition-colors">
+              {lang === 'ar' ? '🇺🇸 EN' : '🇸🇦 AR'}
             </button>
             {/* Notifications */}
             <button onClick={()=>setNotifOpen(p=>!p)}
@@ -237,9 +244,9 @@ export default function AppLayout() {
       </div>
 
       {/* ── Mobile bottom navigation ── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 flex items-stretch" dir="rtl"
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 flex items-stretch"
         style={{boxShadow:'0 -4px 20px rgba(0,0,0,0.08)'}}>
-        {BOTTOM_NAV.map(item => (
+        {BOTTOM_NAV_KEYS.map(item => ({ ...item, label: t(item.key) })).map(item => (
           <NavLink key={item.to} to={item.to}
             className={({isActive}) =>
               `flex-1 flex flex-col items-center justify-center py-2 px-1 text-center transition-colors min-w-0 ${

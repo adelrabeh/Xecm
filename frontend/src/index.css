@@ -21,3 +21,19 @@
 
 .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: skeleton 1.5s infinite; }
 @keyframes skeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Language-aware typography */
+html[lang="ar"] * { font-family: 'Cairo', sans-serif; }
+html[lang="en"] * { font-family: 'Inter', sans-serif; }
+
+/* LTR overrides when English */
+html[dir="ltr"] .text-right { text-align: left; }
+html[dir="ltr"] .border-r  { border-right: none; border-left: 1px solid; }
+html[dir="ltr"] .mr-auto   { margin-right: 0; margin-left: auto; }
+html[dir="ltr"] .ml-auto   { margin-left: 0; margin-right: auto; }
+html[dir="ltr"] .pr-8      { padding-right: 0; padding-left: 2rem; }
+html[dir="ltr"] .pr-9      { padding-right: 0; padding-left: 2.25rem; }
+html[dir="ltr"] .pl-3      { padding-left: 0; padding-right: 0.75rem; }
+
+/* Sidebar transition */
+aside { transition: width 0.3s ease; }

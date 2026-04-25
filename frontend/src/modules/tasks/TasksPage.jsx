@@ -7,19 +7,19 @@ import client from '../../api/client'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUSES = [
-  { key:'new',        label: lang==='en'?'New':'جديدة',         icon:'🆕', color:'#6366f1', bg:'#eef2ff', dot:'#818cf8' },
-  { key:'assigned',   label: lang==='en'?'Assigned':'مُسنَدة',        icon:'👤', color:'#0369a1', bg:'#eff6ff', dot:'#38bdf8' },
-  { key:'inprogress', label: lang==='en'?'In Progress':'قيد التنفيذ',   icon:'🔄', color:'#b45309', bg:'#fffbeb', dot:'#f59e0b' },
-  { key:'review',     label: lang==='en'?'Under Review':'قيد المراجعة',  icon:'🔍', color:'#7c3aed', bg:'#f5f3ff', dot:'#a78bfa' },
-  { key:'completed',  label: lang==='en'?'Completed':'مكتملة',        icon:'✅', color:'#059669', bg:'#ecfdf5', dot:'#34d399' },
-  { key:'overdue',    label: lang==='en'?'Overdue':'متأخرة',         icon:'⚠️', color:'#dc2626', bg:'#fef2f2', dot:'#f87171' },
-  { key:'cancelled',  label: lang==='en'?'Cancelled':'ملغاة',          icon:'⛔', color:'#6b7280', bg:'#f9fafb', dot:'#9ca3af' },
+  { key:'new',        label:'جديدة', labelEn:'New',         icon:'🆕', color:'#6366f1', bg:'#eef2ff', dot:'#818cf8' },
+  { key:'assigned',   label:'مُسنَدة', labelEn:'Assigned',        icon:'👤', color:'#0369a1', bg:'#eff6ff', dot:'#38bdf8' },
+  { key:'inprogress', label:'قيد التنفيذ', labelEn:'In Progress',   icon:'🔄', color:'#b45309', bg:'#fffbeb', dot:'#f59e0b' },
+  { key:'review',     label:'قيد المراجعة', labelEn:'Under Review',  icon:'🔍', color:'#7c3aed', bg:'#f5f3ff', dot:'#a78bfa' },
+  { key:'completed',  label:'مكتملة', labelEn:'Completed',        icon:'✅', color:'#059669', bg:'#ecfdf5', dot:'#34d399' },
+  { key:'overdue',    label:'متأخرة', labelEn:'Overdue',         icon:'⚠️', color:'#dc2626', bg:'#fef2f2', dot:'#f87171' },
+  { key:'cancelled',  label:'ملغاة', labelEn:'Cancelled',          icon:'⛔', color:'#6b7280', bg:'#f9fafb', dot:'#9ca3af' },
 ]
 const PRIORITIES = [
-  { key:'low',    label: lang==='en'?'Low':'منخفضة', color:'#16a34a', bg:'#dcfce7' },
-  { key:'medium', label: lang==='en'?'Medium':'متوسطة', color:'#d97706', bg:'#fef9c3' },
-  { key:'high',   label: lang==='en'?'High':'عالية',  color:'#ea580c', bg:'#ffedd5' },
-  { key:'urgent', label: lang==='en'?'Urgent':'عاجلة',  color:'#dc2626', bg:'#fee2e2' },
+  { key:'low',    label:'منخفضة', labelEn:'Low', color:'#16a34a', bg:'#dcfce7' },
+  { key:'medium', label:'متوسطة', labelEn:'Medium', color:'#d97706', bg:'#fef9c3' },
+  { key:'high',   label:'عالية', labelEn:'High',  color:'#ea580c', bg:'#ffedd5' },
+  { key:'urgent', label:'عاجلة', labelEn:'Urgent',  color:'#dc2626', bg:'#fee2e2' },
 ]
 const DEPARTMENTS = ['تقنية المعلومات','الشؤون المالية','الشؤون الإدارية','الموارد البشرية','إدارة المخاطر','التدقيق الداخلي','الرئاسة التنفيذية','التحول الرقمي']
 const USERS = [
@@ -52,11 +52,11 @@ function TaskCard({ task, onClick, selected }) {
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full`} style={{background:s.bg,color:s.color}}>
-            {s.icon} {s.label}
+            {s.icon} {sl(s)}
           </span>
           {task.escalated && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">🔺 مُصعَّدة</span>}
         </div>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background:p.bg,color:p.color}}>{p.label}</span>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background:p.bg,color:p.color}}>{pl(p)}</span>
       </div>
       <p className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{task.title}</p>
       <div className="flex items-center justify-between text-xs text-gray-400">
@@ -152,7 +152,7 @@ function TaskFormModal({ task, onClose, onSave }) {
               <label className="block text-xs font-bold text-gray-700 mb-1">الأولوية</label>
               <select value={form.priority} onChange={e=>set('priority',e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                {PRIORITIES.map(p=><option key={p.key} value={p.key}>{p.label}</option>)}
+                {PRIORITIES.map(p=><option key={p.key} value={p.key}>{pl(p)}</option>)}
               </select>
             </div>
             <div>
@@ -394,8 +394,8 @@ function TaskDetail({ task, onClose, onUpdate, isAdmin }) {
       <div className="p-4 border-b border-gray-100 flex-shrink-0" style={{background: s.bg}}>
         <div className="flex items-start justify-between mb-2">
           <div className="flex gap-1.5 flex-wrap">
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:'white',color:s.color}}>{s.icon} {s.label}</span>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:p.bg,color:p.color}}>{p.label}</span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:'white',color:s.color}}>{s.icon} {sl(s)}</span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:p.bg,color:p.color}}>{pl(p)}</span>
             {task.escalated && <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">🔺 مُصعَّدة</span>}
           </div>
           <button onClick={onClose} className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 text-lg flex-shrink-0">✕</button>
@@ -584,6 +584,9 @@ export default function TasksPage() {
 
   const { lang, t, isRTL, fmtDate } = useLang()
   const isAdmin = (user?.permissions||[]).some(p=>p==='admin.*')
+  // Dynamic labels based on lang
+  const sl = (s) => lang==='en' ? (s.labelEn||s.label) : s.label
+  const pl = (p) => lang==='en' ? (p.labelEn||p.label) : p.label
   const safeTasks = Array.isArray(tasks) ? tasks : MOCK_TASKS
 
   // Mark overdue
@@ -656,7 +659,7 @@ export default function TasksPage() {
       <div className="flex-shrink-0 space-y-3 mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-gray-900">{t("tasks_title")}</h1>
+            <h1 className="text-2xl font-black text-gray-900">{t ? t("tasks_title") : "إدارة المهام"}</h1>
             <p className="text-sm text-gray-400 mt-0.5">{safeTasks.length} مهمة · {stats.overdue} متأخرة · {stats.escalated} مُصعَّدة</p>
           </div>
           <div className="flex gap-2">
@@ -697,7 +700,7 @@ export default function TasksPage() {
                 {stats.byStatus.map(s=>(
                   <div key={s.key} className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:s.dot}}/>
-                    <span className="text-xs text-gray-600 flex-1">{s.label}</span>
+                    <span className="text-xs text-gray-600 flex-1">{sl(s)}</span>
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all" style={{width:`${stats.total?s.count/stats.total*100:0}%`,background:s.color}}/>
                     </div>
@@ -735,11 +738,11 @@ export default function TasksPage() {
           </div>
           <select value={filterStatus} onChange={e=>setFS(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
             <option value="all">كل الحالات</option>
-            {STATUSES.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}
+            {STATUSES.map(s=><option key={s.key} value={s.key}>{sl(s)}</option>)}
           </select>
           <select value={filterPrio} onChange={e=>setFP(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
             <option value="all">كل الأولويات</option>
-            {PRIORITIES.map(p=><option key={p.key} value={p.key}>{p.label}</option>)}
+            {PRIORITIES.map(p=><option key={p.key} value={p.key}>{pl(p)}</option>)}
           </select>
           <select value={filterDept} onChange={e=>setFD(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
             <option value="all">كل الأقسام</option>
@@ -837,8 +840,8 @@ export default function TasksPage() {
                             <p className="text-[10px] text-gray-400">{t.assignedName||'غير مُسنَدة'} {t.escalated&&'· 🔺'}</p>
                           </td>
                           <td className="px-4 py-3 hidden md:table-cell text-xs text-gray-500">{t.dept}</td>
-                          <td className="px-4 py-3"><span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{background:s.bg,color:s.color}}>{s.icon} {s.label}</span></td>
-                          <td className="px-4 py-3 hidden md:table-cell"><span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{background:p.bg,color:p.color}}>{p.label}</span></td>
+                          <td className="px-4 py-3"><span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{background:s.bg,color:s.color}}>{s.icon} {sl(s)}</span></td>
+                          <td className="px-4 py-3 hidden md:table-cell"><span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{background:p.bg,color:p.color}}>{pl(p)}</span></td>
                           <td className={`px-4 py-3 hidden lg:table-cell text-xs font-medium ${over?'text-red-600':''}`}>{over?'⚠️ ':''}{t.due}</td>
                           {isAdmin && <td className="px-4 py-3">
                             <div className="flex gap-2">

@@ -127,14 +127,21 @@ function EscalationModal({ task, userRole, onClose, onEscalate, t, lang }) {
 }
 
 // ─── Task Card ─────────────────────────────────────────────────────────────────
-function TaskCard({ task, onClick, selected, lang }) {
+function TaskCard({ task, onClick, selected, lang, onDragStart, onDragEnd }) {
   const s = STATUS_MAP[task.status]||STATUS_MAP.new
   const p = PRIO_MAP[task.priority]||PRIO_MAP.medium
   const sl = lang==='en'?(s.labelEn||s.labelAr):s.labelAr
   const pl = lang==='en'?(p.labelEn||p.labelAr):p.labelAr
   const isOverdue = task.due && new Date(task.due)<new Date() && !['completed','cancelled'].includes(task.status)
   return (
-    <div onClick={onClick} className={`bg-white rounded-2xl border-2 p-4 cursor-pointer transition-all hover:shadow-md active:scale-[0.98] ${selected?'border-blue-500 shadow-md':'border-gray-100 hover:border-gray-200'}`}>
+    <div
+      onClick={onClick}
+      draggable={!['completed','cancelled'].includes(task.status)}
+      onDragStart={e => { e.dataTransfer.effectAllowed='move'; onDragStart&&onDragStart(task.id) }}
+      onDragEnd={() => onDragEnd&&onDragEnd()}
+      className={`bg-white rounded-2xl border-2 p-4 transition-all hover:shadow-md
+        ${['completed','cancelled'].includes(task.status)?'cursor-default opacity-80':'cursor-grab active:cursor-grabbing'}
+        ${selected?'border-blue-500 shadow-md':'border-gray-100 hover:border-gray-200'}`}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background:s.bg,color:s.color}}>{s.icon} {sl}</span>
@@ -142,7 +149,12 @@ function TaskCard({ task, onClick, selected, lang }) {
         </div>
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{background:p.bg,color:p.color}}>{pl}</span>
       </div>
-      <p className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{task.title}</p>
+      <div className="flex items-start gap-1.5 mb-2">
+        {!['completed','cancelled'].includes(task.status) && (
+          <span className="text-gray-300 text-xs mt-0.5 flex-shrink-0 select-none">⠿⠿</span>
+        )}
+        <p className="font-bold text-gray-900 text-sm leading-snug line-clamp-2">{task.title}</p>
+      </div>
       <div className="flex items-center justify-between text-xs text-gray-400">
         <span>👤 {task.assignedName||'—'}</span>
         <span className={isOverdue?'text-red-500 font-semibold':''}>{isOverdue?'⚠️ ':''}{task.due}</span>
@@ -460,10 +472,52 @@ export default function TasksPage() {
   const [view, setView]             = useState('board')
   const [showReports, setSR]        = useState(false)
   const [showFilters, setSF]        = useState(false)
+  const [draggingId, setDraggingId]   = useState(null)
+  const [dragOverCol, setDragOverCol] = useState(null)
 
   const isAdmin = (user?.permissions||[]).some(p=>p==='admin.*')
   const safeTasks = Array.isArray(tasks) ? tasks : MOCK_TASKS
   const sl = (s) => lang==='en'?(s.labelEn||s.labelAr):s.labelAr
+
+  // Which columns a task can be dragged TO (forward + backward)
+  const ALLOWED_TRANSITIONS = {
+    new:        ['assigned'],
+    assigned:   ['new','inprogress','cancelled'],
+    inprogress: ['assigned','review','cancelled'],
+    review:     ['inprogress','completed','returned'],
+    returned:   ['inprogress','cancelled'],
+    completed:  [],          // completed tasks cannot be moved
+    cancelled:  [],
+    overdue:    ['inprogress','cancelled'],
+  }
+
+  const canDropTo = (taskStatus, targetCol) => {
+    if (!taskStatus || !targetCol) return false
+    return (ALLOWED_TRANSITIONS[taskStatus] || []).includes(targetCol)
+  }
+
+  const handleDrop = (targetColKey, e) => {
+    e.preventDefault()
+    setDragOverCol(null)
+    if (!draggingId) return
+    const task = withOverdue.find(t => t.id === draggingId)
+    if (!task) return
+    if (!canDropTo(task.status, targetColKey)) return
+    const history = [...task.history, {
+      status: targetColKey,
+      date: new Date().toISOString().split('T')[0],
+      movedBy: 'أنت',
+      via: 'drag'
+    }]
+    updateTask({ ...task, status: targetColKey, history })
+    show(
+      lang === 'en'
+        ? `Task moved to: ${STATUSES.find(s=>s.key===targetColKey)?.labelEn}`
+        : `تم نقل المهمة إلى: ${STATUSES.find(s=>s.key===targetColKey)?.labelAr}`,
+      'success'
+    )
+    setDraggingId(null)
+  }
   const pl = (p) => lang==='en'?(p.labelEn||p.labelAr):p.labelAr
 
   const withOverdue = safeTasks.map(t=>({...t,status:!['completed','cancelled'].includes(t.status)&&t.due&&new Date(t.due)<new Date()?'overdue':t.status}))
@@ -584,10 +638,31 @@ export default function TasksPage() {
                     <span>{col.icon}</span><span className="text-xs font-black flex-1" style={{color:col.color}}>{col.label}</span>
                     <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{background:col.color,color:'white'}}>{col.tasks.length}</span>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                    {col.tasks.map(tk=><TaskCard key={tk.id} task={tk} lang={lang} selected={selected?.id===tk.id} onClick={()=>setSelected(selected?.id===tk.id?null:tk)}/>)}
-                    {col.tasks.length===0&&<div className="text-center py-6 text-gray-400 text-xs">{t('no_tasks')}</div>}
-                  </div>
+                  <div
+                  className={`flex-1 overflow-y-auto p-2 space-y-2 transition-all rounded-b-2xl ${
+                    dragOverCol===col.key && draggingId
+                      ? 'bg-white/60 ring-2 ring-inset ring-blue-400'
+                      : ''
+                  }`}
+                  onDragOver={e=>{ e.preventDefault(); const task=withOverdue.find(t=>t.id===draggingId); if(task&&canDropTo(task.status,col.key)){e.dataTransfer.dropEffect='move';setDragOverCol(col.key)}else{e.dataTransfer.dropEffect='none'} }}
+                  onDragLeave={()=>setDragOverCol(null)}
+                  onDrop={e=>handleDrop(col.key,e)}>
+                  {col.tasks.map(tk=><TaskCard key={tk.id} task={tk} lang={lang}
+                    selected={selected?.id===tk.id}
+                    onClick={()=>setSelected(selected?.id===tk.id?null:tk)}
+                    onDragStart={id=>setDraggingId(id)}
+                    onDragEnd={()=>{setDraggingId(null);setDragOverCol(null)}}/>)}
+                  {col.tasks.length===0&&(
+                    <div className={`text-center py-6 text-gray-400 text-xs rounded-xl border-2 border-dashed transition-all ${
+                      dragOverCol===col.key&&draggingId&&canDropTo(withOverdue.find(t=>t.id===draggingId)?.status,col.key)
+                        ?'border-blue-400 bg-blue-50/50 text-blue-400'
+                        :'border-transparent'
+                    }`}>
+                      {dragOverCol===col.key&&draggingId?'↓ أفلت هنا':''}
+                      {dragOverCol!==col.key&&t('no_tasks')}
+                    </div>
+                  )}
+                </div>
                 </div>
               ))}
               {(overdueTasks.length>0||cancelledTasks.length>0)&&(
@@ -595,7 +670,7 @@ export default function TasksPage() {
                   {overdueTasks.length>0&&(
                     <div className="flex-shrink-0 rounded-2xl overflow-hidden" style={{background:'#fef2f2'}}>
                       <div className="px-3 py-2 flex items-center gap-2 border-b border-red-100"><span>⚠️</span><span className="text-xs font-black text-red-600 flex-1">{t('st_overdue')}</span><span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white">{overdueTasks.length}</span></div>
-                      <div className="p-2 space-y-2 max-h-64 overflow-y-auto">{overdueTasks.map(tk=><TaskCard key={tk.id} task={tk} lang={lang} selected={selected?.id===tk.id} onClick={()=>setSelected(selected?.id===tk.id?null:tk)}/>)}</div>
+                      <div className="p-2 space-y-2 max-h-64 overflow-y-auto">{overdueTasks.map(tk=><TaskCard key={tk.id} task={tk} lang={lang} selected={selected?.id===tk.id} onClick={()=>setSelected(selected?.id===tk.id?null:tk)} onDragStart={id=>setDraggingId(id)} onDragEnd={()=>{setDraggingId(null);setDragOverCol(null)}}/>)}</div>
                     </div>
                   )}
                   {cancelledTasks.length>0&&(

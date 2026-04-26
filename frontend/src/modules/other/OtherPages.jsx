@@ -230,13 +230,13 @@ export function AdminPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">t('users_title')</h1>
-          <p className="text-gray-400 text-sm">{users.filter(u=>u.status==='active').length} نشط من {users.length}</p>
+          <h1 className="text-xl font-bold text-gray-900">{t('users_title')}</h1>
+          <p className="text-gray-400 text-sm">{users.filter(u=>u.status==='active').length} {lang==='en'?'active of':'نشط من'} {users.length}</p>
         </div>
         <div className="flex gap-2">
           <button onClick={handleExport} className="border border-gray-200 text-gray-600 text-sm px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors">📊 تصدير CSV</button>
           <button onClick={()=>{setShowAdd(true);setEditUser(null)}} className="bg-blue-700 text-white text-sm px-4 py-2 rounded-xl hover:bg-blue-800 transition-colors flex items-center gap-1.5">
-            + t('new_user')
+            + {t('new_user')}
           </button>
         </div>
       </div>
@@ -245,7 +245,7 @@ export function AdminPage() {
       {showAdd && !editUser && (
         <div className="bg-white rounded-2xl border-2 border-blue-200 p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <p className="font-bold text-gray-800">إضافة t('new_user')</p>
+            <p className="font-bold text-gray-800">{lang==='en'?'Add New User':'إضافة مستخدم جديد'}</p>
             <button onClick={()=>setShowAdd(false)} className="text-gray-400 hover:text-gray-600">✕</button>
           </div>
           <div className="grid grid-cols-2 gap-3">

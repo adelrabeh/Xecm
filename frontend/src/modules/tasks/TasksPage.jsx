@@ -13,6 +13,7 @@ const STATUSES = [
   { key:'completed',  labelAr:'مكتملة',        labelEn:'Completed',     icon:'✅', color:'#059669', bg:'#ecfdf5', dot:'#34d399' },
   { key:'overdue',    labelAr:'متأخرة',         labelEn:'Overdue',       icon:'⚠️', color:'#dc2626', bg:'#fef2f2', dot:'#f87171' },
   { key:'cancelled',  labelAr:'ملغاة',          labelEn:'Cancelled',     icon:'⛔', color:'#6b7280', bg:'#f9fafb', dot:'#9ca3af' },
+  { key:'returned',   labelAr:'مُرجَعة للتعديل', labelEn:'Returned',      icon:'↩️', color:'#be185d', bg:'#fdf2f8', dot:'#f472b6' },
 ]
 const PRIORITIES = [
   { key:'low',    labelAr:'منخفضة', labelEn:'Low',    color:'#16a34a', bg:'#dcfce7' },
@@ -247,10 +248,12 @@ function TaskFormModal({ task, onClose, onSave, t, lang }) {
 }
 
 // ─── Task Detail Panel ─────────────────────────────────────────────────────────
-function TaskDetail({ task, onClose, onUpdate, isAdmin, t, lang }) {
+function TaskDetail({ task, onClose, onUpdate, onDelete, isAdmin, t, lang }) {
   const [comment, setComment] = useState('')
   const [addingComment, setAC] = useState(false)
   const [showEscModal, setSEM]  = useState(false)
+  const [showReturnModal, setSRM] = useState(false)
+  const [returnNote, setRN]       = useState('')
   const fileRef = useRef()
   const s = STATUS_MAP[task.status]||STATUS_MAP.new
   const p = PRIO_MAP[task.priority]||PRIO_MAP.medium
@@ -258,12 +261,13 @@ function TaskDetail({ task, onClose, onUpdate, isAdmin, t, lang }) {
   const pl = lang==='en'?(p.labelEn||p.labelAr):p.labelAr
   const isOverdue = task.due&&new Date(task.due)<new Date()&&!['completed','cancelled'].includes(task.status)
 
-  const NEXT = { new:['assigned'], assigned:['inprogress','cancelled'], inprogress:['review','cancelled'], review:['completed','inprogress'], overdue:['inprogress','cancelled'] }
+  const NEXT = { new:['assigned'], assigned:['inprogress','cancelled'], inprogress:['review','cancelled'], review:['completed','returned'], overdue:['inprogress','cancelled'], returned:['inprogress','cancelled'] }
   const BTN_CFG = {
     assigned:   {label:t('start_task'),   cls:'bg-blue-700 text-white hover:bg-blue-800'},
     inprogress: {label:t('send_review'),  cls:'bg-purple-600 text-white hover:bg-purple-700'},
     review:     {label:t('close_approve'),cls:'bg-green-600 text-white hover:bg-green-700'},
-    cancelled:  {label:t('cancel_task'), cls:'bg-gray-500 text-white hover:bg-gray-600'},
+    returned:   {label:lang==='en'?'Restart Task':'إعادة التنفيذ', cls:'bg-blue-600 text-white hover:bg-blue-700'},
+    cancelled:  {label:t('cancel_task'),  cls:'bg-gray-500 text-white hover:bg-gray-600'},
   }
 
   const changeStatus = (ns) => onUpdate({...task,status:ns,history:[...task.history,{status:ns,date:new Date().toISOString().split('T')[0]}]})
@@ -276,6 +280,54 @@ function TaskDetail({ task, onClose, onUpdate, isAdmin, t, lang }) {
 
   return (
     <div className="fixed inset-0 z-40 md:relative md:inset-auto bg-white border-r border-gray-100 flex flex-col" style={{width:'100%',height:'100%'}}>
+      {/* ── Return with Notes Modal ── */}
+      {showReturnModal&&(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={()=>setSRM(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e=>e.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+              <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center text-2xl">↩️</div>
+              <div>
+                <h2 className="font-black text-gray-900">{lang==='en'?'Return Task for Revision':'إرجاع المهمة للتعديل'}</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{lang==='en'?'Task will be returned to assignee with your notes':'ستُرجع المهمة للمُكلَّف مع ملاحظاتك'}</p>
+              </div>
+              <button onClick={()=>setSRM(false)} className="mr-auto w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 text-xl">✕</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="bg-pink-50 border border-pink-100 rounded-xl p-3">
+                <p className="text-xs font-bold text-pink-800 mb-1">{lang==='en'?'Task:':'المهمة:'}</p>
+                <p className="text-sm text-gray-800 font-semibold">{task.title}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  {lang==='en'?'Revision Notes':'ملاحظات التعديل'} <span className="text-red-400">*</span>
+                </label>
+                <textarea value={returnNote} onChange={e=>setRN(e.target.value)} rows={4}
+                  placeholder={lang==='en'?'Explain what needs to be revised...':'وضّح ما يجب تعديله أو إضافته...'}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none" dir={lang==='en'?'ltr':'rtl'}/>
+              </div>
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
+                ℹ️ {lang==='en'?'The assignee will receive a notification with your notes':'سيتلقى المُكلَّف إشعاراً بملاحظاتك'}
+              </div>
+            </div>
+            <div className="p-5 border-t border-gray-100 flex gap-3">
+              <button onClick={()=>setSRM(false)} className="border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
+              <button disabled={!returnNote.trim()} onClick={()=>{
+                if (!returnNote.trim()) return
+                // Add as comment + change status
+                const comment = { id:Date.now(), by:'أنت', text:(lang==='en'?'🔄 Returned for revision: ':'🔄 إرجاع للتعديل: ')+returnNote.trim(), date:new Date().toISOString().split('T')[0], type:'return' }
+                onUpdate({ ...task, status:'returned',
+                  comments:[...task.comments, comment],
+                  history:[...task.history, {status:'returned', date:new Date().toISOString().split('T')[0], note:returnNote.trim()}]
+                })
+                setSRM(false); setRN('')
+              }}
+                className="flex-1 bg-pink-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-pink-700 disabled:opacity-40 transition-colors">
+                ↩️ {lang==='en'?'Return Task':'إرجاع المهمة'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showEscModal&&<EscalationModal task={task} userRole={isAdmin?3:1} onClose={()=>setSEM(false)} t={t} lang={lang}
         onEscalate={esc=>onUpdate({...task,escalated:true,escalations:[...(task.escalations||[]),esc],history:[...task.history,{status:'escalated',date:new Date().toISOString().split('T')[0]}]})}/>}
       <div className="p-4 border-b border-gray-100 flex-shrink-0" style={{background:s.bg}}>
@@ -302,10 +354,25 @@ function TaskDetail({ task, onClose, onUpdate, isAdmin, t, lang }) {
           <div>
             <p className="text-xs font-black text-gray-400 uppercase mb-2">{t('status_actions')}</p>
             <div className="flex flex-wrap gap-2">
-              {(NEXT[task.status]||[]).map(ns=>{const b=BTN_CFG[ns]; return b?<button key={ns} onClick={()=>changeStatus(ns)} className={`text-xs font-bold px-3 py-2 rounded-xl transition-colors ${b.cls}`}>{b.label}</button>:null})}
+              {(NEXT[task.status]||[]).map(ns=>{
+                const b=BTN_CFG[ns]; if(!b) return null
+                // Return action needs a note modal
+                if(ns==='returned') return (
+                  <button key={ns} onClick={()=>setSRM(true)}
+                    className="text-xs font-bold px-3 py-2 rounded-xl transition-colors border-2 border-pink-300 text-pink-700 hover:bg-pink-50">
+                    ↩️ {lang==='en'?'Return with Notes':'إرجاع مع ملاحظات'}
+                  </button>
+                )
+                return <button key={ns} onClick={()=>changeStatus(ns)} className={`text-xs font-bold px-3 py-2 rounded-xl transition-colors ${b.cls}`}>{b.label}</button>
+              })}
               {!task.escalated&&!['completed','cancelled'].includes(task.status)&&(
                 <button onClick={()=>setSEM(true)} className="text-xs font-bold px-3 py-2 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50">🔺 {t('escalate')}</button>
               )}
+              {/* Delete button — always visible in detail (admin) or own tasks */}
+              <button onClick={()=>onDelete&&onDelete(task.id)}
+                className="text-xs font-bold px-3 py-2 rounded-xl border-2 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors">
+                🗑️ {t('delete')}
+              </button>
             </div>
           </div>
         )}
@@ -580,12 +647,12 @@ export default function TasksPage() {
 
         {selected&&!showCreate&&!editTask&&(
           <div className={`${view==='board'?'hidden lg:block':'hidden md:block'} flex-shrink-0`} style={{width:420,height:'100%'}}>
-            <TaskDetail task={selected} isAdmin={isAdmin} onClose={()=>setSelected(null)} onUpdate={updateTask} t={t} lang={lang}/>
+            <TaskDetail task={selected} isAdmin={isAdmin} onClose={()=>setSelected(null)} onUpdate={updateTask} onDelete={deleteTask} t={t} lang={lang}/>
           </div>
         )}
         {selected&&!showCreate&&!editTask&&(
           <div className="md:hidden">
-            <TaskDetail task={selected} isAdmin={isAdmin} onClose={()=>setSelected(null)} onUpdate={updateTask} t={t} lang={lang}/>
+            <TaskDetail task={selected} isAdmin={isAdmin} onClose={()=>setSelected(null)} onUpdate={updateTask} onDelete={deleteTask} t={t} lang={lang}/>
           </div>
         )}
       </div>

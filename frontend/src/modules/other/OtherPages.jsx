@@ -6,6 +6,7 @@ import { useToast } from '../../components/Toast'
 
 // ─── Records Page ──────────────────────────────────────────────────────────────
 export function RecordsPage() {
+  const { lang, t } = useLang()
   const { show, ToastContainer } = useToast()
   const [records, setRecords] = useLocalStorage('ecm_records_admin', [
     { id:1, title:'سجل العقود الحكومية 2025', retention:'10 سنوات', status:'Active',     count:342,  class:'حكومي' },
@@ -131,6 +132,7 @@ const ROLES = ['مدير','محرر','مراجع','مستخدم','ضيف']
 const DEPTS = ['الشؤون المالية','الشؤون الإدارية','تقنية المعلومات','الرئاسة التنفيذية','التدقيق الداخلي','إدارة المخاطر','الموارد البشرية','التحول الرقمي']
 
 export function AdminPage() {
+  const { lang, t } = useLang()
   const { show, ToastContainer } = useToast()
   const [users, setUsers] = useLocalStorage('ecm_users', [
     { id:1, name:'أحمد الزهراني',  email:'a.zahrani@darah.gov.sa',  role:'مدير',   dept:'الشؤون المالية',    status:'active', username:'a.zahrani' },

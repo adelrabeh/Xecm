@@ -1,3 +1,4 @@
+import { useUsers } from '../hooks/useUsers'
 import React, { useState } from 'react'
 import { UserSearch } from './UserSearch'
 import { useToast } from './Toast'
@@ -12,6 +13,7 @@ const PERMISSIONS = [
 const PERM_MAP = Object.fromEntries(PERMISSIONS.map(p => [p.value, p]))
 
 export function ShareModal({ file, onClose, show: showProp }) {
+  const { activeUsers: realUsers } = useUsers()
   const { show: internalShow, ToastContainer } = useToast()
   const show = showProp || internalShow
 

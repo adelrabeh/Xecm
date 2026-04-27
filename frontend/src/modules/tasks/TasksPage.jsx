@@ -1,3 +1,4 @@
+import { useUsers } from '../../hooks/useUsers'
 import React, { useState, useRef } from 'react'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useAuthStore } from '../../store/authStore'
@@ -22,14 +23,7 @@ const PRIORITIES = [
   { key:'urgent', labelAr:'عاجلة',  labelEn:'Urgent', color:'#dc2626', bg:'#fee2e2' },
 ]
 const DEPARTMENTS = ['تقنية المعلومات','الشؤون المالية','الشؤون الإدارية','الموارد البشرية','إدارة المخاطر','التدقيق الداخلي','الرئاسة التنفيذية','التحول الرقمي']
-const USERS = [
-  { id:2, name:'أحمد الزهراني',  dept:'الشؤون المالية',      roleId:1 },
-  { id:3, name:'مريم العنزي',    dept:'الشؤون الإدارية',  roleId:2 },
-  { id:4, name:'خالد القحطاني', dept:'تقنية المعلومات',  roleId:2 },
-  { id:5, name:'فاطمة الشمري',  dept:'الموارد البشرية',  roleId:3 },
-  { id:6, name:'عمر الدوسري',   dept:'التدقيق الداخلي',  roleId:3 },
-  { id:7, name:'نورة السبيعي',  dept:'الرئاسة التنفيذية',roleId:3 },
-]
+// USERS now from useUsers() hook — see main component
 const ROLE_HIERARCHY = [
   { id:0, nameAr:'مشاهد',      nameEn:'Viewer',            level:0, canEscalate:false },
   { id:1, nameAr:'موظف',       nameEn:'Employee',          level:1, canEscalate:true,  escalatesTo:[2] },
@@ -636,9 +630,31 @@ export default function TasksPage() {
   const [draggingId, setDraggingId]   = useState(null)
   const [dragOverCol, setDragOverCol] = useState(null)
 
+  const { activeUsers: USERS } = useUsers()
   const isAdmin = (user?.permissions||[]).some(p=>p==='admin.*')
   const safeTasks = Array.isArray(tasks) ? tasks : MOCK_TASKS
   const sl = (s) => lang==='en'?(s.labelEn||s.labelAr):s.labelAr
+
+  // Auto-clean tasks: remove assignee if user no longer exists
+  const cleanedTasks = React.useMemo(() => {
+    return safeTasks.map(tk => {
+      if (!tk.assignedTo) return tk
+      const exists = USERS.find(u => u.id === tk.assignedTo)
+      if (exists) return tk
+      // User was deleted — clear assignee, add history entry
+      return {
+        ...tk,
+        assignedTo: null,
+        assignedName: '',
+        assignRole: null,
+        history: [...(tk.history||[]), {
+          status: tk.status,
+          date: new Date().toISOString().split('T')[0],
+          note: lang==='en'?'Assignee removed (user deleted)':'تم إزالة المُكلَّف (المستخدم حُذف)',
+        }]
+      }
+    })
+  }, [safeTasks, USERS])
 
   // Which columns a task can be dragged TO (forward + backward)
   const ALLOWED_TRANSITIONS = {
@@ -681,7 +697,7 @@ export default function TasksPage() {
   }
   const pl = (p) => lang==='en'?(p.labelEn||p.labelAr):p.labelAr
 
-  const withOverdue = safeTasks.map(t=>({...t,status:!['completed','cancelled'].includes(t.status)&&t.due&&new Date(t.due)<new Date()?'overdue':t.status}))
+  const withOverdue = cleanedTasks.map(t=>({...t,status:!['completed','cancelled'].includes(t.status)&&t.due&&new Date(t.due)<new Date()?'overdue':t.status}))
   const filtered = withOverdue.filter(t=>(filterStatus==='all'||t.status===filterStatus)&&(filterPrio==='all'||t.priority===filterPrio)&&(filterDept==='all'||t.dept===filterDept)&&(!search||t.title.includes(search)||(t.assignedName||'').includes(search)||(t.dept||'').includes(search)))
 
   const updateTask = (u) => { setTasks(p=>(Array.isArray(p)?p:MOCK_TASKS).map(t=>t.id===u.id?u:t)); if(selected?.id===u.id) setSelected(u) }

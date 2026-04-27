@@ -1,3 +1,4 @@
+import { useUsers } from '../../hooks/useUsers'
 import React, { useState, useEffect } from 'react'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { WorkflowBuilderModal } from '../../components/WorkflowBuilderModal'
@@ -73,6 +74,7 @@ function ProcessDiagram({ workflow }) {
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export default function WorkflowsPage() {
+  const { activeUsers: allUsers } = useUsers()
   const { show, ToastContainer } = useToast()
 
   const [tasks, setTasks]               = useLocalStorage('ecm_inbox_tasks', MOCK_TASKS)

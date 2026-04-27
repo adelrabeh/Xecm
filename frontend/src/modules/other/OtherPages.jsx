@@ -1,3 +1,4 @@
+import { updateUsersList } from '../../hooks/useUsers'
 import React, { useState, useEffect } from 'react'
 import { useLang } from '../../i18n.js'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
@@ -194,7 +195,7 @@ export function AdminPage() {
   }
 
   const handleGrantAccess = (u) => {
-    setUsers(prev => prev.map(x => x.id===u.id ? {...x, fullAccess:!x.fullAccess} : x))
+    setUsers(prev => { const updated = (Array.isArray(prev)?prev:[]).map(x => x.id===u.id ? {...x, fullAccess:!x.fullAccess} : x); updateUsersList(updated); return updated })
     // Save permission to user's localStorage permissions
     try {
       const key = 'ecm_user_perms_' + u.username

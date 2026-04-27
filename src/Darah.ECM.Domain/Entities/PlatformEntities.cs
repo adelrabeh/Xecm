@@ -316,34 +316,6 @@ public sealed class GroupMember
     public DateTime JoinedAt{ get; set; } = DateTime.UtcNow;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ESCALATION MODEL — Hierarchy-Aware, Permission-Based
-// ═══════════════════════════════════════════════════════════════════════════════
-
-public enum UserRole
-{
-    Viewer            = 0,
-    Employee          = 1,
-    Supervisor        = 2,
-    DepartmentManager = 3,
-    SystemAdmin       = 4,
-}
-
-public enum EscalationStatus
-{
-    Pending    = 0,  // Awaiting action from escalated-to user
-    Accepted   = 1,  // Acknowledged by receiving party
-    Rejected   = 2,  // Returned to original assignee
-    Resolved   = 3,  // Escalation resolved
-    Cancelled  = 4,  // Withdrawn by initiator
-}
-
-public enum EscalationLevel
-{
-    ToSupervisor        = 1,  // Employee → Supervisor
-    ToDepartmentManager = 2,  // Supervisor → Dept Manager
-    ToCrossManager      = 3,  // Dept Manager → peer/higher
-}
 
 /// <summary>
 /// Represents one escalation event on a task.
@@ -445,4 +417,30 @@ public static class EscalationPolicy
                 "مدير النظام ليس جزءاً من مسار التصعيد التشغيلي.",
             _ => "ليس لديك صلاحية هذا التصعيد.",
         };
+}
+
+// ─── Escalation Enums ─────────────────────────────────────────────────────────
+public enum UserRole
+{
+    Viewer            = 0,
+    Employee          = 1,
+    Supervisor        = 2,
+    DepartmentManager = 3,
+    SystemAdmin       = 4,
+}
+
+public enum EscalationStatus
+{
+    Pending    = 0,
+    Accepted   = 1,
+    Rejected   = 2,
+    Resolved   = 3,
+    Cancelled  = 4,
+}
+
+public enum EscalationLevel
+{
+    ToSupervisor        = 1,
+    ToDepartmentManager = 2,
+    ToCrossManager      = 3,
 }

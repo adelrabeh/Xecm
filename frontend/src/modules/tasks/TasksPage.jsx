@@ -126,6 +126,149 @@ function EscalationModal({ task, userRole, onClose, onEscalate, t, lang }) {
   )
 }
 
+
+// ─── Assign Task Modal ────────────────────────────────────────────────────────
+const ASSIGNMENT_ROLES = [
+  { key:'execute',  labelAr:'تنفيذ',   labelEn:'Execute',  icon:'▶️',  color:'#2563eb', bg:'#eff6ff', descAr:'مسؤول عن تنفيذ المهمة كاملاً', descEn:'Responsible for full task execution' },
+  { key:'review',   labelAr:'مراجعة',  labelEn:'Review',   icon:'🔍', color:'#7c3aed', bg:'#f5f3ff', descAr:'يراجع النتائج ويعطي ملاحظات',      descEn:'Reviews results and provides feedback' },
+  { key:'edit',     labelAr:'تعديل',   labelEn:'Edit',     icon:'✏️',  color:'#d97706', bg:'#fffbeb', descAr:'يُعدّل المخرجات والمحتوى',           descEn:'Edits outputs and content' },
+  { key:'approve',  labelAr:'اعتماد',  labelEn:'Approve',  icon:'✅', color:'#059669', bg:'#ecfdf5', descAr:'يعتمد المهمة ويُغلقها',              descEn:'Approves and closes the task' },
+  { key:'consult',  labelAr:'استشارة', labelEn:'Consult',  icon:'💬', color:'#0891b2', bg:'#ecfeff', descAr:'يُستشار عند الحاجة فقط',             descEn:'Consulted when needed only' },
+]
+
+function AssignModal({ task, onClose, onAssign, t, lang }) {
+  const [selectedUser, setUser]   = useState(task.assignedTo ? String(task.assignedTo) : '')
+  const [assignRole,   setRole]   = useState('execute')
+  const [note,         setNote]   = useState('')
+  const [loading,      setL]      = useState(false)
+
+  const rl = (r) => lang==='en' ? (r.labelEn||r.labelAr) : r.labelAr
+  const rd = (r) => lang==='en' ? (r.descEn||r.descAr)  : r.descAr
+  const selectedRole = ASSIGNMENT_ROLES.find(r=>r.key===assignRole)
+  const selectedUserObj = USERS.find(u=>String(u.id)===selectedUser)
+
+  const handleSubmit = async () => {
+    if (!selectedUser) return
+    setL(true)
+    try { await client.post(`/api/v1/tasks/${task.id}/assign`, { toUserId: Number(selectedUser), role: assignRole }) } catch {}
+    const entry = {
+      id: Date.now(), by: 'أنت',
+      text: `${lang==='en'?'Assigned to':'تم الإسناد إلى'} ${selectedUserObj?.name} ${lang==='en'?'for':'بدور'} ${rl(selectedRole)}${note?' — '+note:''}`,
+      date: new Date().toISOString().split('T')[0], type: 'assign'
+    }
+    onAssign({
+      ...task,
+      assignedTo:   Number(selectedUser),
+      assignedName: selectedUserObj?.name || '',
+      assignRole:   assignRole,
+      comments: [...(task.comments||[]), entry],
+      history:  [...(task.history||[]),  { status: task.status, date: new Date().toISOString().split('T')[0], assignedTo: selectedUserObj?.name, assignRole: assignRole }],
+    })
+    setL(false); onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={e=>e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-xl">👤</div>
+            <div>
+              <h2 className="font-black text-gray-900">{lang==='en'?'Assign Task':'إسناد المهمة'}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{lang==='en'?'Assign to any team member at any stage':'يمكن الإسناد في أي مرحلة'}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 text-xl">✕</button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Task reminder */}
+          <div className="bg-gray-50 rounded-xl p-3 flex items-start gap-2">
+            <span className="text-gray-400 text-sm mt-0.5">📋</span>
+            <div>
+              <p className="text-xs text-gray-500">{lang==='en'?'Task:':'المهمة:'}</p>
+              <p className="text-sm font-bold text-gray-800">{task.title}</p>
+            </div>
+          </div>
+
+          {/* Select user */}
+          <div>
+            <label className="block text-xs font-black text-gray-700 mb-2 uppercase tracking-wide">
+              {lang==='en'?'Assign To':'إسناد إلى'} <span className="text-red-400">*</span>
+            </label>
+            <div className="grid grid-cols-1 gap-2 max-h-44 overflow-y-auto">
+              {USERS.map(u => (
+                <button key={u.id} onClick={()=>setUser(String(u.id))}
+                  className={`flex items-center gap-3 p-3 rounded-xl border-2 text-right transition-all ${String(u.id)===selectedUser?'border-blue-500 bg-blue-50':'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}>
+                  <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    {u.name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 text-sm">{u.name}</p>
+                    <p className="text-xs text-gray-400">{u.dept}</p>
+                  </div>
+                  {String(u.id)===selectedUser && <span className="text-blue-500 text-lg flex-shrink-0">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Select assignment role */}
+          <div>
+            <label className="block text-xs font-black text-gray-700 mb-2 uppercase tracking-wide">
+              {lang==='en'?'Assignment Role':'دور الإسناد'} <span className="text-red-400">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {ASSIGNMENT_ROLES.map(r => (
+                <button key={r.key} onClick={()=>setRole(r.key)}
+                  className={`flex items-center gap-2.5 p-3 rounded-xl border-2 text-right transition-all ${assignRole===r.key?'shadow-sm':'border-gray-100 hover:border-gray-200'}`}
+                  style={assignRole===r.key?{borderColor:r.color,background:r.bg}:{}}>
+                  <span className="text-lg flex-shrink-0">{r.icon}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold" style={{color:assignRole===r.key?r.color:'#374151'}}>{rl(r)}</p>
+                    <p className="text-[10px] text-gray-400 leading-tight">{rd(r)}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Optional note */}
+          <div>
+            <label className="block text-xs font-black text-gray-700 mb-1.5 uppercase tracking-wide">
+              {lang==='en'?'Note (optional)':'ملاحظة (اختياري)'}
+            </label>
+            <textarea value={note} onChange={e=>setNote(e.target.value)} rows={2}
+              placeholder={lang==='en'?'Add instructions or context...':'أضف تعليمات أو سياق للمهمة...'}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+              dir={lang==='en'?'ltr':'rtl'}/>
+          </div>
+
+          {/* Preview */}
+          {selectedUser && (
+            <div className="rounded-xl p-3 border" style={{background:selectedRole?.bg,borderColor:selectedRole?.color+'40'}}>
+              <p className="text-xs font-bold" style={{color:selectedRole?.color}}>
+                {lang==='en'?'Summary:':'الملخص:'} {selectedUserObj?.name} ← {selectedRole?.icon} {rl(selectedRole)}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="p-5 border-t border-gray-100 flex gap-3">
+          <button onClick={onClose} className="border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50">
+            {t('cancel')}
+          </button>
+          <button onClick={handleSubmit} disabled={!selectedUser||loading}
+            className="flex-1 bg-blue-700 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-blue-800 disabled:opacity-40 transition-colors">
+            {loading?'...':`👤 ${lang==='en'?'Confirm Assignment':'تأكيد الإسناد'}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Task Card ─────────────────────────────────────────────────────────────────
 function TaskCard({ task, onClick, selected, lang, onDragStart, onDragEnd }) {
   const s = STATUS_MAP[task.status]||STATUS_MAP.new
@@ -156,7 +299,10 @@ function TaskCard({ task, onClick, selected, lang, onDragStart, onDragEnd }) {
         <p className="font-bold text-gray-900 text-sm leading-snug line-clamp-2">{task.title}</p>
       </div>
       <div className="flex items-center justify-between text-xs text-gray-400">
-        <span>👤 {task.assignedName||'—'}</span>
+        <span className="flex items-center gap-1">
+          <span>👤 {task.assignedName||'—'}</span>
+          {task.assignRole&&(()=>{const r=ASSIGNMENT_ROLES.find(ar=>ar.key===task.assignRole); return r?<span className="font-bold" style={{color:r.color}}>{r.icon}</span>:null})()}
+        </span>
         <span className={isOverdue?'text-red-500 font-semibold':''}>{isOverdue?'⚠️ ':''}{task.due}</span>
       </div>
       {task.comments?.length>0&&<div className="mt-1.5 text-[10px] text-gray-400">💬 {task.comments.length}</div>}
@@ -266,6 +412,7 @@ function TaskDetail({ task, onClose, onUpdate, onDelete, isAdmin, t, lang }) {
   const [showEscModal, setSEM]  = useState(false)
   const [showReturnModal, setSRM] = useState(false)
   const [returnNote, setRN]       = useState('')
+  const [showAssignModal, setSAM] = useState(false)
   const fileRef = useRef()
   const s = STATUS_MAP[task.status]||STATUS_MAP.new
   const p = PRIO_MAP[task.priority]||PRIO_MAP.medium
@@ -340,6 +487,10 @@ function TaskDetail({ task, onClose, onUpdate, onDelete, isAdmin, t, lang }) {
           </div>
         </div>
       )}
+      {showAssignModal&&(
+        <AssignModal task={task} onClose={()=>setSAM(false)} t={t} lang={lang}
+          onAssign={updated=>{onUpdate(updated);setSAM(false)}}/>
+      )}
       {showEscModal&&<EscalationModal task={task} userRole={isAdmin?3:1} onClose={()=>setSEM(false)} t={t} lang={lang}
         onEscalate={esc=>onUpdate({...task,escalated:true,escalations:[...(task.escalations||[]),esc],history:[...task.history,{status:'escalated',date:new Date().toISOString().split('T')[0]}]})}/>}
       <div className="p-4 border-b border-gray-100 flex-shrink-0" style={{background:s.bg}}>
@@ -348,6 +499,11 @@ function TaskDetail({ task, onClose, onUpdate, onDelete, isAdmin, t, lang }) {
             <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:'white',color:s.color}}>{s.icon} {sl}</span>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:p.bg,color:p.color}}>{pl}</span>
             {task.escalated&&<span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">🔺</span>}
+          {task.assignRole&&(()=>{const r=ASSIGNMENT_ROLES.find(ar=>ar.key===task.assignRole); return r?(
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:r.bg,color:r.color}}>
+              {r.icon} {lang==='en'?(r.labelEn||r.labelAr):r.labelAr}
+            </span>
+          ):null})()}
           </div>
           <button onClick={onClose} className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 text-lg">✕</button>
         </div>
@@ -380,6 +536,11 @@ function TaskDetail({ task, onClose, onUpdate, onDelete, isAdmin, t, lang }) {
               {!task.escalated&&!['completed','cancelled'].includes(task.status)&&(
                 <button onClick={()=>setSEM(true)} className="text-xs font-bold px-3 py-2 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50">🔺 {t('escalate')}</button>
               )}
+              {/* Assign button — always available */}
+              <button onClick={()=>setSAM(true)}
+                className="text-xs font-bold px-3 py-2 rounded-xl border-2 border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors">
+                👤 {lang==='en'?'Assign':'إسناد'}
+              </button>
               {/* Delete button — always visible in detail (admin) or own tasks */}
               <button onClick={()=>onDelete&&onDelete(task.id)}
                 className="text-xs font-bold px-3 py-2 rounded-xl border-2 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors">

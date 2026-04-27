@@ -78,7 +78,7 @@ export function RecordsPage() {
             </div>
             <div className="flex gap-2 items-end">
               <button onClick={handleAdd} className="flex-1 bg-blue-700 text-white py-2 rounded-xl text-sm hover:bg-blue-800 font-semibold">حفظ</button>
-              <button onClick={()=>setShowNew(false)} className="border border-gray-200 text-gray-500 px-3 py-2 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
+              <button onClick={()=>setShowNew(false)} className="border border-gray-200 text-gray-500 px-3 py-2 rounded-xl text-sm hover:bg-gray-50">{lang==='en'?'Cancel':'إلغاء'}</button>
             </div>
           </div>
         </div>
@@ -232,13 +232,13 @@ export function AdminPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t('users_title')}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{lang==='en'?'User Management':'إدارة المستخدمين'}</h1>
           <p className="text-gray-400 text-sm">{users.filter(u=>u.status==='active').length} {lang==='en'?'active of':'نشط من'} {users.length}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleExport} className="border border-gray-200 text-gray-600 text-sm px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors">📊 تصدير CSV</button>
+          <button onClick={handleExport} className="border border-gray-200 text-gray-600 text-sm px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors">📊 {lang==='en'?'Export CSV':'تصدير CSV'}</button>
           <button onClick={()=>{setShowAdd(true);setEditUser(null)}} className="bg-blue-700 text-white text-sm px-4 py-2 rounded-xl hover:bg-blue-800 transition-colors flex items-center gap-1.5">
-            + {t('new_user')}
+            {lang==='en'?'+ New User':'+ مستخدم جديد'}
           </button>
         </div>
       </div>
@@ -272,7 +272,7 @@ export function AdminPage() {
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" dir="ltr"/>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">{t('role')}</label>
+              <label className="block text-xs font-bold text-gray-600 mb-1">{lang==='en'?'Role':'الدور'}</label>
               <select value={newUser.role} onChange={e=>setNewUser(p=>({...p,role:e.target.value}))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                 {ROLES.map(r=><option key={r}>{r}</option>)}
@@ -292,7 +292,7 @@ export function AdminPage() {
               className="bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-800 disabled:opacity-50">
               {loading ? '⏳' : '✅'} حفظ المستخدم
             </button>
-            <button onClick={()=>setShowAdd(false)} className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
+            <button onClick={()=>setShowAdd(false)} className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm hover:bg-gray-50">{lang==='en'?'Cancel':'إلغاء'}</button>
           </div>
         </div>
       )}
@@ -325,7 +325,7 @@ export function AdminPage() {
           </div>
           <div className="flex gap-2">
             <button onClick={handleSaveEdit} className="bg-orange-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-orange-600">💾 حفظ التعديلات</button>
-            <button onClick={()=>setEditUser(null)} className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm hover:bg-gray-50">{t('cancel')}</button>
+            <button onClick={()=>setEditUser(null)} className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm hover:bg-gray-50">{lang==='en'?'Cancel':'إلغاء'}</button>
           </div>
         </div>
       )}
@@ -365,8 +365,8 @@ export function AdminPage() {
         <table className="w-full text-sm">
           <thead><tr className="bg-gray-50 border-b border-gray-100">
             <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">المستخدم</th>
-            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">{t('role')}</th>
-            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400 hidden md:table-cell">{t('department')}</th>
+            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">{lang==='en'?'Role':'الدور'}</th>
+            <th className="px-4 py-3 text-right text-xs font-bold text-gray-400 hidden md:table-cell">{lang==='en'?'Department':'القسم'}</th>
             <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">{t('status')}</th>
             <th className="px-4 py-3 text-right text-xs font-bold text-gray-400">إجراءات</th>
           </tr></thead>
@@ -399,7 +399,7 @@ export function AdminPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
-                    <button onClick={()=>handleEdit(u)} className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline">{t('edit')}</button>
+                    <button onClick={()=>handleEdit(u)} className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline">{lang==='en'?'Edit':'تعديل'}</button>
                     <button onClick={()=>handleToggle(u.id)} className={`text-xs font-medium hover:underline ${u.status==='active'?'text-red-500 hover:text-red-700':'text-green-600 hover:text-green-800'}`}>
                       {u.status==='active'?'تعطيل':'تفعيل'}
                     </button>

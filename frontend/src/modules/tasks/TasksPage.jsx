@@ -577,8 +577,23 @@ function TaskDetail({ task, onClose, onUpdate, onDelete, isAdmin, t, lang }) {
             <button onClick={()=>fileRef.current?.click()} className="text-xs text-blue-600 hover:text-blue-800 font-semibold">+ {t('add_attachment')}</button>
           </div>
           <input ref={fileRef} type="file" multiple className="hidden" onChange={addFiles}/>
-          {task.attachments?.length>0?<div className="space-y-1.5">{task.attachments.map((a,i)=><div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-xl text-xs"><span>📎</span><span className="flex-1 font-medium truncate">{a.name}</span><span className="text-gray-400">{a.size}</span></div>)}</div>
-          :<p className="text-xs text-gray-400 text-center py-2">{t('no_attachments')}</p>}
+          {task.attachments?.length>0 ? (
+            <div className="space-y-1.5">
+              {task.attachments.map((a,i)=>(
+                <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-xl text-xs group hover:bg-gray-100 transition-colors">
+                  <span className="text-base">📎</span>
+                  <span className="flex-1 font-medium truncate text-gray-700">{a.name}</span>
+                  <span className="text-gray-400 flex-shrink-0">{a.size}</span>
+                  <button
+                    onClick={()=>onUpdate({...task, attachments: task.attachments.filter((_,j)=>j!==i)})}
+                    className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-red-50"
+                    title={lang==='en'?'Delete attachment':'حذف المرفق'}>
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-xs text-gray-400 text-center py-2">{t('no_attachments')}</p>}
         </div>
         {/* Comments */}
         <div>

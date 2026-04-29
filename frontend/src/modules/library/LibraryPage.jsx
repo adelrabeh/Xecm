@@ -177,7 +177,7 @@ function UploadModal({ folders, onClose, defaultFolder, onSuccess }) {
       fileSize:     (file.size/1024/1024).toFixed(2)+' MB',
       folder:       selectedFolder,
       folderName:   folder?.name||'',
-      owner:        'أنت',
+      owner:        ownerName || 'أنت',
       created:      new Date().toISOString().split('T')[0],
       modified:     new Date().toISOString().split('T')[0],
       createdAt:    new Date().toISOString().split('T')[0],
@@ -314,6 +314,7 @@ export default function LibraryPage() {
   const safeFiles   = Array.isArray(files) ? files : []
 
   const isAdmin = (user?.permissions||[]).some(p => p === 'admin.*' || p === 'admin.library')
+  const ownerName = user?.fullNameAr || user?.username || 'أنت'
   const currentUser = user?.fullNameAr || user?.username || 'أنت'
 
   // Files belonging to current user

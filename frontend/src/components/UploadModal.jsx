@@ -1,3 +1,4 @@
+import { useAuthStore } from '../store/authStore'
 import { storeFile } from '../hooks/useFileStore'
 import React, { useState, useRef } from 'react'
 import { useLibraryFilesV2 } from '../hooks/useFolderStore'
@@ -10,6 +11,8 @@ const CLASSIFICATIONS = ['عام','داخلي','سري','سري للغاية']
 const STEPS = ['الملف','المجلد','التفاصيل']
 
 export function UploadModal({ onClose, onSuccess, defaultFolderId = null }) {
+  const { user } = useAuthStore()
+  const ownerName = user?.fullNameAr || user?.username || 'أنت'
   const [foldersRaw] = useFolderStore()
   const folders = Array.isArray(foldersRaw) ? foldersRaw : []
 
@@ -76,7 +79,7 @@ export function UploadModal({ onClose, onSuccess, defaultFolderId = null }) {
       folder:       selectedFolder,
       folderName:   selectedFolderObj?.name || '',
       folderPath:   folderPath().map(f => f.name).join(' › '),
-      owner:        'أنت',
+      owner:        ownerName,
       created:      new Date().toISOString().split('T')[0],
       modified:     new Date().toISOString().split('T')[0],
       createdAt:    new Date().toISOString(),

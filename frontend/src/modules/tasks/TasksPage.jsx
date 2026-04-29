@@ -326,7 +326,7 @@ function TaskFormModal({ task, onClose, onSave, t, lang, users=[] }) {
     onSave({ ...task, ...form, assignedTo:Number(form.assignedTo)||null, assignedName:u?.name||'',
       tags:form.tags.split(/[،,]/).map(t=>t.trim()).filter(Boolean),
       status:task?.status||'new', created:task?.created||new Date().toISOString().split('T')[0],
-      createdBy:task?.createdBy||'أنت', comments:task?.comments||[], attachments:task?.attachments||[],
+      createdBy:task?.createdBy||currentName||'أنت', comments:task?.comments||[], attachments:task?.attachments||[],
       escalated:task?.escalated||false, escalations:task?.escalations||[],
       history:task?.history||[{status:'new',date:new Date().toISOString().split('T')[0]}],
     })
@@ -642,12 +642,26 @@ export default function TasksPage() {
 
   const { activeUsers: USERS } = useUsers()
   const isAdmin = (user?.permissions||[]).some(p=>p==='admin.*')
+  const currentUsername = user?.username || ''
+  const currentName     = user?.fullNameAr || user?.username || ''
+
+  // Scope: admin sees ALL tasks, others see only tasks where:
+  // they are the creator OR assigned to them
+  const scopedTasks = React.useMemo(() => {
+    if (isAdmin) return safeTasks
+    return safeTasks.filter(tk =>
+      tk.createdBy === currentName ||
+      tk.createdBy === currentUsername ||
+      tk.assignedName === currentName ||
+      String(tk.assignedTo) === String(user?.userId)
+    )
+  }, [safeTasks, isAdmin, currentName, currentUsername, user?.userId])
   const safeTasks = Array.isArray(tasks) ? tasks : MOCK_TASKS
   const sl = (s) => lang==='en'?(s.labelEn||s.labelAr):s.labelAr
 
   // Auto-clean tasks: remove assignee if user no longer exists
   const cleanedTasks = React.useMemo(() => {
-    return safeTasks.map(tk => {
+    return scopedTasks.map(tk => {
       if (!tk.assignedTo) return tk
       const exists = USERS.find(u => u.id === tk.assignedTo)
       if (exists) return tk
@@ -664,7 +678,7 @@ export default function TasksPage() {
         }]
       }
     })
-  }, [safeTasks, USERS])
+  }, [scopedTasks, USERS])
 
   // Which columns a task can be dragged TO (forward + backward)
   const ALLOWED_TRANSITIONS = {

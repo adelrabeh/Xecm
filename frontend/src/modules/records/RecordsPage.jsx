@@ -1,3 +1,4 @@
+import { useAuthStore } from '../../store/authStore'
 import React, { useState, useEffect, useRef } from 'react'
 import { useLang } from '../../i18n.js'
 import client from '../../api/client'
@@ -511,18 +512,26 @@ export default function RecordsPage() {
   },[])
 
   const safeRecords = Array.isArray(records) ? records : MOCK_RECORDS
+  const scopedRecords = isAdmin
+    ? safeRecords
+    : safeRecords.filter(r =>
+        r.createdBy === currentUser ||
+        r.ownerName === currentUser ||
+        r.department === user?.dept ||
+        !r.ownerName  // records without owner visible to all
+      )
 
-  const filtered = safeRecords.filter(r=>
+  const filtered = scopedRecords.filter(r=>
     (filterDomain==='all'||String(r.domainId)===String(filterDomain))&&
     (filterStatus==='all'||r.status===filterStatus)&&
     (!search||(r.titleAr||'').includes(search)||(r.recordNumber||'').includes(search)||(r.dept||'').includes(search))
   )
 
   const stats = {
-    total:   safeRecords.length,
-    draft:   safeRecords.filter(r=>r.status==='مسودة').length,
-    review:  safeRecords.filter(r=>r.status==='قيد المراجعة').length,
-    approved:safeRecords.filter(r=>r.status==='معتمد').length,
+    total:   scopedRecords.length,
+    draft:   scopedRecords.filter(r=>r.status==='مسودة').length,
+    review:  scopedRecords.filter(r=>r.status==='قيد المراجعة').length,
+    approved:scopedRecords.filter(r=>r.status==='معتمد').length,
   }
 
   const handleStatusChange = (record, newStatus) => {

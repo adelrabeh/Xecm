@@ -35,6 +35,9 @@ const MOCK_TASKS = []  // Start fresh — add real tasks
 const STATUS_MAP = Object.fromEntries(STATUSES.map(s=>[s.key,s]))
 const PRIO_MAP   = Object.fromEntries(PRIORITIES.map(p=>[p.key,p]))
 
+// ─── Shared input class helper (module-level, never recreated) ─────────────────
+const INP = (err) => `w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${err?'border-red-300':'border-gray-200'}`
+
 // ─── Escalation Modal ─────────────────────────────────────────────────────────
 function EscalationModal({ task, userRole, onClose, onEscalate, t, lang }) {
   const role = ROLE_HIERARCHY.find(r=>r.id===userRole)||ROLE_HIERARCHY[1]
@@ -329,8 +332,6 @@ function TaskFormModal({ task, onClose, onSave, t, lang }) {
     })
     onClose()
   }
-
-  const INP = (err) => `w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${err?'border-red-300':'border-gray-200'}`
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>

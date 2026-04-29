@@ -302,7 +302,7 @@ function TaskCard({ task, onClick, selected, lang, onDragStart, onDragEnd }) {
 }
 
 // ─── Task Form Modal ────────────────────────────────────────────────────────────
-function TaskFormModal({ task, onClose, onSave, t, lang }) {
+function TaskFormModal({ task, onClose, onSave, t, lang, users=[] }) {
   const isEdit = !!task?.id
   const [form, setForm] = useState({
     title:task?.title||'', desc:task?.desc||'', dept:task?.dept||'',
@@ -322,7 +322,7 @@ function TaskFormModal({ task, onClose, onSave, t, lang }) {
 
   const handleSave = () => {
     if (!validate()) return
-    const u = USERS.find(u=>u.id===Number(form.assignedTo))
+    const u = users.find(u=>u.id===Number(form.assignedTo))
     onSave({ ...task, ...form, assignedTo:Number(form.assignedTo)||null, assignedName:u?.name||'',
       tags:form.tags.split(/[،,]/).map(t=>t.trim()).filter(Boolean),
       status:task?.status||'new', created:task?.created||new Date().toISOString().split('T')[0],
@@ -363,7 +363,7 @@ function TaskFormModal({ task, onClose, onSave, t, lang }) {
               <label className="block text-xs font-bold text-gray-700 mb-1">{t('assign_to')}</label>
               <select value={form.assignedTo} onChange={e=>set('assignedTo',e.target.value)} className={INP()}>
                 <option value="">{lang==='en'?'— Select Employee —':'— اختر الموظف —'}</option>
-                {USERS.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
+                {users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
             <div>
@@ -714,7 +714,7 @@ export default function TasksPage() {
   return (
     <div className="flex flex-col h-full">
       <ToastContainer/>
-      {(showCreate||editTask)&&<TaskFormModal task={editTask} onClose={()=>{setShowCreate(false);setEditTask(null)}} onSave={saveTask} t={t} lang={lang}/>}
+      {(showCreate||editTask)&&<TaskFormModal task={editTask} onClose={()=>{setShowCreate(false);setEditTask(null)}} onSave={saveTask} t={t} lang={lang} users={USERS}/>}
 
       <div className="flex-shrink-0 space-y-3 mb-4">
         <div className="flex items-center justify-between">

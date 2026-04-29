@@ -20,20 +20,7 @@ const ACTION_CFG = {
   default:    { icon:'📋', color:'#6b7280', bg:'#f9fafb' },
 }
 
-const MOCK_LOGS = [
-  { id:1,  entityName:'Record',   entityId:'DARAH-LEG-2026-11234', action:'Approve+Locked', performedBy:1, performedByName:'مدير النظام', performedAt:'2026-04-25T10:30:00Z', ipAddress:'10.0.0.1', newValues:'Record approved and permanently locked.' },
-  { id:2,  entityName:'Document', entityId:'DOC-2026-001',          action:'Checkout',       performedBy:2, performedByName:'أحمد الزهراني', performedAt:'2026-04-25T09:15:00Z', ipAddress:'10.0.0.5', newValues:'Checked out for editing.' },
-  { id:3,  entityName:'User',     entityId:'user-5',                 action:'Create',         performedBy:1, performedByName:'مدير النظام',   performedAt:'2026-04-24T14:00:00Z', ipAddress:'10.0.0.1', newValues:'New user created: فاطمة الشمري' },
-  { id:4,  entityName:'Task',     entityId:'task-3',                 action:'Escalate',       performedBy:4, performedByName:'خالد القحطاني', performedAt:'2026-04-24T11:45:00Z', ipAddress:'10.0.0.8', newValues:'Escalated to userId=5, level=1' },
-  { id:5,  entityName:'Auth',     entityId:'user-1',                 action:'Login',          performedBy:1, performedByName:'مدير النظام',   performedAt:'2026-04-24T08:00:00Z', ipAddress:'10.0.0.1', newValues:'Login successful.' },
-  { id:6,  entityName:'Record',   entityId:'DARAH-FIN-2026-44521',   action:'Update',         performedBy:2, performedByName:'أحمد الزهراني', performedAt:'2026-04-23T16:20:00Z', ipAddress:'10.0.0.5', newValues:'Metadata updated: fiscal_year=2026' },
-  { id:7,  entityName:'Document', entityId:'DOC-2026-003',           action:'Share',          performedBy:3, performedByName:'مريم العنزي',   performedAt:'2026-04-23T13:10:00Z', ipAddress:'10.0.0.6', oldValues:'', newValues:'Shared with: خالد القحطاني' },
-  { id:8,  entityName:'Record',   entityId:'DARAH-HIS-2026-33412',   action:'Create',         performedBy:1, performedByName:'مدير النظام',   performedAt:'2026-04-22T10:00:00Z', ipAddress:'10.0.0.1', newValues:'Record created.' },
-  { id:9,  entityName:'Retention',entityId:'ret-2',                  action:'Approve',        performedBy:1, performedByName:'مدير النظام',   performedAt:'2026-04-21T09:30:00Z', ipAddress:'10.0.0.1', newValues:'Disposal approved.' },
-  { id:10, entityName:'Auth',     entityId:'user-3',                 action:'Login',          performedBy:3, performedByName:'مريم العنزي',   performedAt:'2026-04-21T08:05:00Z', ipAddress:'10.0.0.6', newValues:'Login successful.' },
-  { id:11, entityName:'TaskEscalation',entityId:'esc-1',             action:'CreateSchedule', performedBy:4, performedByName:'خالد القحطاني', performedAt:'2026-04-20T14:20:00Z', ipAddress:'10.0.0.8', newValues:'Retention=7y' },
-  { id:12, entityName:'Document', entityId:'DOC-2026-002',           action:'Archive',        performedBy:1, performedByName:'مدير النظام',   performedAt:'2026-04-20T11:00:00Z', ipAddress:'10.0.0.1', newValues:'Status changed to Archived.' },
-]
+const MOCK_LOGS = []  // cleared for production
 
 const ENTITY_AR = {
   Record:'سجل', Document:'وثيقة', User:'مستخدم', Task:'مهمة',

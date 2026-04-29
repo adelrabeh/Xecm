@@ -31,13 +31,7 @@ const ROLE_HIERARCHY = [
   { id:3, nameAr:'مدير القسم', nameEn:'Dept. Manager',     level:3, canEscalate:true,  escalatesTo:[3] },
   { id:4, nameAr:'مدير النظام',nameEn:'System Admin',      level:4, canEscalate:false },
 ]
-const MOCK_TASKS = [
-  { id:1, title:'مراجعة عقود الموردين للربع الثاني', desc:'مراجعة وتدقيق جميع عقود الموردين المبرمة خلال الربع الثاني من عام 2026.', dept:'الشؤون المالية', assignedTo:2, assignedName:'أحمد الزهراني', priority:'high', status:'inprogress', due:'2026-04-30', created:'2026-04-01', createdBy:'مدير النظام', tags:['عقود','مالي'], comments:[{id:1,by:'أحمد الزهراني',text:'تم مراجعة 60% من العقود',date:'2026-04-15'}], attachments:[], escalated:false, escalations:[], history:[{status:'new',date:'2026-04-01'},{status:'inprogress',date:'2026-04-05'}] },
-  { id:2, title:'إعداد تقرير الأداء الشهري أبريل', desc:'إعداد تقرير مفصل عن مؤشرات الأداء لشهر أبريل 2026.', dept:'الشؤون الإدارية', assignedTo:3, assignedName:'مريم العنزي', priority:'medium', status:'review', due:'2026-04-25', created:'2026-04-10', createdBy:'مدير النظام', tags:['تقارير'], comments:[], attachments:[], escalated:false, escalations:[], history:[{status:'new',date:'2026-04-10'},{status:'review',date:'2026-04-20'}] },
-  { id:3, title:'تحديث سياسة أمن المعلومات', desc:'مراجعة وتحديث سياسة أمن المعلومات ISO 27001.', dept:'تقنية المعلومات', assignedTo:4, assignedName:'خالد القحطاني', priority:'urgent', status:'new', due:'2026-05-01', created:'2026-04-20', createdBy:'مدير النظام', tags:['أمن','سياسات'], comments:[], attachments:[], escalated:false, escalations:[], history:[{status:'new',date:'2026-04-20'}] },
-  { id:4, title:'إجراء جلسة تدريبية للموظفين الجدد', desc:'تنظيم جلسة تدريبية للموظفين الجدد.', dept:'الموارد البشرية', assignedTo:5, assignedName:'فاطمة الشمري', priority:'medium', status:'completed', due:'2026-04-15', created:'2026-04-01', createdBy:'مدير النظام', tags:['تدريب'], comments:[{id:2,by:'فاطمة الشمري',text:'تمت الجلسة بنجاح',date:'2026-04-15'}], attachments:[], escalated:false, escalations:[], history:[{status:'new',date:'2026-04-01'},{status:'completed',date:'2026-04-15'}] },
-  { id:5, title:'تدقيق منظومة المشتريات', desc:'تدقيق شامل على إجراءات المشتريات.', dept:'التدقيق الداخلي', assignedTo:6, assignedName:'عمر الدوسري', priority:'high', status:'overdue', due:'2026-04-10', created:'2026-03-25', createdBy:'مدير النظام', tags:['تدقيق'], comments:[], attachments:[], escalated:true, escalations:[], history:[{status:'new',date:'2026-03-25'},{status:'assigned',date:'2026-03-26'}] },
-]
+const MOCK_TASKS = []  // Start fresh — add real tasks
 const STATUS_MAP = Object.fromEntries(STATUSES.map(s=>[s.key,s]))
 const PRIO_MAP   = Object.fromEntries(PRIORITIES.map(p=>[p.key,p]))
 

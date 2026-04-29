@@ -224,7 +224,6 @@ export function AdminPage() {
     (filterRole === 'all' || u.role === filterRole)
   )
 
-  // FormField moved outside component to prevent focus loss
 
   return (
     <div className="space-y-4 max-w-7xl">
@@ -306,23 +305,31 @@ export function AdminPage() {
             <button onClick={()=>setEditUser(null)} className="text-gray-400 hover:text-gray-600">✕</button>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="الاسم الكامل" value={editUser.name}
-              onChange={e=>setEditUser(p=>({...p,name:e.target.value}))} />
-            <FormField label="البريد الإلكتروني" value={editUser.email}
-              onChange={e=>setEditUser(p=>({...p,email:e.target.value}))} />
-            <FormField label="الدور">
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">{lang==='en'?'Full Name':'الاسم الكامل'}</label>
+              <input value={editUser.name} onChange={e=>setEditUser(p=>({...p,name:e.target.value}))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 text-right"/>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">{lang==='en'?'Email':'البريد الإلكتروني'}</label>
+              <input type="email" value={editUser.email} onChange={e=>setEditUser(p=>({...p,email:e.target.value}))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" dir="ltr"/>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">{lang==='en'?'Role':'الدور'}</label>
               <select value={editUser.role} onChange={e=>setEditUser(p=>({...p,role:e.target.value}))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
                 {ROLES.map(r=><option key={r}>{r}</option>)}
               </select>
-            </FormField>
-            <FormField label="الإدارة / القسم">
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">{lang==='en'?'Department':'الإدارة / القسم'}</label>
               <select value={editUser.dept} onChange={e=>setEditUser(p=>({...p,dept:e.target.value}))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
-                <option value="">— اختر القسم —</option>
+                <option value="">{lang==='en'?'— Select Dept —':'— اختر القسم —'}</option>
                 {DEPTS.map(d=><option key={d}>{d}</option>)}
               </select>
-            </FormField>
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={handleSaveEdit} className="bg-orange-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-orange-600">💾 حفظ التعديلات</button>

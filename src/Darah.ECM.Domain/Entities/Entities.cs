@@ -211,7 +211,7 @@ public class AuditLog
 }
 
 // ─── USER ROLE ASSIGNMENT ─────────────────────────────────────────────────────
-public sealed class UserRole
+public sealed class UserRoleAssignment
 {
     public int  Id       { get; set; }
     public int  UserId   { get; set; }

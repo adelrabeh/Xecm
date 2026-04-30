@@ -287,7 +287,7 @@ public sealed class UserRepository : BaseRepository<User>, IUserRepository
     public async Task<IEnumerable<string>> GetPermissionsAsync(int userId, CancellationToken ct = default)
     {
         // Get role IDs for this user
-        var roleIds = await Ctx.Set<UserRole>()
+        var roleIds = await Ctx.Set<UserRoleAssignment>()
             .Where(ur => ur.UserId == userId && ur.IsActive)
             .Select(ur => ur.RoleId)
             .ToListAsync(ct);
@@ -297,7 +297,7 @@ public sealed class UserRepository : BaseRepository<User>, IUserRepository
     }
 
     public async Task<IEnumerable<int>> GetRoleIdsAsync(int userId, CancellationToken ct = default)
-        => await Ctx.Set<UserRole>()
+        => await Ctx.Set<UserRoleAssignment>()
             .Where(ur => ur.UserId == userId && ur.IsActive)
             .Select(ur => ur.RoleId)
             .ToListAsync(ct);

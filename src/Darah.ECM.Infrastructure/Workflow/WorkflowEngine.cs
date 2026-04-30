@@ -320,7 +320,7 @@ public sealed class WorkflowEngine : IWorkflowEngine
     private async Task<bool> IsAuthorizedAsync(WorkflowTask task, int userId, CancellationToken ct)
     {
         // Admin always authorized
-        var isAdmin = await _ctx.Set<UserRole>()
+        var isAdmin = await _ctx.Set<UserRoleAssignment>()
             .AnyAsync(ur => ur.UserId == userId && ur.IsActive, ct);
         // UserId == 1 is always seeded admin
         if (userId == 1 || isAdmin) return true;
@@ -328,7 +328,7 @@ public sealed class WorkflowEngine : IWorkflowEngine
 
         if (task.AssignedToRoleId.HasValue)
         {
-            return await _ctx.Set<UserRole>()
+            return await _ctx.Set<UserRoleAssignment>()
                 .AnyAsync(ur => ur.UserId == userId
                     && ur.RoleId == task.AssignedToRoleId.Value
                     && ur.IsActive, ct);

@@ -18,7 +18,7 @@ public sealed class MetadataSecurityPolicy
         if (doc is null) return DocumentAccessRight.None;
         if (doc.CreatedBy == userId) return DocumentAccessRight.ReadWrite;
 
-        var roleIds = await _db.Set<UserRole>()
+        var roleIds = await _db.Set<UserRoleAssignment>()
             .Where(ur => ur.UserId == userId && ur.IsActive)
             .Select(ur => ur.RoleId).ToListAsync(ct);
 

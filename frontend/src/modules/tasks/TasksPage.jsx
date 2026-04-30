@@ -651,8 +651,10 @@ export default function TasksPage() {
   const scopedTasks = React.useMemo(() => {
     if (isAdmin) return safeTasks
     return safeTasks.filter(tk =>
+      !tk.createdBy ||                                    // no owner = visible to all
       tk.createdBy === currentName ||
       tk.createdBy === currentUsername ||
+      tk.createdBy === 'أنت' ||
       tk.assignedName === currentName ||
       String(tk.assignedTo) === String(user?.userId)
     )

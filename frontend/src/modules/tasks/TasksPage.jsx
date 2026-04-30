@@ -647,6 +647,7 @@ export default function TasksPage() {
 
   // Scope: admin sees ALL tasks, others see only tasks where:
   // they are the creator OR assigned to them
+  const safeTasks = Array.isArray(tasks) ? tasks : []
   const scopedTasks = React.useMemo(() => {
     if (isAdmin) return safeTasks
     return safeTasks.filter(tk =>
@@ -656,7 +657,6 @@ export default function TasksPage() {
       String(tk.assignedTo) === String(user?.userId)
     )
   }, [safeTasks, isAdmin, currentName, currentUsername, user?.userId])
-  const safeTasks = Array.isArray(tasks) ? tasks : MOCK_TASKS
   const sl = (s) => lang==='en'?(s.labelEn||s.labelAr):s.labelAr
 
   // Auto-clean tasks: remove assignee if user no longer exists
@@ -730,7 +730,7 @@ export default function TasksPage() {
     else { const n={...task,id:Date.now()}; setTasks(p=>[n,...(Array.isArray(p)?p:MOCK_TASKS)]); show('✅ '+t('new_task'), 'success'); client.post('/api/v1/tasks',n).catch(()=>{}) }
   }
   const deleteTask = (id) => {
-    const tk = safeTasks.find(t=>t.id===id)
+    const tk = (Array.isArray(tasks)?tasks:[]).find(t=>t.id===id)
     if (tk?.status==='completed') { show(lang==='en'?'Cannot delete completed task':'لا يمكن حذف مهمة مكتملة','error'); return }
     setTasks(p=>(Array.isArray(p)?p:[]).filter(t=>t.id!==id)); setSelected(null); show(t('delete'), 'success')
   }
@@ -738,7 +738,7 @@ export default function TasksPage() {
   const boardCols = STATUSES.filter(s=>!['overdue','cancelled'].includes(s.key)).map(s=>({...s,label:sl(s),tasks:filtered.filter(t=>t.status===s.key)}))
   const overdueTasks = filtered.filter(t=>t.status==='overdue')
   const cancelledTasks = filtered.filter(t=>t.status==='cancelled')
-  const stats = { total:safeTasks.length, inprogress:withOverdue.filter(t=>t.status==='inprogress').length, overdue:withOverdue.filter(t=>t.status==='overdue').length, completed:withOverdue.filter(t=>t.status==='completed').length, escalated:withOverdue.filter(t=>t.escalated).length }
+  const stats = { total:scopedTasks.length, inprogress:withOverdue.filter(t=>t.status==='inprogress').length, overdue:withOverdue.filter(t=>t.status==='overdue').length, completed:withOverdue.filter(t=>t.status==='completed').length, escalated:withOverdue.filter(t=>t.escalated).length }
 
   return (
     <div className="flex flex-col h-full">
